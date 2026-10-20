@@ -1,27 +1,20 @@
 ---
-import type { CollectionEntry } from 'astro:content';
-import { Image } from 'astro:assets';
+import type { Edicion } from '../lib/esquemas';
+import Img from './Img.astro';
 import { romano, url } from '../lib/url';
 
 interface Props {
-  edicion: CollectionEntry<'edicions'>;
+  edicion: Edicion;
 }
 
-const { edicion } = Astro.props;
-const d = edicion.data;
+const { edicion: d } = Astro.props;
 const proxima = d.estado === 'proxima';
 ---
 
 <article class:list={['tarxeta', 'edicion', { proxima }]}>
-  <a href={url(`edicions/${edicion.id}/`)} class="ligazon-tarxeta">
+  <a href={url(`edicions/${d.id}/`)} class="ligazon-tarxeta">
     <div class="cuberta">
-      {
-        d.portada ? (
-          <Image src={d.portada} alt={d.portadaAlt ?? ''} widths={[360, 600]} sizes="(max-width: 700px) 100vw, 360px" />
-        ) : (
-          <div class="sen-foto" aria-hidden="true"></div>
-        )
-      }
+      {d.portada ? <Img id={d.portada} alt={d.portadaAlt ?? ''} sizes="(max-width: 700px) 100vw, 360px" /> : <div class="sen-foto" aria-hidden="true"></div>}
       <span class="numero">{romano(d.numero)}</span>
       {proxima && <span class="estado">Próxima edición</span>}
     </div>
@@ -38,7 +31,7 @@ const proxima = d.estado === 'proxima';
   .edicion:hover { transform: translateY(-3px); box-shadow: var(--sombra); }
   .ligazon-tarxeta { display: flex; flex-direction: column; height: 100%; text-decoration: none; color: inherit; }
   .cuberta { position: relative; aspect-ratio: 16 / 10; background: var(--negro); overflow: hidden; }
-  .cuberta img { width: 100%; height: 100%; object-fit: cover; }
+  .cuberta :global(img) { width: 100%; height: 100%; object-fit: cover; }
   .sen-foto {
     height: 100%;
     background:

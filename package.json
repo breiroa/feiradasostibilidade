@@ -7,10 +7,16 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "astro check"
+    "check": "astro check",
+    "semente": "node scripts/semente.mjs",
+    "bd:local": "wrangler d1 migrations apply feira --local && wrangler d1 execute feira --local --file semente/semente.sql",
+    "bd:remota": "wrangler d1 migrations apply feira --remote && wrangler d1 execute feira --remote --file semente/semente.sql",
+    "deploy": "astro build && wrangler deploy"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^13.7.0",
     "astro": "^6.4.8",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "wrangler": "^4.151.3"
   }
 }

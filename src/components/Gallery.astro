@@ -1,22 +1,21 @@
 ---
-import { Image, getImage } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
+import Img from './Img.astro';
+import { mediaUrl } from '../lib/url';
 
 interface Props {
-  imaxes: { imaxe: ImageMetadata; alt: string }[];
+  imaxes: { imaxe: string; alt?: string }[];
 }
 
-// Miniaturas optimizadas; ao premer ábrese a foto grande (1600 px).
+// Miniaturas; ao premer ábrese a foto grande.
 const { imaxes } = Astro.props;
-const grandes = await Promise.all(imaxes.map((i) => getImage({ src: i.imaxe, width: 1600 })));
 ---
 
 <ul class="galeria">
   {
-    imaxes.map((i, n) => (
+    imaxes.map((i) => (
       <li>
-        <a href={grandes[n].src} target="_blank" rel="noopener">
-          <Image src={i.imaxe} alt={i.alt} widths={[300, 500]} sizes="(max-width: 600px) 50vw, 300px" />
+        <a href={mediaUrl(i.imaxe, 'g')} target="_blank" rel="noopener">
+          <Img id={i.imaxe} alt={i.alt ?? ''} so="m" />
         </a>
       </li>
     ))
@@ -26,6 +25,6 @@ const grandes = await Promise.all(imaxes.map((i) => getImage({ src: i.imaxe, wid
 <style>
   .galeria { list-style: none; padding: 0; display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(min(46%, 220px), 1fr)); }
   a { display: block; overflow: hidden; border-radius: var(--raio); }
-  img { width: 100%; aspect-ratio: 1; object-fit: cover; transition: transform 0.4s; }
-  a:hover img { transform: scale(1.04); }
+  a :global(img) { width: 100%; aspect-ratio: 1; object-fit: cover; transition: transform 0.4s; }
+  a:hover :global(img) { transform: scale(1.04); }
 </style>

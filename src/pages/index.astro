@@ -1,5 +1,4 @@
 ---
-import { getCollection, getEntry } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Hero from '../components/Hero.astro';
 import StatsBar from '../components/StatsBar.astro';
@@ -7,92 +6,95 @@ import EditionCard from '../components/EditionCard.astro';
 import NewsCard from '../components/NewsCard.astro';
 import Gallery from '../components/Gallery.astro';
 import LogoGrid from '../components/LogoGrid.astro';
-import { site } from '../data/site';
-import { url } from '../lib/url';
-import foto from '../assets/legacy/multitude-corredor.jpg';
+import { axustes, edicions, mapaEntidades, noticias, paxina, resolverEntidades } from '../lib/datos';
+import { romano, url } from '../lib/url';
 
-const edicions = (await getCollection('edicions')).sort((a, b) => b.data.ano - a.data.ano);
-const actual = await getEntry('edicions', site.edicionActual);
-if (!actual) throw new Error(`Non existe a edición ${site.edicionActual}`);
+interface Inicio {
+  heroEtiqueta?: string; heroTitulo?: string; heroDestaque?: string; heroTexto?: string; heroImaxe?: string; heroImaxeAlt?: string;
+  cifras?: { valor: string; etiqueta: string }[];
+  edicionsTitulo?: string; edicionsTexto?: string;
+  cita?: string; citaDestaque?: string;
+  ecosistemaTitulo?: string; ecosistemaTexto?: string; ecosistemaEntidades?: string[];
+  participaTitulo?: string; participaTexto?: string;
+}
 
-const noticias = (await getCollection('noticias', ({ data }) => !data.borrador))
-  .sort((a, b) => b.data.data.valueOf() - a.data.data.valueOf())
-  .slice(0, 3);
-
-// Galería e entidades da última edición celebrada
-const ultimaPasada = edicions.find((e) => e.data.estado === 'pasada');
-const galeria = ultimaPasada?.data.galeria.slice(0, 8) ?? [];
-const entidades = (await getCollection('entidades'))
-  .filter((e) => e.data.papel === 'colabora')
-  .sort((a, b) => a.data.orde - b.data.orde);
+const [p, ax, eds, nots, mapa] = await Promise.all([paxina<Inicio>('inicio'), axustes(), edicions(), noticias(), mapaEntidades()]);
+const actual = eds.find((e) => e.id === ax.edicionActual);
+const ultimaPasada = eds.find((e) => e.estado === 'pasada');
+const galeria = ultimaPasada?.galeria.slice(0, 8) ?? [];
+const ecosistema = resolverEntidades(p.ecosistemaEntidades ?? [], mapa);
 ---
 
 <Base>
-  <Hero etiqueta="#AFeira · IES Luís Seoane · Pontevedra" imaxe={foto} imaxeAlt="Corredor do IES Luís Seoane cheo de xente durante a Feira">
-    <h1>A Feira non son dous días. <em>É un movemento.</em></h1>
-    <p class="entrada">
-      Dende 2023, a Feira da Sostibilidade converte o IES Luís Seoane nun laboratorio aberto onde o alumnado investiga, actúa e constrúe cidadanía crítica xunto a centros educativos, universidade e entidades sociais.
-    </p>
+  <Hero etiqueta={p.heroEtiqueta} imaxe={p.heroImaxe} imaxeAlt={p.heroImaxeAlt}>
+    <h1>{p.heroTitulo} {p.heroDestaque && <em>{p.heroDestaque}</em>}</h1>
+    {p.heroTexto && <p class="entrada">{p.heroTexto}</p>}
     <div class="accions">
-      <a class="boton" href={url(`edicions/${actual.id}/`)}>V Feira · 28–30 abril 2027</a>
+      {actual && <a class="boton" href={url(`edicions/${actual.id}/`)}>{romano(actual.numero)} Feira · {actual.datas.replace(/ de \d{4}$/, '')}</a>}
       <a class="boton boton--contorno" href={url('a-feira/')}>Que é a Feira</a>
     </div>
-    <div slot="baixo" class="contedor cifras-heroe">
-      <StatsBar
-        escuro
-        cifras={[
-          { valor: '4', etiqueta: 'edicións celebradas' },
-          { valor: '+1.000', etiqueta: 'persoas participantes por edición' },
-          { valor: '30', etiqueta: 'entidades colaboradoras na IV edición' },
-          { valor: '13', etiqueta: 'centros de Galicia, España e Europa' },
-        ]}
-      />
-    </div>
+    {p.cifras?.length ? <div slot="baixo" class="contedor cifras-heroe"><StatsBar escuro cifras={p.cifras} /></div> : null}
   </Hero>
 
-  <section class="seccion seccion--branca">
-    <div class="contedor proxima">
-      <div>
-        <p class="etiqueta">Próxima edición</p>
-        <h2>{actual.data.titulo}</h2>
-        {actual.data.lema && <p class="lema">{actual.data.lema}</p>}
-        <p class="datas"><strong>{actual.data.datas}</strong><br />{actual.data.lugar}</p>
-        <p>{actual.data.resumo}</p>
-        <ul class="chips">
-          {actual.data.fitos.map((f) => <li class="chip">{f}</li>)}
-        </ul>
-        <a class="boton" href={url(`edicions/${actual.id}/`)}>Ver a V edición</a>
-      </div>
-      <StatsBar cifras={actual.data.cifras} />
-    </div>
-  </section>
+  {
+    actual && (
+      <section class="seccion seccion--branca">
+        <div class="contedor proxima">
+          <div>
+            <p class="etiqueta">{actual.estado === 'proxima' ? 'Próxima edición' : 'Edición actual'}</p>
+            <h2>{actual.titulo}</h2>
+            {actual.lema && <p class="lema">{actual.lema}</p>}
+            <p class="datas">
+              <strong>{actual.datas}</strong>
+              <br />
+              {actual.lugar}
+            </p>
+            <p>{actual.resumo}</p>
+            {actual.fitos.length > 0 && (
+              <ul class="chips">
+                {actual.fitos.map((f) => <li class="chip">{f}</li>)}
+              </ul>
+            )}
+            <a class="boton" href={url(`edicions/${actual.id}/`)}>Ver a {romano(actual.numero)} edición</a>
+          </div>
+          {actual.cifras.length > 0 && <StatsBar cifras={actual.cifras} />}
+        </div>
+      </section>
+    )
+  }
 
   <section class="seccion">
     <div class="contedor">
       <div class="cabeceira-seccion">
         <div>
           <p class="etiqueta">As edicións</p>
-          <h2>Cada edición suma.</h2>
-          <p>A Feira é un proceso vivo que medra cada curso: máis centros, máis entidades e máis proxectos do alumnado.</p>
+          <h2>{p.edicionsTitulo}</h2>
+          {p.edicionsTexto && <p>{p.edicionsTexto}</p>}
         </div>
         <a class="ligazon-frecha" href={url('edicions/')}>Todas as edicións</a>
       </div>
       <div class="grella">
-        {edicions.map((e) => <EditionCard edicion={e} />)}
+        {eds.map((e) => <EditionCard edicion={e} />)}
       </div>
     </div>
   </section>
 
-  <section class="cita">
-    <div class="contedor">
-      <blockquote>
-        <p>O futuro non se explica. <span>Constrúese.</span></p>
-      </blockquote>
-    </div>
-  </section>
+  {
+    p.cita && (
+      <section class="cita">
+        <div class="contedor">
+          <blockquote>
+            <p>
+              {p.cita} {p.citaDestaque && <span>{p.citaDestaque}</span>}
+            </p>
+          </blockquote>
+        </div>
+      </section>
+    )
+  }
 
   {
-    noticias.length > 0 && (
+    nots.length > 0 && (
       <section class="seccion seccion--branca">
         <div class="contedor">
           <div class="cabeceira-seccion">
@@ -103,7 +105,7 @@ const entidades = (await getCollection('entidades'))
             <a class="ligazon-frecha" href={url('actualidade/')}>Todas as noticias</a>
           </div>
           <div class="grella">
-            {noticias.map((n) => <NewsCard noticia={n} />)}
+            {nots.slice(0, 3).map((n) => <NewsCard noticia={n} />)}
           </div>
         </div>
       </section>
@@ -116,10 +118,10 @@ const entidades = (await getCollection('entidades'))
         <div class="contedor">
           <div class="cabeceira-seccion">
             <div>
-              <p class="etiqueta">{ultimaPasada.data.titulo}</p>
+              <p class="etiqueta">{ultimaPasada.titulo}</p>
               <h2>Así foi a última Feira.</h2>
             </div>
-            <a class="ligazon-frecha" href={url(`edicions/${ultimaPasada.id}/`)}>Ver a edición {ultimaPasada.data.ano}</a>
+            <a class="ligazon-frecha" href={url(`edicions/${ultimaPasada.id}/`)}>Ver a edición {ultimaPasada.ano}</a>
           </div>
           <Gallery imaxes={galeria} />
         </div>
@@ -127,29 +129,33 @@ const entidades = (await getCollection('entidades'))
     )
   }
 
-  <section class="seccion seccion--verde">
-    <div class="contedor">
-      <div class="cabeceira-seccion">
-        <div>
-          <p class="etiqueta">O ecosistema</p>
-          <h2>Unha rede que multiplica o impacto.</h2>
-          <p>Entidades sociais, ONGD, cooperativas, administracións e iniciativas do territorio que fan a Feira posible.</p>
+  {
+    ecosistema.length > 0 && (
+      <section class="seccion seccion--verde">
+        <div class="contedor">
+          <div class="cabeceira-seccion">
+            <div>
+              <p class="etiqueta">O ecosistema</p>
+              <h2>{p.ecosistemaTitulo}</h2>
+              {p.ecosistemaTexto && <p>{p.ecosistemaTexto}</p>}
+            </div>
+          </div>
+          <LogoGrid entidades={ecosistema} />
         </div>
-      </div>
-      <LogoGrid entidades={entidades} />
-    </div>
-  </section>
+      </section>
+    )
+  }
 
-  <section class="seccion seccion--escura bloque-participa">
+  <section class="seccion bloque-participa">
     <div class="contedor participa">
       <div>
         <p class="etiqueta">Participa</p>
-        <h2>Non veñas só mirar. Participa.</h2>
-        <p>Centros educativos, entidades, empresas e medios: hai moitas formas de formar parte da Feira.</p>
+        <h2>{p.participaTitulo}</h2>
+        {p.participaTexto && <p>{p.participaTexto}</p>}
       </div>
       <div class="accions">
         <a class="boton" href={url('participa/')}>Como participar</a>
-        <a class="boton boton--contorno" href={site.instagram} rel="noopener">{site.instagramUsuario}</a>
+        {ax.instagram && <a class="boton boton--contorno" href={ax.instagram} rel="noopener">{ax.instagramUsuario ?? 'Instagram'}</a>}
       </div>
     </div>
   </section>
@@ -166,6 +172,7 @@ const entidades = (await getCollection('entidades'))
   blockquote p { font-family: var(--serif); font-style: italic; font-size: clamp(1.6rem, 3.4vw, 2.6rem); line-height: 1.25; color: var(--branco); }
   blockquote span { color: var(--negro); font-style: normal; }
   .bloque-participa { background: var(--morado); color: rgb(255 255 255 / 0.85); }
+  .bloque-participa h2 { color: var(--branco); }
   .bloque-participa .etiqueta { color: var(--morado-suave); }
   .bloque-participa .boton { background: var(--branco); border-color: var(--branco); color: var(--morado); }
   .bloque-participa .boton:hover { background: var(--morado-pale); border-color: var(--morado-pale); color: var(--negro); }

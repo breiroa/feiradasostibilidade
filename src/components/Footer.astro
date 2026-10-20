@@ -1,31 +1,39 @@
 ---
-import { getCollection } from 'astro:content';
+import type { Axustes, Entidade } from '../lib/esquemas';
 import LogoGrid from './LogoGrid.astro';
-import { nav, site } from '../data/site';
+import { resolverEntidades } from '../lib/datos';
+import { nav } from '../data/site';
 import { url } from '../lib/url';
 
-const entidades = await getCollection('entidades');
-const organizan = entidades.filter((e) => e.data.papel === 'organiza').sort((a, b) => a.data.orde - b.data.orde);
-const financian = entidades.filter((e) => e.data.papel === 'financia').sort((a, b) => a.data.orde - b.data.orde);
+interface Props {
+  axustes: Axustes;
+  mapa: Map<string, Entidade>;
+}
+
+const { axustes: ax, mapa } = Astro.props;
+const grupos = ax.pe.grupos.map((g) => ({ ...g, items: resolverEntidades(g.entidades, mapa) })).filter((g) => g.items.length > 0);
 ---
 
 <footer class="rodape">
   <div class="contedor">
-    <div class="logos">
-      <div>
-        <p class="etiqueta">Organizan</p>
-        <LogoGrid entidades={organizan} escuro />
-      </div>
-      <div>
-        <p class="etiqueta">Financia a V edición</p>
-        <LogoGrid entidades={financian} escuro />
-      </div>
-    </div>
+    {
+      grupos.length > 0 && (
+        <div class="grupos">
+          {grupos.map((g) => (
+            <section class="grupo">
+              <p class="etiqueta">{g.titulo}</p>
+              <LogoGrid entidades={g.items} />
+              {g.nota && <p class="nota">{g.nota}</p>}
+            </section>
+          ))}
+        </div>
+      )
+    }
 
     <div class="columnas">
       <div>
         <p class="nome">Feira da <em>Sostibilidade</em></p>
-        <p>{site.lema}. Un movemento educativo nacido no IES Luís Seoane de Pontevedra, impulsado polo colectivo Eco-Étika, CIDEL Galicia e a Universidade de Vigo.</p>
+        {ax.pe.texto && <p>{ax.pe.texto}</p>}
       </div>
       <nav aria-label="Pé de páxina">
         <p class="etiqueta">Navegación</p>
@@ -36,8 +44,9 @@ const financian = entidades.filter((e) => e.data.papel === 'financia').sort((a, 
       <div>
         <p class="etiqueta">Síguenos</p>
         <ul>
-          <li><a href={site.instagram} rel="noopener">Instagram {site.instagramUsuario}</a></li>
-          <li><a href={site.webIes} rel="noopener">Web do IES Luís Seoane</a></li>
+          {ax.instagram && <li><a href={ax.instagram} rel="noopener">Instagram {ax.instagramUsuario}</a></li>}
+          {ax.correo && <li><a href={`mailto:${ax.correo}`}>{ax.correo}</a></li>}
+          {ax.webIes && <li><a href={ax.webIes} rel="noopener">Web do IES Luís Seoane</a></li>}
         </ul>
       </div>
     </div>
@@ -54,13 +63,15 @@ const financian = entidades.filter((e) => e.data.papel === 'financia').sort((a, 
   .rodape a { color: rgb(255 255 255 / 0.85); }
   .rodape a:hover { color: var(--verde-medio); }
   .etiqueta { color: var(--verde-medio); }
-  .logos { display: grid; grid-template-columns: 3fr 1fr; gap: 2rem; padding-bottom: 2.5rem; border-bottom: 1px solid rgb(255 255 255 / 0.1); }
+  .grupos { display: flex; flex-wrap: wrap; gap: 2rem 3rem; padding-bottom: 2.5rem; border-bottom: 1px solid rgb(255 255 255 / 0.1); }
+  .grupo { display: flex; flex-direction: column; gap: 0.2rem; }
+  .nota { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em; color: rgb(255 255 255 / 0.55); margin-top: 0.6rem; }
   .columnas { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 2rem; padding-block: 2.5rem; }
   .columnas ul { list-style: none; padding: 0; display: grid; gap: 0.4rem; }
   .nome { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; color: var(--branco); margin-bottom: 0.6rem; }
   .nome em { color: var(--verde-medio); }
   .legal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; padding-top: 1.5rem; border-top: 1px solid rgb(255 255 255 / 0.1); font-size: 0.85rem; }
   @media (max-width: 760px) {
-    .logos, .columnas { grid-template-columns: 1fr; }
+    .columnas { grid-template-columns: 1fr; }
   }
 </style>

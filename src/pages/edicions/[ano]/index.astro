@@ -1,5 +1,4 @@
 ---
-import { getCollection, getEntries, getEntry, render } from 'astro:content';
 import Base from '../../../layouts/Base.astro';
 import Hero from '../../../components/Hero.astro';
 import StatsBar from '../../../components/StatsBar.astro';
@@ -8,44 +7,34 @@ import Gallery from '../../../components/Gallery.astro';
 import LogoGrid from '../../../components/LogoGrid.astro';
 import NewsCard from '../../../components/NewsCard.astro';
 import ProjectBanner from '../../../components/ProjectBanner.astro';
-import { romano, url } from '../../../lib/url';
+import { edicion, edicions, mapaEntidades, noticias, proxecto as obterProxecto, resolverEntidades } from '../../../lib/datos';
+import { mediaUrl, romano, url } from '../../../lib/url';
 
-export async function getStaticPaths() {
-  const edicions = await getCollection('edicions');
-  return edicions.map((edicion) => ({ params: { ano: edicion.id }, props: { edicion } }));
-}
+const d = await edicion(Astro.params.ano ?? '');
+if (!d) return new Response(null, { status: 404 });
 
-const { edicion } = Astro.props;
-const d = edicion.data;
-const { Content } = await render(edicion);
-
-const entidades = (await getEntries(d.entidades)).sort((a, b) => a.data.orde - b.data.orde);
-const porPapel = (p: string) => entidades.filter((e) => e.data.papel === p);
-const proxecto = d.proxecto ? await getEntry(d.proxecto) : undefined;
-
-const noticias = (await getCollection('noticias', ({ data }) => !data.borrador && data.edicion?.id === edicion.id))
-  .sort((a, b) => b.data.data.valueOf() - a.data.data.valueOf());
-
-const todas = (await getCollection('edicions')).sort((a, b) => a.data.ano - b.data.ano);
-const pos = todas.findIndex((e) => e.id === edicion.id);
-const anterior = todas[pos - 1];
-const seguinte = todas[pos + 1];
-
-const grupos = [
-  { titulo: 'Organizan', items: porPapel('organiza') },
-  { titulo: 'Financia', items: porPapel('financia') },
-  { titulo: 'Colaboran', items: porPapel('colabora') },
-].filter((g) => g.items.length > 0);
+const [mapa, todas, nots, proxecto] = await Promise.all([
+  mapaEntidades(),
+  edicions(),
+  noticias(),
+  d.proxecto ? obterProxecto(d.proxecto) : Promise.resolve(null),
+]);
+const grupos = d.grupos.map((g) => ({ ...g, items: resolverEntidades(g.entidades, mapa) })).filter((g) => g.items.length > 0);
+const noticiasEd = nots.filter((n) => n.edicion === d.id);
+const orde = [...todas].sort((a, b) => a.ano - b.ano);
+const pos = orde.findIndex((e) => e.id === d.id);
+const anterior = orde[pos - 1];
+const seguinte = orde[pos + 1];
 ---
 
-<Base titulo={d.titulo} descricion={d.resumo}>
+<Base titulo={d.titulo} descricion={d.resumo} imaxe={d.portada}>
   <Hero etiqueta={`${romano(d.numero)} edición · ${d.ano}`} imaxe={d.portada} imaxeAlt={d.portadaAlt}>
     <h1>{d.titulo}{d.lema && <em class="lema">{d.lema}</em>}</h1>
     <p class="entrada"><strong>{d.datas}</strong><br />{d.lugar}</p>
     {
       d.estado === 'proxima' && (
         <div class="accions">
-          {proxecto && <a class="boton" href={url(`edicions/${edicion.id}/${proxecto.id}/`)}>Proxecto {proxecto.data.nomeCurto}</a>}
+          {proxecto && <a class="boton" href={url(`edicions/${d.id}/${proxecto.id}/`)}>Proxecto {proxecto.nomeCurto}</a>}
           <a class="boton boton--contorno" href={url('participa/')}>Participa na Feira</a>
         </div>
       )
@@ -57,7 +46,7 @@ const grupos = [
       <div class="texto-longo">
         <p class="etiqueta">A edición</p>
         <p class="resumo">{d.resumo}</p>
-        <Content />
+        <Fragment set:html={d.corpo} />
         {
           d.fitos.length > 0 && (
             <ul class="chips">
@@ -74,7 +63,7 @@ const grupos = [
     proxecto && (
       <section class="seccion">
         <div class="contedor">
-          <ProjectBanner proxecto={proxecto} />
+          <ProjectBanner proxecto={proxecto} entidades={resolverEntidades(proxecto.entidades, mapa)} />
         </div>
       </section>
     )
@@ -127,6 +116,12 @@ const grupos = [
         <div class="contedor">
           <p class="etiqueta">Quen participa</p>
           <h2 class="marxe">Centros e entidades.</h2>
+          {grupos.map((g) => (
+            <div class="bloque">
+              <h3>{g.titulo}</h3>
+              <LogoGrid entidades={g.items} />
+            </div>
+          ))}
           {d.centros.length > 0 && (
             <div class="bloque">
               <h3>Centros educativos</h3>
@@ -135,12 +130,6 @@ const grupos = [
               </ul>
             </div>
           )}
-          {grupos.map((g) => (
-            <div class="bloque">
-              <h3>{g.titulo}</h3>
-              <LogoGrid entidades={g.items} />
-            </div>
-          ))}
         </div>
       </section>
     )
@@ -154,13 +143,14 @@ const grupos = [
             <div>
               <p class="etiqueta">Documentos</p>
               <ul class="lista-simple">
-                {d.documentos.map((doc) =>
-                  doc.url ? (
-                    <li><a class="ligazon-frecha" href={doc.url} rel="noopener">{doc.titulo}</a></li>
+                {d.documentos.map((doc) => {
+                  const destino = doc.ficheiro ? mediaUrl(doc.ficheiro, 'f') : doc.url;
+                  return destino ? (
+                    <li><a class="ligazon-frecha" href={destino} rel="noopener">{doc.titulo}</a></li>
                   ) : (
                     <li class="pendente">{doc.titulo} <span>· dispoñible en breve</span></li>
-                  ),
-                )}
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -168,9 +158,9 @@ const grupos = [
             <div>
               <p class="etiqueta">Na prensa</p>
               <ul class="lista-simple">
-                {d.prensa.map((p) => (
+                {d.prensa.map((pr) => (
                   <li>
-                    {p.url ? <a href={p.url} rel="noopener">{p.medio}{p.titulo && `: ${p.titulo}`}</a> : <>{p.medio}{p.titulo && `: ${p.titulo}`}</>}
+                    {pr.url ? <a href={pr.url} rel="noopener">{pr.medio}{pr.titulo && `: ${pr.titulo}`}</a> : <>{pr.medio}{pr.titulo && `: ${pr.titulo}`}</>}
                   </li>
                 ))}
               </ul>
@@ -182,13 +172,13 @@ const grupos = [
   }
 
   {
-    noticias.length > 0 && (
+    noticiasEd.length > 0 && (
       <section class="seccion">
         <div class="contedor">
           <p class="etiqueta">Actualidade</p>
           <h2 class="marxe">Noticias desta edición.</h2>
           <div class="grella">
-            {noticias.map((n) => <NewsCard noticia={n} />)}
+            {noticiasEd.map((n) => <NewsCard noticia={n} />)}
           </div>
         </div>
       </section>
@@ -196,8 +186,8 @@ const grupos = [
   }
 
   <nav class="contedor navegacion-edicions" aria-label="Outras edicións">
-    {anterior ? <a href={url(`edicions/${anterior.id}/`)}>← {anterior.data.titulo}</a> : <span></span>}
-    {seguinte && <a href={url(`edicions/${seguinte.id}/`)}>{seguinte.data.titulo} →</a>}
+    {anterior ? <a href={url(`edicions/${anterior.id}/`)}>← {anterior.titulo}</a> : <span></span>}
+    {seguinte && <a href={url(`edicions/${seguinte.id}/`)}>{seguinte.titulo} →</a>}
   </nav>
 </Base>
 

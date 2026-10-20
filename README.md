@@ -1,31 +1,32 @@
-# Feira da Sostibilidade · web
+# Feira da Sostibilidade · web e panel
 
-Web da Feira da Sostibilidade do IES Luís Seoane (Pontevedra): portada do movemento, edicións que se van acumulando (2023 → 2027), actualidade, recursos e o proxecto SENDA 2030 dentro da V edición.
+Web da Feira da Sostibilidade do IES Luís Seoane (Pontevedra) con **panel propio** para xestionar os contidos.
+Todo funciona no plan gratuíto de Cloudflare:
 
-Publicada en **https://breiroa.github.io/feiradasostibilidade/**
+- **Cloudflare Workers**: serve a web e o panel (Astro, páxinas xeradas ao momento).
+- **Cloudflare D1**: base de datos con contidos, imaxes, contas, sesións e inscricións.
+- **GitHub**: garda o código.
 
-## Editar contidos (sen tocar código)
+## Panel (`/panel/`)
 
-Entra en [app.pagescms.org](https://app.pagescms.org) coa túa conta de GitHub e abre este repositorio. Desde aí podes engadir ou cambiar:
-
-- **Noticias**: aparecen en Actualidade, na portada e na páxina da súa edición.
-- **Edicións**: unha ficha por ano (datas, programa, cifras, galería, centros e entidades…).
-- **Entidades**: nome, logo e web; despois engádense ás edicións.
-- **Recursos**: xogos, estudos, podcasts e materiais.
-- **Proxectos**: SENDA 2030 e as súas actividades (cambia o estado: prevista → en curso → feita).
-
-Cada vez que gardas, a web reconstrúese e publícase soa en 1–2 minutos (pestana *Actions* de GitHub).
+- Contas individuais con **verificación en dous pasos obrigatoria** (app de autenticación).
+- A primeira persoa que entra crea a conta de superadministración; as demais entran por **convite** (ligazón que se copia e se envía).
+- Seccións: Edicións, Noticias, Recursos, Proxectos, Entidades e logos, Textos das páxinas, Biblioteca, Inscricións (formularios de Participa), Persoas administradoras, Axustes e pé, A miña conta.
+- Gardar = cambio visible na web ao instante. As imaxes optimízanse no navegador (WebP) antes de subir.
+- Copia de seguridade: Axustes → «Descargar copia». D1 garda ademais copias automáticas de 7 días.
 
 ## Estrutura
 
 | Carpeta | Contido |
 |---|---|
-| `src/content/` | Os contidos (Markdown e YAML), unha carpeta por tipo |
-| `src/assets/media/` | Imaxes subidas desde o panel |
-| `src/assets/legacy/` | Fotos herdadas da páxina FeiraLab orixinal |
-| `src/pages/` | As páxinas |
-| `src/components/` | Pezas reutilizables (tarxetas, galería, logos…) |
-| `public/vieja/` | A páxina FeiraLab orixinal, tal cal (sen ligazóns desde a web) |
+| `src/pages/` | Páxinas públicas e API (`src/pages/api/`) |
+| `src/lib/datos.ts` | Acceso á base de datos (único sitio que coñece D1) |
+| `src/lib/esquemas.ts` | Esquemas dos contidos (validación ao ler e ao gardar) |
+| `src/lib/panel/` | Seguridade (contrasinais, 2FA, sesións), saneado do HTML, axudas da API |
+| `public/panel/` | O panel (HTML + CSS + JavaScript sen dependencias) |
+| `migrations/` | Estrutura da base de datos |
+| `semente/`, `scripts/semente.mjs` | Contidos iniciais (xeran `semente/semente.sql`) |
+| `public/vieja/` | A páxina FeiraLab orixinal, tal cal |
 
 ## Traballar en local
 
@@ -33,8 +34,16 @@ Require Node.js 22 ou superior.
 
 ```bash
 npm install
-npm run dev      # http://localhost:4321/feiradasostibilidade/
-npm run build    # comproba que todo compila
+npm run semente      # xera semente/semente.sql
+npm run bd:local     # crea a base de datos local e carga a semente
+npm run dev          # http://localhost:4321  (panel en /panel/)
 ```
 
-Para usar un dominio propio: en `astro.config.mjs` cambiar `site` e eliminar `base`.
+## Publicar
+
+```bash
+npx wrangler login   # unha vez: autorizar no navegador
+npm run deploy
+```
+
+A primeira vez: `npx wrangler d1 create feira`, copiar o `database_id` en `wrangler.jsonc` e executar `npm run bd:remota`.

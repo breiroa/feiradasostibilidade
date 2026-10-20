@@ -1,15 +1,14 @@
 ---
-import { Image } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
+import Img from './Img.astro';
 
 interface Props {
   etiqueta?: string;
-  imaxe?: ImageMetadata;
+  imaxe?: string; // id de media
   imaxeAlt?: string;
   compacto?: boolean;
 }
 
-// Cabeceira escura con degradado verde/morado (a da web orixinal) e foto opcional á dereita.
+// Cabeceira escura con degradado verde/morado e foto opcional á dereita.
 const { etiqueta, imaxe, imaxeAlt = '', compacto = false } = Astro.props;
 ---
 
@@ -23,7 +22,7 @@ const { etiqueta, imaxe, imaxeAlt = '', compacto = false } = Astro.props;
     {
       imaxe && (
         <div class="foto">
-          <Image src={imaxe} alt={imaxeAlt} widths={[400, 700, 1000]} sizes="(max-width: 860px) 100vw, 45vw" loading="eager" fetchpriority="high" />
+          <Img id={imaxe} alt={imaxeAlt} sizes="(max-width: 860px) 100vw, 45vw" loading="eager" fetchpriority="high" />
         </div>
       )
     }
@@ -48,9 +47,9 @@ const { etiqueta, imaxe, imaxeAlt = '', compacto = false } = Astro.props;
   .texto :global(h1 em) { font-style: italic; color: var(--morado-medio); }
   .texto :global(p.entrada) { font-size: clamp(1.05rem, 1.5vw, 1.25rem); font-weight: 300; max-width: 52ch; }
   .texto :global(.accions) { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2.2rem; }
-  .foto img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--raio); box-shadow: 0 30px 60px rgb(0 0 0 / 0.35); }
+  .foto :global(img) { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--raio); box-shadow: 0 30px 60px rgb(0 0 0 / 0.35); }
   @media (max-width: 860px) {
     .con-imaxe .grella-heroe { grid-template-columns: 1fr; }
-    .foto img { aspect-ratio: 16 / 10; }
+    .foto :global(img) { aspect-ratio: 16 / 10; }
   }
 </style>

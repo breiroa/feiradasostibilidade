@@ -1,5 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
+import { paxina } from '../lib/datos';
+
+const p = await paxina<{ corpo?: string }>('aviso-legal');
 ---
 
 <Base titulo="Aviso legal e privacidade">
@@ -7,27 +10,7 @@ import Base from '../layouts/Base.astro';
     <div class="contedor texto-longo">
       <p class="etiqueta">Aviso legal</p>
       <h1>Aviso legal e privacidade</h1>
-
-      <h2>Titularidade</h2>
-      <p>
-        Esta web divulga a Feira da Sostibilidade do IES Luís Seoane (Pontevedra) e os proxectos educativos vinculados, impulsados polo IES Luís Seoane, CIDEL Galicia e a Universidade de Vigo.
-      </p>
-
-      <h2>Privacidade</h2>
-      <p>
-        Esta web non usa cookies nin recolle datos persoais das persoas visitantes. As tipografías cárganse desde Google Fonts. As ligazóns a servizos externos (Instagram, plataformas de vídeo ou formularios) réxense polas políticas desas plataformas.
-      </p>
-
-      <h2>Imaxes de menores</h2>
-      <p>
-        As imaxes nas que aparece alumnado publícanse coa autorización correspondente dos centros educativos. Se apareces nunha imaxe e queres que se retire, contacta co IES Luís Seoane e retirarémola.
-      </p>
-
-      <h2>Licenza dos contidos</h2>
-      <p>
-        Salvo indicación contraria, os textos e recursos desta web publícanse baixo licenza
-        <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.gl" rel="license noopener">Creative Commons Recoñecemento-CompartirIgual 4.0 (CC BY-SA 4.0)</a>. Os logotipos pertencen ás súas respectivas entidades.
-      </p>
+      <Fragment set:html={p.corpo ?? ''} />
     </div>
   </section>
 </Base>

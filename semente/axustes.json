@@ -1,0 +1,17 @@
+{
+  "nome": "Feira da Sostibilidade",
+  "lema": "Pensa, consume e actúa",
+  "descricion": "A Feira da Sostibilidade do IES Luís Seoane (Pontevedra): un movemento educativo de alumnado, profesorado, universidade e entidades sociais arredor dos retos ecosociais e da cidadanía global.",
+  "edicionActual": "2027",
+  "instagram": "https://www.instagram.com/feiradasostibilidade",
+  "instagramUsuario": "@feiradasostibilidade",
+  "webIes": "https://iesluisseoane.org/",
+  "pe": {
+    "texto": "Pensa, consume e actúa. Un movemento educativo nacido no IES Luís Seoane de Pontevedra a partir do colectivo Eco-Étika.",
+    "grupos": [
+      { "titulo": "Organiza", "entidades": ["ies-luis-seoane"] },
+      { "titulo": "Impulsan", "entidades": ["cidel-galicia", "universidade-de-vigo"] },
+      { "titulo": "Co apoio de", "entidades": ["cooperacion-galega"], "nota": "V Feira · proxecto SENDA 2030" }
+    ]
+  }
+}

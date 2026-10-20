@@ -1,12 +1,12 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Hero from '../../components/Hero.astro';
 import ResourceCard from '../../components/ResourceCard.astro';
+import { recursos } from '../../lib/datos';
 import { tiposRecurso } from '../../data/site';
 
-const recursos = (await getCollection('recursos')).sort((a, b) => a.data.titulo.localeCompare(b.data.titulo, 'gl'));
-const tipos = [...new Set(recursos.map((r) => r.data.tipo))];
+const lista = await recursos();
+const tipos = [...new Set(lista.map((r) => r.tipo))];
 ---
 
 <Base titulo="Recursos" descricion="Xogos, podcasts, estudos e materiais creados polo alumnado e o profesorado da Feira da Sostibilidade, en aberto.">
@@ -17,14 +17,18 @@ const tipos = [...new Set(recursos.map((r) => r.data.tipo))];
 
   <section class="seccion">
     <div class="contedor">
-      <div class="filtros" role="group" aria-label="Filtrar por tipo">
-        <button type="button" data-filtro="todos" aria-pressed="true">Todos</button>
-        {tipos.map((t) => <button type="button" data-filtro={t} aria-pressed="false">{tiposRecurso[t]}</button>)}
-      </div>
+      {
+        tipos.length > 1 && (
+          <div class="filtros" role="group" aria-label="Filtrar por tipo">
+            <button type="button" data-filtro="todos" aria-pressed="true">Todos</button>
+            {tipos.map((t) => <button type="button" data-filtro={t} aria-pressed="false">{tiposRecurso[t]}</button>)}
+          </div>
+        )
+      }
       <div class="grella" id="lista">
         {
-          recursos.map((r) => (
-            <div data-tipo={r.data.tipo}>
+          lista.map((r) => (
+            <div data-tipo={r.tipo}>
               <ResourceCard recurso={r} />
             </div>
           ))

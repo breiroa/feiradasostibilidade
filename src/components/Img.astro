@@ -1,0 +1,20 @@
+---
+// Imaxe da biblioteca (D1). Usa a miniatura en pantallas pequenas e a grande no resto.
+import { mediaUrl } from '../lib/url';
+
+interface Props {
+  id: string;
+  alt?: string;
+  sizes?: string;
+  class?: string;
+  loading?: 'lazy' | 'eager';
+  fetchpriority?: 'high' | 'low' | 'auto';
+  so?: 'g' | 'm';
+}
+
+const { id, alt = '', sizes = '100vw', class: clase, loading = 'lazy', fetchpriority, so } = Astro.props;
+const src = mediaUrl(id, so ?? 'g');
+const srcset = so ? undefined : `${mediaUrl(id, 'm')} 640w, ${mediaUrl(id, 'g')} 1600w`;
+---
+
+<img src={src} srcset={srcset} sizes={srcset ? sizes : undefined} alt={alt} class={clase} loading={loading} fetchpriority={fetchpriority} decoding="async" />

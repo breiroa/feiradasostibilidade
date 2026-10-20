@@ -1,13 +1,11 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Hero from '../../components/Hero.astro';
 import NewsCard from '../../components/NewsCard.astro';
+import { noticias } from '../../lib/datos';
 
-const noticias = (await getCollection('noticias', ({ data }) => !data.borrador)).sort(
-  (a, b) => b.data.data.valueOf() - a.data.data.valueOf(),
-);
-const edicions = [...new Set(noticias.map((n) => n.data.edicion?.id).filter(Boolean))].sort().reverse() as string[];
+const nots = await noticias();
+const eds = [...new Set(nots.map((n) => n.edicion).filter((e): e is string => Boolean(e)))].sort().reverse();
 ---
 
 <Base titulo="Actualidade" descricion="Noticias e crónicas da Feira da Sostibilidade e dos proxectos que a acompañan.">
@@ -19,19 +17,20 @@ const edicions = [...new Set(noticias.map((n) => n.data.edicion?.id).filter(Bool
   <section class="seccion">
     <div class="contedor">
       {
-        edicions.length > 1 && (
+        eds.length > 1 && (
           <div class="filtros" role="group" aria-label="Filtrar por edición">
             <button type="button" data-filtro="todas" aria-pressed="true">Todas</button>
-            {edicions.map((e) => (
+            {eds.map((e) => (
               <button type="button" data-filtro={e} aria-pressed="false">Feira {e}</button>
             ))}
           </div>
         )
       }
+      {nots.length === 0 && <p>Aínda non hai noticias.</p>}
       <div class="grella" id="lista">
         {
-          noticias.map((n) => (
-            <div data-edicion={n.data.edicion?.id ?? ''}>
+          nots.map((n) => (
+            <div data-edicion={n.edicion ?? ''}>
               <NewsCard noticia={n} />
             </div>
           ))

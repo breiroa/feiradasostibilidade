@@ -17,3 +17,14 @@ const romanos = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'
 export function romano(n: number): string {
   return romanos[n] ?? String(n);
 }
+
+/** Enderezo dunha imaxe/ficheiro da biblioteca: g = grande, m = miniatura, f = ficheiro */
+export function mediaUrl(id: string, variante: 'g' | 'm' | 'f' = 'g'): string {
+  return url(`media/${id}/${variante}`);
+}
+
+/** "2026-10-20" → "20 de outubro de 2026" */
+export function dataTexto(iso: string): string {
+  const [a, m, d] = iso.split('-').map(Number);
+  return dataLonga(new Date(Date.UTC(a, m - 1, d)));
+}

@@ -1,28 +1,23 @@
 ---
-import type { CollectionEntry } from 'astro:content';
-import { Image } from 'astro:assets';
-import { dataLonga, url } from '../lib/url';
+import type { Noticia } from '../lib/esquemas';
+import Img from './Img.astro';
+import { dataTexto, url } from '../lib/url';
 
 interface Props {
-  noticia: CollectionEntry<'noticias'>;
+  noticia: Noticia;
 }
 
-const { noticia } = Astro.props;
-const d = noticia.data;
+const { noticia: d } = Astro.props;
 ---
 
 <article class="tarxeta noticia">
-  {
-    d.imaxe && (
-      <Image src={d.imaxe} alt={d.imaxeAlt ?? ''} widths={[360, 600]} sizes="(max-width: 700px) 100vw, 360px" class="foto" />
-    )
-  }
+  {d.imaxe && <Img id={d.imaxe} alt={d.imaxeAlt ?? ''} sizes="(max-width: 700px) 100vw, 360px" class="foto" />}
   <div class="corpo">
     <p class="meta">
-      <time datetime={d.data.toISOString().slice(0, 10)}>{dataLonga(d.data)}</time>
-      {d.edicion && <span> · Feira {d.edicion.id}</span>}
+      <time datetime={d.data}>{dataTexto(d.data)}</time>
+      {d.edicion && <span> · Feira {d.edicion}</span>}
     </p>
-    <h3><a href={url(`actualidade/${noticia.id}/`)}>{d.titulo}</a></h3>
+    <h3><a href={url(`actualidade/${d.id}/`)}>{d.titulo}</a></h3>
     <p>{d.resumo}</p>
   </div>
 </article>
@@ -30,7 +25,7 @@ const d = noticia.data;
 <style>
   .noticia { position: relative; height: 100%; transition: box-shadow 0.2s; }
   .noticia:hover { box-shadow: var(--sombra); }
-  .foto { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+  .noticia :global(.foto) { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
   .corpo { padding: 1.2rem 1.3rem 1.5rem; display: grid; gap: 0.5rem; }
   .meta { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-suave); }
   h3 a { color: var(--texto); text-decoration: none; }

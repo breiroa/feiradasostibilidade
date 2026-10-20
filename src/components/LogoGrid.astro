@@ -1,32 +1,27 @@
 ---
-import type { CollectionEntry } from 'astro:content';
-import { Image } from 'astro:assets';
+import type { Entidade } from '../lib/esquemas';
+import Img from './Img.astro';
 
 interface Props {
-  entidades: CollectionEntry<'entidades'>[];
-  escuro?: boolean;
+  entidades: Entidade[];
 }
 
 // Se a entidade aínda non ten logo, móstrase o seu nome nunha tarxeta.
-const { entidades, escuro = false } = Astro.props;
+const { entidades } = Astro.props;
 ---
 
-<ul class:list={['logos', { escuro }]}>
+<ul class="logos">
   {
-    entidades.map(({ data }) => {
-      const contido = data.logo ? (
-        <Image src={data.logo} alt={data.nome} height={56} class="logo" />
-      ) : (
-        <span class="nome">{data.nome}</span>
-      );
+    entidades.map((e) => {
+      const contido = e.logo ? <Img id={e.logo} alt={e.nome} so="g" class="logo" /> : <span class="nome">{e.nome}</span>;
       return (
         <li>
-          {data.web ? (
-            <a href={data.web} rel="noopener" title={data.nome}>
+          {e.web ? (
+            <a href={e.web} rel="noopener" title={e.nome}>
               {contido}
             </a>
           ) : (
-            <div>{contido}</div>
+            <div title={e.nome}>{contido}</div>
           )}
         </li>
       );
@@ -42,7 +37,6 @@ const { entidades, escuro = false } = Astro.props;
     text-decoration: none; color: var(--texto);
   }
   a:hover { border-color: var(--verde); }
-  .logo { height: 48px; width: auto; max-width: 180px; object-fit: contain; }
+  li :global(.logo) { height: 48px; width: auto; max-width: 200px; object-fit: contain; }
   .nome { font-weight: 600; font-size: 0.9rem; text-align: center; line-height: 1.25; max-width: 18ch; }
-  .escuro li > * { background: var(--branco); border-color: transparent; }
 </style>

@@ -1,0 +1,104 @@
+{
+  "inicio": {
+    "heroEtiqueta": "#AFeira · IES Luís Seoane · Pontevedra",
+    "heroTitulo": "A Feira non son dous días.",
+    "heroDestaque": "É un movemento.",
+    "heroTexto": "Dende 2023, a Feira da Sostibilidade converte o IES Luís Seoane nun laboratorio aberto onde o alumnado investiga, actúa e constrúe cidadanía crítica xunto a centros educativos, universidade e entidades sociais.",
+    "heroImaxe": "legacy:multitude-corredor.jpg",
+    "heroImaxeAlt": "Corredor do IES Luís Seoane cheo de xente durante a Feira",
+    "cifras": [
+      { "valor": "4", "etiqueta": "edicións celebradas" },
+      { "valor": "+1.000", "etiqueta": "persoas participantes por edición" },
+      { "valor": "30", "etiqueta": "entidades colaboradoras na IV edición" },
+      { "valor": "13", "etiqueta": "centros de Galicia, España e Europa" }
+    ],
+    "edicionsTitulo": "Cada edición suma.",
+    "edicionsTexto": "A Feira é un proceso vivo que medra cada curso: máis centros, máis entidades e máis proxectos do alumnado.",
+    "cita": "O futuro non se explica.",
+    "citaDestaque": "Constrúese.",
+    "ecosistemaTitulo": "Unha rede que multiplica o impacto.",
+    "ecosistemaTexto": "Entidades sociais, ONGD, cooperativas, administracións e iniciativas do territorio que fan a Feira posible.",
+    "ecosistemaEntidades": ["oxfam-intermon", "adega", "cogami", "solidariedade-internacional", "afectados-a57", "ec4rural", "cruz-vermella", "feitoria-verde", "galicia-ambiental", "sig-comercio-xusto", "casa-grande-de-xanceda", "o-colmenar-de-sara"],
+    "participaTitulo": "Non veñas só mirar. Participa.",
+    "participaTexto": "Centros educativos, entidades, empresas e medios: hai moitas formas de formar parte da Feira."
+  },
+  "a-feira": {
+    "heroEtiqueta": "FeiraLab · Xeración Eco-Étika",
+    "heroTitulo": "Máis ca unha feira.",
+    "heroDestaque": "Un laboratorio permanente.",
+    "heroTexto": "A Feira é o momento no que meses de investigación, acción e construción colectiva de cidadanía crítica se fan visibles para toda a comunidade. Detrás hai un laboratorio de innovación educativa que traballa durante todo o curso.",
+    "heroImaxe": "legacy:stand-alumnas.jpg",
+    "heroImaxeAlt": "Alumnas explicando o seu stand na Feira",
+    "introTitulo": "E se un instituto puidese cambiar o mundo?",
+    "introCorpo": "<p>A Feira da Sostibilidade «Pensa, consume e actúa» naceu da iniciativa do colectivo <strong>Eco-Étika</strong>, formado por alumnado do IES Luís Seoane de Pontevedra. O <strong>IES Luís Seoane</strong> organízaa, e <strong>CIDEL Galicia</strong> e o <strong>Post-Growth Innovation Lab da Universidade de Vigo</strong> impúlsana e apóiana.</p><p>O instituto, no barrio de Monte Porreiro, abre as súas portas cada primavera a centros educativos, universidade, entidades sociais, administracións e veciñanza. O alumnado non presenta só resultados: comparte o que investigou, dinamiza actividades e constrúe propostas para o seu territorio.</p>",
+    "introImaxe": "legacy:alumnado-presenta-investigacion.jpg",
+    "introImaxeAlt": "Alumnado presentando os resultados dunha investigación cidadá",
+    "metodoloxiasTitulo": "Tres metodoloxías que se retroalimentan.",
+    "metodoloxias": [
+      { "sigla": "ABP", "nome": "Aprendizaxe Baseada en Proxectos", "lema": "Investigar para comprender", "texto": "O alumnado deseña e executa proxectos de investigación interdisciplinar sobre retos da Axenda 2030, conectando saberes científicos, sociais e artísticos." },
+      { "sigla": "ApS", "nome": "Aprendizaxe Servizo · CIDEL Galicia", "lema": "Actuar para transformar", "texto": "O eixo que une aprendizaxe e acción comunitaria: o alumnado pon o seu coñecemento ao servizo da comunidade, con rede internacional con colectivos de Galicia e América Latina." },
+      { "sigla": "CC", "nome": "Ciencia cidadá · Post-Growth Innovation Lab", "lema": "Investigar con rigor e impacto real", "texto": "Co acompañamento científico da Universidade de Vigo, o alumnado convértese en investigador activo e conecta o local —o barrio de Monte Porreiro— co global." }
+    ],
+    "linhasTitulo": "Proxectos que moven o mundo.",
+    "linhasTexto": "O alumnado investiga en liñas temáticas conectadas cos ODS que se desenvolven ao longo do curso e culminan na Feira.",
+    "linhas": [
+      { "titulo": "Clima, enerxía e transición ecolóxica", "texto": "Cambio climático, consumo enerxético e transición xusta: datos reais, alternativas e comunicación á comunidade.", "ods": "ODS 7 · ODS 13" },
+      { "titulo": "Consumo responsable e moda sostible", "texto": "O impacto da fast fashion e do consumismo, xogos educativos como Naturpoly e obradoiros de economía circular.", "ods": "ODS 12" },
+      { "titulo": "Xustiza global e cooperación internacional", "texto": "Dereitos humanos, desigualdade e solidariedade internacional, en colaboración con Oxfam Intermón e SIG Comercio Xusto.", "ods": "ODS 10 · ODS 16" },
+      { "titulo": "Igualdade de xénero e diversidade", "texto": "Investigación e acción sobre fendas de xénero, diversidade e inclusión, co proxecto NeoFem e o Comité UNESCO do centro.", "ods": "ODS 5" },
+      { "titulo": "Territorio, barrio e identidade local", "texto": "Monte Porreiro como laboratorio social: mapeo comunitario e axendas políticas locais.", "ods": "ODS 11" },
+      { "titulo": "Saúde, benestar e alimentación sostible", "texto": "Alimentación ecolóxica, hortas escolares, saúde mental e benestar, con entidades como Casa Grande de Xanceda e Feitoria Verde.", "ods": "ODS 2 · ODS 3" }
+    ],
+    "premiosTitulo": "Premios autonómicos de innovación educativa.",
+    "premios": [
+      { "ano": "2022 · 2023", "texto": "Premio Galicons-net de Innovación Educativa en Consumo Responsable (Xunta de Galicia)" },
+      { "ano": "2024", "texto": "III Premio Galego de Educación para o Desenvolvemento e a Cidadanía Global, á experiencia de Eco-Étika e o IES Luís Seoane" }
+    ]
+  },
+  "participa": {
+    "heroTitulo": "Non veñas só mirar.",
+    "heroDestaque": "Participa.",
+    "heroTexto": "A Feira constrúese entre moitas mans. Centros educativos, entidades, empresas, administracións e medios: atopa o teu xeito de formar parte da V edición.",
+    "datas": [
+      { "data": "Xa", "texto": "Inscricións abertas para centros e entidades" },
+      { "data": "28–30 abril 2027", "texto": "V Feira da Sostibilidade no IES Luís Seoane (Pontevedra)" }
+    ],
+    "perfis": [
+      {
+        "id": "centro",
+        "titulo": "Centros educativos",
+        "texto": "Trae á Feira o que investigou e creou o teu alumnado. Os centros participantes en SENDA 2030 contan con acompañamento durante o curso.",
+        "accions": ["Presentar un stand ou un microproxecto do alumnado", "Dinamizar un obradoiro, xogo ou demostración", "Participar no II Foro de Desenvolvemento Local", "Visitar a Feira cun grupo"],
+        "boton": "Inscribir o meu centro"
+      },
+      {
+        "id": "entidade",
+        "titulo": "Entidades, colectivos e ONGD",
+        "texto": "Asociacións, cooperativas, ONGD e iniciativas do territorio que traballan pola sostibilidade, a cidadanía global e a xustiza social.",
+        "accions": ["Ter un stand coas vosas propostas", "Organizar un obradoiro ou unha charla-foro", "Sumarvos ás mesas do Foro de Desenvolvemento Local"],
+        "boton": "Propoñer a nosa participación"
+      },
+      {
+        "id": "empresa",
+        "titulo": "Empresas e administracións",
+        "texto": "Colabora coa Feira achegando experiencias, recursos ou espazos de diálogo arredor da sostibilidade e a economía local.",
+        "accions": ["Compartir experiencias de economía local e sostible", "Apoiar con recursos ou materiais", "Participar nos espazos de diálogo co alumnado"],
+        "boton": "Ofrecer colaboración"
+      },
+      {
+        "id": "prensa",
+        "titulo": "Prensa e medios",
+        "texto": "Información, imaxes e persoas de contacto para cubrir a Feira e os proxectos do alumnado.",
+        "accions": ["Solicitar información e entrevistas", "Acreditarse para as xornadas da Feira"],
+        "boton": "Contactar como medio"
+      }
+    ],
+    "formularioTitulo": "Cóntanos como queres participar.",
+    "formularioTexto": "Enche o formulario e porémonos en contacto contigo. Só usaremos os teus datos para organizar a participación na Feira.",
+    "graciasTitulo": "Grazas! Recibimos a túa mensaxe.",
+    "graciasTexto": "Porémonos en contacto contigo nos próximos días."
+  },
+  "aviso-legal": {
+    "corpo": "<h2>Titularidade</h2><p>Esta web divulga a Feira da Sostibilidade do IES Luís Seoane (Pontevedra) e os proxectos educativos vinculados. Organiza o IES Luís Seoane, e impulsan CIDEL Galicia e a Universidade de Vigo.</p><h2>Privacidade</h2><p>Esta web non usa cookies de seguimento. Os datos que envías a través dos formularios de Participa só se usan para organizar a túa participación na Feira, non se ceden a terceiros e elimínanse cando deixan de ser necesarios. Podes pedir que se consulten, corrixan ou eliminen escribindo ás entidades organizadoras.</p><p>As tipografías cárganse desde Google Fonts. As ligazóns a servizos externos (Instagram, plataformas de vídeo) réxense polas políticas desas plataformas.</p><h2>Imaxes de menores</h2><p>As imaxes nas que aparece alumnado publícanse coa autorización correspondente dos centros educativos. Se apareces nunha imaxe e queres que se retire, contacta co IES Luís Seoane e retirarémola.</p><h2>Licenza dos contidos</h2><p>Salvo indicación contraria, os textos e recursos desta web publícanse baixo licenza <a href=\"https://creativecommons.org/licenses/by-sa/4.0/deed.gl\">Creative Commons Recoñecemento-CompartirIgual 4.0 (CC BY-SA 4.0)</a>. Os logotipos pertencen ás súas respectivas entidades.</p>"
+  }
+}
