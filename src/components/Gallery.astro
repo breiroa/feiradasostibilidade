@@ -1,30 +1,109 @@
 ---
-import Img from './Img.astro';
+// Galería: grella de miniaturas; ao premer ábrese un visor a pantalla completa
+// con frechas, teclado (← → Esc), xestos no móbil e contador.
 import { mediaUrl } from '../lib/url';
 
 interface Props {
   imaxes: { imaxe: string; alt?: string }[];
 }
 
-// Miniaturas; ao premer ábrese a foto grande.
 const { imaxes } = Astro.props;
+const datos = JSON.stringify(imaxes.map((i) => ({ src: mediaUrl(i.imaxe, 'g'), alt: i.alt ?? '' })));
 ---
 
-<ul class="galeria">
-  {
-    imaxes.map((i) => (
-      <li>
-        <a href={mediaUrl(i.imaxe, 'g')} target="_blank" rel="noopener">
-          <Img id={i.imaxe} alt={i.alt ?? ''} so="m" />
-        </a>
-      </li>
-    ))
-  }
-</ul>
+<div class="galeria-cont" data-galeria={datos}>
+  <ul class="galeria">
+    {
+      imaxes.map((i, n) => (
+        <li>
+          <a href={mediaUrl(i.imaxe, 'g')} data-n={n} aria-label={`Ampliar imaxe ${n + 1}${i.alt ? `: ${i.alt}` : ''}`}>
+            <img src={mediaUrl(i.imaxe, 'm')} alt={i.alt ?? ''} loading="lazy" decoding="async" />
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <dialog class="visor" aria-label="Galería de imaxes">
+    <button type="button" class="visor-pechar" aria-label="Pechar">×</button>
+    <button type="button" class="visor-frecha ant" aria-label="Imaxe anterior">‹</button>
+    <figure>
+      <img alt="" />
+      <figcaption></figcaption>
+    </figure>
+    <button type="button" class="visor-frecha seg" aria-label="Imaxe seguinte">›</button>
+    <p class="visor-contador" aria-live="polite"></p>
+  </dialog>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-galeria]').forEach((cont) => {
+    const lista: { src: string; alt: string }[] = JSON.parse(cont.dataset.galeria ?? '[]');
+    const visor = cont.querySelector<HTMLDialogElement>('dialog')!;
+    const img = visor.querySelector('img')!;
+    const pe = visor.querySelector('figcaption')!;
+    const conta = visor.querySelector('.visor-contador')!;
+    let n = 0;
+    const amosar = (i: number) => {
+      n = (i + lista.length) % lista.length;
+      img.src = lista[n].src;
+      img.alt = lista[n].alt;
+      pe.textContent = lista[n].alt;
+      conta.textContent = `${n + 1} / ${lista.length}`;
+      // Precargar a seguinte
+      new Image().src = lista[(n + 1) % lista.length].src;
+    };
+    cont.querySelectorAll<HTMLAnchorElement>('a[data-n]').forEach((a) =>
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        amosar(Number(a.dataset.n));
+        visor.showModal();
+      }),
+    );
+    visor.querySelector('.ant')!.addEventListener('click', () => amosar(n - 1));
+    visor.querySelector('.seg')!.addEventListener('click', () => amosar(n + 1));
+    visor.querySelector('.visor-pechar')!.addEventListener('click', () => visor.close());
+    visor.addEventListener('click', (e) => { if (e.target === visor) visor.close(); });
+    visor.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') amosar(n - 1);
+      if (e.key === 'ArrowRight') amosar(n + 1);
+    });
+    let x0: number | null = null;
+    visor.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    visor.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 40) amosar(n + (dx < 0 ? 1 : -1));
+      x0 = null;
+    });
+  });
+</script>
 
 <style>
-  .galeria { list-style: none; padding: 0; display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(min(46%, 220px), 1fr)); }
-  a { display: block; overflow: hidden; border-radius: var(--raio); }
-  a :global(img) { width: 100%; aspect-ratio: 1; object-fit: cover; transition: transform 0.4s; }
-  a:hover :global(img) { transform: scale(1.04); }
+  .galeria { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(min(46%, 220px), 1fr)); }
+  .galeria a { display: block; overflow: hidden; border-radius: 12px; cursor: zoom-in; }
+  .galeria img { width: 100%; aspect-ratio: 1; object-fit: cover; transition: transform 0.4s; }
+  .galeria a:hover img { transform: scale(1.05); }
+  .visor {
+    width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+    background: rgb(14 10 22 / 0.96); color: var(--branco);
+  }
+  .visor[open] { display: grid; grid-template-columns: 4.5rem 1fr 4.5rem; align-items: center; }
+  .visor::backdrop { background: rgb(14 10 22 / 0.9); }
+  .visor figure { margin: 0; display: grid; justify-items: center; gap: 0.8rem; grid-column: 2; padding-block: 3.5rem; }
+  .visor img { max-width: 100%; max-height: calc(100dvh - 9rem); object-fit: contain; border-radius: 8px; }
+  .visor figcaption { font-size: 0.95rem; color: rgb(255 255 255 / 0.75); text-align: center; max-width: 60ch; }
+  .visor-frecha {
+    width: 3.2rem; height: 3.2rem; border-radius: 50%; border: 1px solid rgb(255 255 255 / 0.25); background: rgb(255 255 255 / 0.08);
+    color: var(--branco); font-size: 2rem; line-height: 1; cursor: pointer; justify-self: center; transition: background 0.2s;
+  }
+  .visor-frecha:hover { background: var(--verde); border-color: var(--verde); }
+  .visor-pechar { position: absolute; top: 1rem; right: 1.2rem; width: 2.8rem; height: 2.8rem; border: 0; border-radius: 50%; background: rgb(255 255 255 / 0.1); color: var(--branco); font-size: 1.8rem; cursor: pointer; }
+  .visor-contador { position: absolute; top: 1.4rem; left: 1.4rem; font-family: var(--mono); font-size: 0.85rem; color: rgb(255 255 255 / 0.7); }
+  @media (max-width: 700px) {
+    .visor[open] { grid-template-columns: 1fr; }
+    .visor figure { grid-column: 1; padding-inline: 0.5rem; }
+    .visor-frecha { position: absolute; bottom: 1.2rem; }
+    .visor-frecha.ant { left: 1.2rem; }
+    .visor-frecha.seg { right: 1.2rem; }
+  }
 </style>

@@ -5,7 +5,7 @@ import Envoltorio from './Envoltorio.astro';
 type T = Extract<Seccion, { tipo: 'cronoloxia' }>;
 interface Props { s: T }
 const { s } = Astro.props;
-const estados = { feito: 'Feito', agora: 'Agora', proximo: 'Próximo' };
+const estados = { feito: 'Feito', agora: 'Estamos aquí', proximo: 'Próximo' };
 ---
 
 <Envoltorio s={s} texto={s.texto}>
@@ -37,6 +37,9 @@ const estados = { feito: 'Feito', agora: 'Agora', proximo: 'Próximo' };
   .estado-feito .crono-punto { background: var(--verde); border-color: var(--verde); }
   .estado-agora .crono-punto { background: var(--morado); border-color: var(--morado); box-shadow: 0 0 0 6px rgb(100 80 140 / 0.18); }
   .crono-data { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.04em; color: var(--verde-escuro); padding-top: 0.15rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .estado-agora .crono-corpo { background: var(--morado-pale); border-radius: 14px; padding: 0.9rem 1.1rem; margin: -0.6rem 0 0 -0.4rem; }
+  .estado-agora .crono-corpo h3 { color: var(--morado); }
+  .estado-feito .crono-corpo { opacity: 0.75; }
   .crono-estado { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; background: var(--morado); color: var(--branco); padding: 0.15rem 0.55rem; border-radius: 99px; }
   .crono-corpo h3 { font-size: 1.2rem; margin-bottom: 0.35rem; }
   .crono-corpo p { font-size: 0.97rem; }

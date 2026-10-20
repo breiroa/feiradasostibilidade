@@ -106,7 +106,7 @@ const escuro = (s: Seccion) => s.fondo === 'escuro' || s.fondo === 'morado';
       case 'lista':
         return (
           <Envoltorio s={s}>
-            <ul class="lista-cols">
+            <ul class="lista-etiquetas">
               {s.items.map((i) => (
                 <li>{i}</li>
               ))}
@@ -206,8 +206,9 @@ const escuro = (s: Seccion) => s.fondo === 'escuro' || s.fondo === 'morado';
   .grupos-logos { display: grid; gap: 2.2rem; }
   .grupo-logos h3 { font-family: var(--mono); font-weight: 400; font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--texto-suave); margin-bottom: 1rem; }
   :global(.fondo-escuro) .grupo-logos h3, :global(.fondo-morado) .grupo-logos h3 { color: rgb(255 255 255 / 0.65); }
-  .lista-cols { columns: 3 230px; padding-left: 1.2em; margin: 0; }
-  .lista-cols li { break-inside: avoid; padding-block: 0.25rem; }
+  .lista-etiquetas { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  .lista-etiquetas li { padding: 0.55rem 1rem; border-radius: 99px; background: var(--branco); border: 1px solid var(--linha); color: var(--texto); font-weight: 600; font-size: 0.95rem; }
+  :global(.fondo-branco) .lista-etiquetas li { background: var(--crema); border-color: transparent; }
   .grella-recursos { display: grid; gap: clamp(1rem, 2.4vw, 1.75rem); grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
   .sec-cita { padding-block: clamp(3rem, 7vw, 5rem); }
   .sec-cita blockquote { margin: 0; }

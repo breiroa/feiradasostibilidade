@@ -7,7 +7,7 @@ import * as c from './campos.js';
 import { construtor } from './seccions.js';
 
 const cab = (titulo, intro, ...extra) => el('div', { class: 'cab' }, el('div', {}, el('h1', {}, titulo), intro ? el('p', { class: 'muted' }, intro) : null), ...extra);
-const tiposInsc = { centro: 'Centro educativo', entidade: 'Entidade', prensa: 'Prensa', contacto: 'Consulta' };
+const tiposInsc = { centro: 'Centro educativo', entidade: 'Entidade', prensa: 'Prensa', contacto: 'Pregunta' };
 const estadosInsc = { nova: ['Nova', 'morado'], vista: ['Vista', ''], aceptada: ['Aceptada', 'verde'], descartada: ['Descartada', 'erro'] };
 
 // ───────────────── INICIO ─────────────────
@@ -32,7 +32,7 @@ export async function inicio(main) {
         el('a', { class: 'btn-ghost', href: '#/biblioteca' }, 'Subir fotos'))),
     novas.length
       ? el('div', { class: 'caixa' }, el('h2', {}, 'Últimas inscricións'),
-          el('ul', { style: { margin: '0', paddingLeft: '1.2em' } }, novas.slice(0, 5).map((i) => el('li', {}, el('a', { href: '#/inscricions' }, `${tiposInsc[i.tipo]}: ${i.datos.centro ?? i.datos.entidade ?? i.datos.medio ?? i.datos.persoa}`), ' · ', el('span', { class: 'muted' }, dataCurta(i.creado))))))
+          el('ul', { style: { margin: '0', paddingLeft: '1.2em' } }, novas.slice(0, 5).map((i) => el('li', {}, el('a', { href: '#/inscricions' }, `${tiposInsc[i.tipo]}: ${i.datos.nome ?? i.datos.persoa ?? ''}${i.datos.organizacion ? ' · ' + i.datos.organizacion : ''}`), ' · ', el('span', { class: 'muted' }, dataCurta(i.creado))))))
       : null,
   );
 }
@@ -49,13 +49,13 @@ const paxinas = {
     editor: (d) => [
       c.bloque('Cabeceira', null, lista2(d, 'heroTitulo', 'heroDestaque', 'Título', 'Título destacado (cor)'), c.area(d, 'heroTexto', 'Texto'),
         c.repetidor(d, 'datas', 'Datas clave', { novo: () => ({ data: '', texto: '' }), engadirTexto: '+ Engadir data', pintarItem: (x) => lista2(x, 'data', 'texto', 'Data', 'Que pasa') })),
-      c.bloque('Perfís', 'Cada perfil ten un botón que abre o formulario axeitado (centros → formulario de centros; entidades e empresas → formulario de entidades; prensa → prensa).',
+      c.bloque('Perfís', 'Tarxetas curtas. O botón de cada unha baixa ao formulario co tipo xa escollido.',
         c.repetidor(d, 'perfis', '', {
           novo: () => ({ id: 'entidade', titulo: '', texto: '', accions: [], boton: '' }),
           engadirTexto: '+ Engadir perfil',
           pintarItem: (p) => [
-            el('div', { class: 'fila2' }, c.texto(p, 'titulo', 'Título'), c.escolla(p, 'id', 'Formulario que abre', [{ valor: 'centro', texto: 'Centros' }, { valor: 'entidade', texto: 'Entidades' }, { valor: 'empresa', texto: 'Empresas (formulario de entidades)' }, { valor: 'prensa', texto: 'Prensa' }])),
-            c.area(p, 'texto', 'Texto', { filas: 2 }), c.listaTextos(p, 'accions', 'Que poden facer'), c.texto(p, 'boton', 'Texto do botón'),
+            el('div', { class: 'fila2' }, c.texto(p, 'titulo', 'Título'), c.escolla(p, 'id', 'Tipo que escolle no formulario', [{ valor: 'centro', texto: 'Centro educativo' }, { valor: 'entidade', texto: 'Entidade' }, { valor: 'empresa', texto: 'Empresa ou administración' }, { valor: 'prensa', texto: 'Prensa' }, { valor: 'contacto', texto: 'Pregunta' }])),
+            c.area(p, 'texto', 'Texto (unha ou dúas frases)', { filas: 2 }), c.texto(p, 'boton', 'Texto do botón'),
           ],
         })),
       c.bloque('Formulario', null, c.texto(d, 'formularioTitulo', 'Título'), c.area(d, 'formularioTexto', 'Texto', { filas: 2 }), lista2(d, 'graciasTitulo', 'graciasTexto', 'Mensaxe de grazas: título', 'Mensaxe de grazas: texto')),
@@ -199,7 +199,7 @@ export async function inscricions(main) {
   const { items } = await api('inscricions');
   const f = { tipo: '', estado: '' };
   const tbody = el('tbody');
-  const nomeDe = (i) => i.datos.centro ?? i.datos.entidade ?? i.datos.medio ?? i.datos.persoa ?? '—';
+  const nomeDe = (i) => [i.datos.nome ?? i.datos.persoa, i.datos.organizacion ?? i.datos.centro ?? i.datos.entidade ?? i.datos.medio].filter(Boolean).join(' · ') || '—';
   function pintar() {
     const vistos = items.filter((i) => (!f.tipo || i.tipo === f.tipo) && (!f.estado || i.estado === f.estado));
     tbody.replaceChildren(...(vistos.length ? vistos.map((i) => {
@@ -208,7 +208,7 @@ export async function inscricions(main) {
         el('td', { class: 'muted' }, dataCurta(i.creado)),
         el('td', {}, el('span', { class: 'pill' }, tiposInsc[i.tipo] ?? i.tipo)),
         el('td', {}, el('b', {}, nomeDe(i)), el('br'), el('small', { class: 'muted' }, i.datos.email ?? '')),
-        el('td', {}, i.datos.proposta ?? i.datos.tipoEntidade ?? ''),
+        el('td', { class: 'muted' }, (i.datos.mensaxe ?? i.datos.descricion ?? i.datos.proposta ?? '').slice(0, 80)),
         el('td', {}, el('span', { class: `pill ${cor}` }, txt)));
       return tr;
     }) : [el('tr', {}, el('td', { colspan: 5, class: 'muted' }, items.length ? 'Ningunha coincide cos filtros.' : 'Aínda non chegou ningunha inscrición desde Participa.'))]));
@@ -249,7 +249,7 @@ export async function inscricions(main) {
     el('div', { class: 'barra-filtros' },
       el('select', { onchange: (e) => { f.tipo = e.target.value; pintar(); } }, el('option', { value: '' }, 'Todos os tipos'), Object.entries(tiposInsc).map(([k, v]) => el('option', { value: k }, v))),
       el('select', { onchange: (e) => { f.estado = e.target.value; pintar(); } }, el('option', { value: '' }, 'Todos os estados'), Object.entries(estadosInsc).map(([k, [t]]) => el('option', { value: k }, t)))),
-    el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' }, el('thead', {}, el('tr', {}, ['Data', 'Tipo', 'Quen', 'Proposta', 'Estado'].map((t) => el('th', {}, t)))), tbody)));
+    el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' }, el('thead', {}, el('tr', {}, ['Data', 'Tipo', 'Quen', 'Mensaxe', 'Estado'].map((t) => el('th', {}, t)))), tbody)));
   pintar();
 }
 
