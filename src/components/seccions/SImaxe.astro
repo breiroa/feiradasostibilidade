@@ -3,32 +3,35 @@
 import type { Seccion } from '../../lib/esquemas';
 import Envoltorio from './Envoltorio.astro';
 import Img from '../Img.astro';
+import { ed, editando } from '../../lib/editable';
 
 type T = Extract<Seccion, { tipo: 'imaxe' }>;
 interface Props { s: T }
 const { s } = Astro.props;
 const completa = s.tamano === 'completa';
+const editar = editando(Astro.locals);
+const E = (r: string, t: 'texto' | 'imaxe' = 'texto', ph?: string) => ed(Astro.locals, r, t, ph);
 ---
 
 {
   completa ? (
-    <section class:list={['sec-imaxe-completa', `fondo-${s.fondo}`]} id={s.ancla} data-sec={s.id}>
-      {(s.etiqueta || s.titulo) && (
+    <section class:list={['sec-imaxe-completa', `fondo-${s.fondo}`, { 'previa-oculta': editar && s.oculta }]} id={s.ancla} data-sec={s.id} data-sec-tipo={editar ? 'imaxe' : undefined}>
+      {(s.etiqueta || s.titulo || editar) && (
         <div class="contedor cab">
-          {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
-          {s.titulo && <h2>{s.titulo}</h2>}
+          {(s.etiqueta || editar) && <p class="etiqueta" {...E('etiqueta', 'texto', 'Etiqueta (opcional)')}>{s.etiqueta}</p>}
+          {(s.titulo || editar) && <h2 {...E('titulo', 'texto', 'Título (opcional)')}>{s.titulo}</h2>}
         </div>
       )}
       <figure>
-        <Img id={s.imaxe} alt={s.alt ?? ''} sizes="100vw" />
-        {s.pe && <figcaption class="contedor">{s.pe}</figcaption>}
+        <Img id={s.imaxe} alt={s.alt ?? ''} sizes="100vw" {...E('imaxe', 'imaxe')} />
+        {(s.pe || editar) && <figcaption class="contedor" {...E('pe', 'texto', 'Pé de foto (opcional)')}>{s.pe}</figcaption>}
       </figure>
     </section>
   ) : (
     <Envoltorio s={s} ancho={s.tamano === 'texto' ? 'estreito' : 'normal'}>
       <figure class="foto">
-        <Img id={s.imaxe} alt={s.alt ?? ''} sizes={s.tamano === 'texto' ? '(max-width: 900px) 100vw, 900px' : '(max-width: 1240px) 100vw, 1240px'} />
-        {s.pe && <figcaption>{s.pe}</figcaption>}
+        <Img id={s.imaxe} alt={s.alt ?? ''} sizes={s.tamano === 'texto' ? '(max-width: 900px) 100vw, 900px' : '(max-width: 1240px) 100vw, 1240px'} {...E('imaxe', 'imaxe')} />
+        {(s.pe || editar) && <figcaption {...E('pe', 'texto', 'Pé de foto (opcional)')}>{s.pe}</figcaption>}
       </figure>
     </Envoltorio>
   )

@@ -26,6 +26,10 @@ const coleccion = String(f.get('coleccion'));
 const id = String(f.get('id') ?? '');
 const y = Math.max(0, Number(f.get('y')) || 0);
 const naiTitulo = String(f.get('naiTitulo') ?? '');
+const escala = String(Math.max(0.2, Math.min(1, Number(f.get('escala')) || 1)));
+// Ferramentas de edición directa (os compoñentes engaden data-e aos textos e imaxes)
+const editar = f.get('so_ver') !== '1';
+(Astro.locals as Record<string, unknown>).editar = editar;
 let bruto: Record<string, unknown> = {};
 try {
   // O HTML limpase igual que ao gardar, así a vista previa mostra o mesmo que verá a web
@@ -41,8 +45,8 @@ const seccions = (Array.isArray(bruto.seccions) ? bruto.seccions : []).map((x: R
   if (r.success) return r.data;
   const erros = r.error.issues.map((i) => `${i.path.join(' › ') || 'Sección'}: ${i.message}`);
   return {
-    id: String(x?.id ?? 'erro'), tipo: 'texto' as const, oculta: Boolean(x?.oculta), fondo: 'branco' as const, estreito: true,
-    corpo: `<blockquote><p><strong>⚠ Esta sección ten datos por completar e non se verá así na web:</strong></p><ul>${erros.map((e) => `<li>${escapar(e)}</li>`).join('')}</ul></blockquote>`,
+    id: String(x?.id ?? 'erro'), tipo: 'html' as const, oculta: Boolean(x?.oculta), fondo: 'branco' as const, ancho: 'estreito' as const,
+    html: `<div style="border:2px solid #c4452a;border-radius:14px;padding:1.2rem 1.4rem;background:#fdecea;color:#8a2a1d"><p><strong>⚠ Esta sección ten datos por completar (non se verá así na web).</strong> Preme nela e complétaos no panel:</p><ul>${erros.map((e) => `<li>${escapar(e)}</li>`).join('')}</ul></div>`,
   };
 });
 
@@ -75,41 +79,7 @@ const erroXeral = !paxina && !ed;
   )
 }
 
-<script is:inline define:vars={{ y }}>
-  // Modo vista previa: premer unha sección selecciónaa no editor; as ligazóns non navegan.
-  (() => {
-    const st = document.createElement('style');
-    st.textContent = '[data-sec]{cursor:pointer}.previa-sobre{outline:2px dashed #7b4bb7;outline-offset:-2px}.previa-activa{outline:3px solid #3a8f4f;outline-offset:-3px}';
-    document.head.append(st);
-    const caixa = (e) => (e && e.style.display === 'contents' ? e.firstElementChild : e);
-    const aviso = (datos) => parent.postMessage({ feira: 'vista', ...datos }, location.origin);
-    document.addEventListener('click', (e) => {
-      const a = e.target.closest('a');
-      if (a) e.preventDefault();
-      const s = e.target.closest('[data-sec]');
-      if (s) aviso({ seccion: s.dataset.sec });
-    }, true);
-    document.addEventListener('submit', (e) => e.preventDefault(), true);
-    let sobre = null;
-    document.addEventListener('mouseover', (e) => {
-      const s = caixa(e.target.closest('[data-sec]'));
-      if (s === sobre) return;
-      sobre?.classList.remove('previa-sobre');
-      sobre = s;
-      s?.classList.add('previa-sobre');
-    });
-    window.addEventListener('message', (e) => {
-      if (e.origin !== location.origin || e.data?.feira !== 'ir') return;
-      document.querySelectorAll('.previa-activa').forEach((x) => x.classList.remove('previa-activa'));
-      const s = caixa(document.querySelector(`[data-sec="${CSS.escape(e.data.seccion)}"]`));
-      if (!s) return;
-      s.classList.add('previa-activa');
-      if (e.data.desprazar) s.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-    const restaurar = () => window.scrollTo(0, y);
-    restaurar();
-    addEventListener('load', restaurar);
-    let t;
-    addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(() => aviso({ y: Math.round(scrollY) }), 120); }, { passive: true });
-  })();
-</script>
+{
+  // Modo «abrir en pestana» (só ver): sen ferramentas de edición
+  editar && <script is:inline src="/panel/vista-edicion.js" data-y={String(y)} data-escala={escala}></script>
+}

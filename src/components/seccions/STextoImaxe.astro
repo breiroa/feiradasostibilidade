@@ -3,27 +3,34 @@ import type { Seccion } from '../../lib/esquemas';
 import Envoltorio from './Envoltorio.astro';
 import Img from '../Img.astro';
 import Botons from './Botons.astro';
+import { ed, editando } from '../../lib/editable';
 
 type T = Extract<Seccion, { tipo: 'texto_imaxe' }>;
 interface Props { s: T }
 const { s } = Astro.props;
 const escuro = s.fondo === 'escuro' || s.fondo === 'morado';
+const editar = editando(Astro.locals);
+const E = (r: string, t: 'texto' | 'rico' | 'imaxe' = 'texto', ph?: string) => ed(Astro.locals, r, t, ph);
 ---
 
 <Envoltorio s={s} cabeceira={false}>
-  <div class:list={['ti', `ti--${s.posicion}`, { 'sen-imaxe': !s.imaxe }]}>
+  <div class:list={['ti', `ti--${s.posicion}`, { 'sen-imaxe': !s.imaxe && !editar }]}>
     <div class="ti-texto">
-      {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
-      {s.titulo && <h2>{s.titulo}</h2>}
-      <div class="texto-longo"><Fragment set:html={s.corpo} /></div>
+      {(s.etiqueta || editar) && <p class="etiqueta" {...E('etiqueta', 'texto', 'Etiqueta (opcional)')}>{s.etiqueta}</p>}
+      {(s.titulo || editar) && <h2 {...E('titulo', 'texto', 'Título')}>{s.titulo}</h2>}
+      <div class="texto-longo" {...E('corpo', 'rico', 'Escribe aquí o texto…')}><Fragment set:html={s.corpo} /></div>
       <Botons botons={s.botons} escuro={escuro} />
     </div>
     {
-      s.imaxe && (
+      s.imaxe ? (
         <figure class="ti-imaxe">
-          <Img id={s.imaxe} alt={s.imaxeAlt ?? ''} sizes="(max-width: 860px) 100vw, 46vw" />
+          <Img id={s.imaxe} alt={s.imaxeAlt ?? ''} sizes="(max-width: 860px) 100vw, 46vw" {...E('imaxe', 'imaxe')} />
         </figure>
-      )
+      ) : editar ? (
+        <figure class="ti-imaxe">
+          <div class="previa-sen-imaxe" {...E('imaxe', 'imaxe')}>+ Engadir foto</div>
+        </figure>
+      ) : null
     }
   </div>
 </Envoltorio>

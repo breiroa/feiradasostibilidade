@@ -7,6 +7,7 @@ import SHeroe from './seccions/SHeroe.astro';
 import Seccions from './seccions/Seccions.astro';
 import { edicions } from '../lib/datos';
 import { romano, url } from '../lib/url';
+import { ed, editando } from '../lib/editable';
 
 interface Props { d: Edicion }
 const { d } = Astro.props;
@@ -19,7 +20,7 @@ const seguinte = todas[pos + 1];
 const [titulo, ...resto] = d.titulo.split(' · ');
 const heroe = {
   tipo: 'heroe' as const,
-  id: 'portada',
+  id: '_cabeceira',
   oculta: false,
   fondo: 'escuro' as const,
   etiqueta: `${romano(d.numero)} edición · ${d.datas}`,
@@ -37,26 +38,30 @@ const heroe = {
       : [],
   cifras: [],
 };
+// Na vista previa do panel os textos da portada e da presentación edítanse directamente (son datos da edición)
+const editar = editando(Astro.locals);
+const E = (r: string, t: 'texto' | 'area' = 'texto', ph?: string) => ed(Astro.locals, r, t, ph);
+const rutasHeroe = { etiqueta: null, titulo: 'titulo#0', destaque: resto.length ? 'titulo#1' : 'lema', texto: 'lugar', imaxe: 'portada', botons: null };
 ---
 
 <Base titulo={d.titulo} descricion={d.resumo} imaxe={d.portada}>
-  <div data-sec="_cabeceira" style="display: contents"><SHeroe s={heroe} /></div>
+  <SHeroe s={heroe} rutas={rutasHeroe} />
 
-  <section class="sec fondo-branco presentacion-sec" data-sec="_cabeceira">
+  <section class="sec fondo-branco presentacion-sec" data-sec="_cabeceira" data-sec-tipo={editar ? '_edicion' : undefined}>
     <div class="contedor presentacion">
       <div>
         <p class="etiqueta">A edición</p>
-        {resto.length > 0 && d.lema && <p class="lema">{d.lema}</p>}
-        <p class="resumo">{d.resumo}</p>
+        {resto.length > 0 && (d.lema || editar) && <p class="lema" {...E('lema', 'texto', 'Lema (opcional)')}>{d.lema}</p>}
+        <p class="resumo" {...E('resumo', 'area', 'Resumo da edición')}>{d.resumo}</p>
         {
           d.fitos.length > 0 && (
             <ul class="chips">
-              {d.fitos.map((f) => <li class="chip">{f}</li>)}
+              {d.fitos.map((f, i) => <li class="chip" {...E(`fitos.${i}`)}>{f}</li>)}
             </ul>
           )
         }
       </div>
-      {d.cifras.length > 0 && <StatsBar cifras={d.cifras} />}
+      {d.cifras.length > 0 && <StatsBar cifras={d.cifras} ruta="cifras" />}
     </div>
   </section>
 

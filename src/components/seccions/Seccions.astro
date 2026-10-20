@@ -25,6 +25,8 @@ import SColumnas from './SColumnas.astro';
 import SAcordeon from './SAcordeon.astro';
 import SImaxe from './SImaxe.astro';
 import { clasesDeseno, escuroDe, estiloDeseno, fondoDe } from '../../lib/deseno';
+import { ed, edItem, editando } from '../../lib/editable';
+import SHtml from './SHtml.astro';
 
 interface Props {
   seccions: Seccion[];
@@ -32,7 +34,10 @@ interface Props {
 }
 
 const { seccions, primeiraH1 = true } = Astro.props;
-const visibles = seccions.filter((s) => !s.oculta);
+// Na vista previa do panel as seccións ocultas vense atenuadas (para poder editalas e volver mostralas)
+const editar = editando(Astro.locals);
+const E = (r: string, t: 'texto' | 'area' | 'rico' = 'texto', ph?: string) => ed(Astro.locals, r, t, ph);
+const visibles = seccions.filter((s) => editar || !s.oculta);
 const hai = (...t: Seccion['tipo'][]) => visibles.some((s) => t.includes(s.tipo));
 
 const [mapa, eds, nots, recs, proxs, libres, ax] = await Promise.all([
@@ -60,7 +65,7 @@ const escuro = escuroDe;
       case 'texto':
         return (
           <Envoltorio s={s} ancho={s.estreito ? 'estreito' : 'normal'}>
-            <div class="texto-longo"><Fragment set:html={s.corpo} /></div>
+            <div class="texto-longo" {...E('corpo', 'rico', 'Escribe aquí o texto…')}><Fragment set:html={s.corpo} /></div>
           </Envoltorio>
         );
       case 'texto_imaxe':
@@ -68,7 +73,7 @@ const escuro = escuroDe;
       case 'cifras':
         return (
           <Envoltorio s={s} texto={s.texto}>
-            <StatsBar cifras={s.cifras} escuro={escuro(s)} />
+            <StatsBar cifras={s.cifras} escuro={escuro(s)} ruta="cifras" />
           </Envoltorio>
         );
       case 'tarxetas':
@@ -113,8 +118,8 @@ const escuro = escuroDe;
         return (
           <Envoltorio s={s}>
             <ul class="lista-etiquetas">
-              {s.items.map((i) => (
-                <li>{i}</li>
+              {s.items.map((i, n) => (
+                <li {...E(`items.${n}`)} {...edItem(Astro.locals, `items.${n}`)}>{i}</li>
               ))}
             </ul>
           </Envoltorio>
@@ -129,25 +134,25 @@ const escuro = escuroDe;
       }
       case 'cita':
         return (
-          <section class:list={['sec', 'sec-cita', `fondo-${fondoDe(s)}`, ...clasesDeseno(s)]} id={s.ancla} data-sec={s.id} style={estiloDeseno(s)}>
+          <section class:list={['sec', 'sec-cita', `fondo-${fondoDe(s)}`, ...clasesDeseno(s), { 'previa-oculta': editar && s.oculta }]} id={s.ancla} data-sec={s.id} data-sec-tipo={editar ? s.tipo : undefined} style={estiloDeseno(s)}>
             <div class="contedor">
               <blockquote>
                 <p>
-                  {s.texto} {s.destaque && <span>{s.destaque}</span>}
+                  <span class="cita-texto" {...E('texto', 'area', 'A frase')}>{s.texto}</span> {(s.destaque || editar) && <span {...E('destaque', 'texto', 'Final destacado')}>{s.destaque}</span>}
                 </p>
-                {s.autoria && <footer>— {s.autoria}</footer>}
+                {(s.autoria || editar) && <footer>— <span {...E('autoria', 'texto', 'Autoría')}>{s.autoria}</span></footer>}
               </blockquote>
             </div>
           </section>
         );
       case 'chamada':
         return (
-          <section class:list={['sec', 'sec-chamada', `fondo-${fondoDe(s)}`, ...clasesDeseno(s)]} id={s.ancla} data-sec={s.id} style={estiloDeseno(s)}>
+          <section class:list={['sec', 'sec-chamada', `fondo-${fondoDe(s)}`, ...clasesDeseno(s), { 'previa-oculta': editar && s.oculta }]} id={s.ancla} data-sec={s.id} data-sec-tipo={editar ? s.tipo : undefined} style={estiloDeseno(s)}>
             <div class="contedor chamada">
               <div>
-                {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
-                {s.titulo && <h2>{s.titulo}</h2>}
-                {s.texto && <p class="sec-intro">{s.texto}</p>}
+                {(s.etiqueta || editar) && <p class="etiqueta" {...E('etiqueta', 'texto', 'Etiqueta (opcional)')}>{s.etiqueta}</p>}
+                {(s.titulo || editar) && <h2 {...E('titulo', 'texto', 'Título')}>{s.titulo}</h2>}
+                {(s.texto || editar) && <p class="sec-intro" {...E('texto', 'area', 'Texto (opcional)')}>{s.texto}</p>}
               </div>
               <Botons botons={s.botons} escuro={escuro(s)} />
             </div>
@@ -212,6 +217,8 @@ const escuro = escuroDe;
         return <SAcordeon s={s} />;
       case 'imaxe':
         return <SImaxe s={s} />;
+      case 'html':
+        return <SHtml s={s} />;
       default:
         return null;
     }
@@ -229,11 +236,11 @@ const escuro = escuroDe;
   .sec-cita { padding-block: clamp(3rem, 7vw, 5rem); }
   .sec-cita blockquote { margin: 0; }
   .sec-cita p { font-family: var(--serif); font-style: italic; font-size: clamp(1.7rem, 3.6vw, 2.9rem); line-height: 1.22; color: var(--texto); max-width: 30ch; }
-  .sec-cita span { font-style: normal; color: var(--verde); }
+  .sec-cita p > span:not(.cita-texto) { font-style: normal; color: var(--verde); }
   .sec-cita footer { margin-top: 1rem; font-family: var(--mono); font-size: 0.8rem; color: var(--texto-suave); }
   .sec-cita.fondo-verde { background: var(--verde); }
   .sec-cita.fondo-verde p { color: var(--branco); }
-  .sec-cita.fondo-verde span { color: var(--negro); }
+  .sec-cita.fondo-verde p > span:not(.cita-texto) { color: var(--negro); }
   .sec-cita.fondo-verde footer { color: rgb(255 255 255 / 0.75); }
   .sec-chamada { padding-block: clamp(3.5rem, 7vw, 5.5rem); }
   .chamada { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem 3rem; }

@@ -18,8 +18,7 @@ const app = document.getElementById('app');
 const menu = [
   { zona: null, items: [{ ruta: '', texto: 'Resumo', icona: '◔' }] },
   { zona: 'Contido', items: [
-    { ruta: 'paxinas', texto: 'Páxinas', icona: '⊞' },
-    { ruta: 'edicions', texto: 'Edicións', icona: '★' },
+    { ruta: 'paxinas', texto: 'Páxinas e edicións', icona: '⊞' },
     { ruta: 'noticias', texto: 'Noticias', icona: '✎' },
     { ruta: 'recursos', texto: 'Recursos', icona: '◫' },
     { ruta: 'proxectos', texto: 'Proxectos', icona: '◎' },
@@ -53,7 +52,8 @@ function estrutura() {
 }
 
 function pintarMenu(ruta) {
-  const seccion = ruta.split('/')[0];
+  // As edicións editanse dentro de «Páxinas e edicións»
+  const seccion = ruta.split('/')[0] === 'edicions' ? 'paxinas' : ruta.split('/')[0];
   nav.replaceChildren(...menu.flatMap((z) => [
     z.zona ? el('div', { class: 'nav-zona' }, z.zona) : null,
     ...z.items.filter((i) => !i.superadmin || estado.admin.rol === 'superadmin').map((i) =>
@@ -72,7 +72,7 @@ async function actualizarContador() {
 
 const rutas = {
   '': () => outras.inicio(main),
-  edicions: (id) => (id ? editarEdicion(id) : vistaLista(main, contidos.edicions)),
+  edicions: (id) => (id ? editarEdicion(id) : location.replace('#/paxinas')),
   noticias: (id) => (id ? vistaEditor(main, contidos.noticias, id) : vistaLista(main, contidos.noticias)),
   recursos: (id) => (id ? vistaEditor(main, contidos.recursos, id) : vistaLista(main, contidos.recursos)),
   proxectos: (id) => (id ? vistaEditor(main, contidos.proxectos, id) : vistaLista(main, contidos.proxectos)),
@@ -99,11 +99,11 @@ async function editarEdicion(id) {
   editorVista(main, {
     coleccion: 'edicions', id, d, item,
     titulo: (x) => x.titulo,
-    volver: ['#/edicions', 'Edicións'],
+    volver: ['#/paxinas', 'Páxinas'],
     verNaWeb: cfg.verNaWeb,
     axustes: (x, o) => cfg.axustes(x, o),
     axustesAbertos: id === 'novo',
-    etiquetaAxustes: 'Datos da edición (título, datas, portada, cifras)',
+    pestanaAxustes: 'Datos da edición',
     aoCrear: (nid) => `#/edicions/${nid}`,
   });
 }

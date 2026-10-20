@@ -2,24 +2,26 @@
 import type { Seccion } from '../../lib/esquemas';
 import Envoltorio from './Envoltorio.astro';
 import { mediaUrl } from '../../lib/url';
+import { ed, edItem, editando } from '../../lib/editable';
 
 type T = Extract<Seccion, { tipo: 'documentos' }>;
 interface Props { s: T }
 const { s } = Astro.props;
+const editar = editando(Astro.locals);
 ---
 
 <Envoltorio s={s} ancho="estreito">
   <ul class="docs">
     {
-      s.items.map((d) => {
+      s.items.map((d, i) => {
         const destino = d.ficheiro ? mediaUrl(d.ficheiro, 'f') : d.url;
         const pdf = Boolean(d.ficheiro) || /\.pdf($|\?)/i.test(d.url ?? '');
         return (
-          <li class:list={['doc', { pendente: !destino }]}>
+          <li class:list={['doc', { pendente: !destino }]} {...edItem(Astro.locals, `items.${i}`)}>
             <span class="doc-icona" aria-hidden="true">{pdf ? 'PDF' : destino ? '↗' : '…'}</span>
             <div class="doc-texto">
-              {destino ? <a href={destino} rel="noopener" download={d.ficheiro ? '' : undefined}>{d.titulo}</a> : <span>{d.titulo}</span>}
-              {(d.detalle || !destino) && <small>{d.detalle ?? 'Dispoñible en breve'}</small>}
+              {destino && !editar ? <a href={destino} rel="noopener" download={d.ficheiro ? '' : undefined}>{d.titulo}</a> : <span class="doc-titulo" {...ed(Astro.locals, `items.${i}.titulo`, 'texto', 'Título')}>{d.titulo}</span>}
+              {editar ? <small {...ed(Astro.locals, `items.${i}.detalle`, 'texto', 'Detalle (opcional)')}>{d.detalle}</small> : (d.detalle || !destino) && <small>{d.detalle ?? 'Dispoñible en breve'}</small>}
             </div>
             {destino && <span class="doc-accion" aria-hidden="true">{d.ficheiro ? 'Descargar' : 'Abrir'}</span>}
           </li>

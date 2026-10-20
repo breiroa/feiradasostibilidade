@@ -1,17 +1,21 @@
 ---
+import { ed, edItem } from '../lib/editable';
+
 interface Props {
   cifras: { valor: string; etiqueta: string }[];
   escuro?: boolean;
+  ruta?: string; // ruta na sección, para editar na vista previa
 }
-const { cifras, escuro = false } = Astro.props;
+const { cifras, escuro = false, ruta } = Astro.props;
+const E = (r: string) => (ruta ? ed(Astro.locals, r) : {});
 ---
 
 <dl class:list={['cifras', { escuro }]}>
   {
-    cifras.map((c) => (
-      <div>
-        <dt>{c.etiqueta}</dt>
-        <dd>{c.valor}</dd>
+    cifras.map((c, i) => (
+      <div {...(ruta ? edItem(Astro.locals, `${ruta}.${i}`) : {})}>
+        <dt {...E(`${ruta}.${i}.etiqueta`)}>{c.etiqueta}</dt>
+        <dd {...E(`${ruta}.${i}.valor`)}>{c.valor}</dd>
       </div>
     ))
   }

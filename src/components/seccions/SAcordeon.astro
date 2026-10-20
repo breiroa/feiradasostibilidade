@@ -2,19 +2,21 @@
 // Preguntas frecuentes: cada pregunta ábrese e péchase (sen JavaScript, con <details>).
 import type { Seccion } from '../../lib/esquemas';
 import Envoltorio from './Envoltorio.astro';
+import { ed, edItem, editando } from '../../lib/editable';
 
 type T = Extract<Seccion, { tipo: 'acordeon' }>;
 interface Props { s: T }
 const { s } = Astro.props;
+const editar = editando(Astro.locals);
 ---
 
 <Envoltorio s={s} texto={s.texto} ancho="estreito">
   <div class="acordeon">
     {
-      s.items.map((it) => (
-        <details>
-          <summary>{it.pregunta}</summary>
-          <div class="texto-longo resposta"><Fragment set:html={it.corpo} /></div>
+      s.items.map((it, i) => (
+        <details open={editar} {...edItem(Astro.locals, `items.${i}`)}>
+          <summary><span {...ed(Astro.locals, `items.${i}.pregunta`, 'texto', 'Pregunta')}>{it.pregunta}</span></summary>
+          <div class="texto-longo resposta" {...ed(Astro.locals, `items.${i}.corpo`, 'rico', 'Resposta')}><Fragment set:html={it.corpo} /></div>
         </details>
       ))
     }

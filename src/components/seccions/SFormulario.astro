@@ -5,6 +5,7 @@ import { axustes } from '../../lib/datos';
 import { campos } from '../../lib/formularios';
 import { url } from '../../lib/url';
 import { clasesDeseno, estiloDeseno, fondoDe } from '../../lib/deseno';
+import { ed, editando } from '../../lib/editable';
 
 type T = Extract<Seccion, { tipo: 'formulario' }>;
 interface Props { s: T }
@@ -15,16 +16,18 @@ const enviado = q.get('enviado');
 const erro = q.get('erro');
 const mensaxeErro = erro === 'privacidade' ? 'Para enviar o formulario tes que aceptar a política de privacidade.' : erro === 'datos' ? 'Non puidemos ler o formulario. Proba de novo.' : erro;
 const ancla = s.ancla ?? 'formulario';
+const editar = editando(Astro.locals);
+const E = (r: string, t: 'texto' | 'area' = 'texto', ph?: string) => ed(Astro.locals, r, t, ph);
 // A vista previa do panel non ten un enderezo público ao que volver
 const volver = Astro.url.pathname.startsWith('/vista-previa') ? '/participa/' : Astro.url.pathname;
 ---
 
-<section class:list={['sec', `fondo-${fondoDe(s)}`, 'tipo-formulario', ...clasesDeseno(s)]} id={ancla} data-sec={s.id} style={estiloDeseno(s)}>
+<section class:list={['sec', `fondo-${fondoDe(s)}`, 'tipo-formulario', ...clasesDeseno(s), { 'previa-oculta': editar && s.oculta }]} id={ancla} data-sec={s.id} data-sec-tipo={editar ? 'formulario' : undefined} style={estiloDeseno(s)}>
   <div class="contedor formulario-grella">
     <div class="intro">
-      {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
-      {s.titulo && <h2>{s.titulo}</h2>}
-      {s.texto && <p>{s.texto}</p>}
+      {(s.etiqueta || editar) && <p class="etiqueta" {...E('etiqueta', 'texto', 'Etiqueta (opcional)')}>{s.etiqueta}</p>}
+      {(s.titulo || editar) && <h2 {...E('titulo', 'texto', 'Título')}>{s.titulo}</h2>}
+      {(s.texto || editar) && <p {...E('texto', 'area', 'Texto (opcional)')}>{s.texto}</p>}
       <p class="outras">
         Tamén nos atopas en {ax.instagram ? <a href={ax.instagram} rel="noopener">Instagram</a> : 'Instagram'}{ax.correo && <> ou en <a href={`mailto:${ax.correo}`}>{ax.correo}</a></>}.
       </p>

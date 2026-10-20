@@ -166,10 +166,6 @@ function documentos(d) {
   return el('div', {}, zona, estado, el('div', { style: { marginTop: '12px' } }, cont));
 }
 
-// Orde no selector «Engadir sección»: primeiro as máis usadas
-const ORDE = ['heroe', 'texto', 'texto_imaxe', 'columnas', 'imaxe', 'tarxetas', 'galeria', 'video', 'cifras', 'cita', 'acordeon', 'chamada', 'cronoloxia', 'programa', 'documentos', 'lista', 'logos', 'recursos', 'noticias', 'listado', 'edicions', 'edicion_actual', 'actividades', 'subpaxinas', 'formulario'];
-const ordenados = () => Object.entries(tipos).sort(([a], [b]) => (ORDE.indexOf(a) + 1 || 99) - (ORDE.indexOf(b) + 1 || 99));
-
 /** Completa os valores por defecto que o servidor daría (para que a casa marcada coincida co que se ve) */
 export function normalizar(lista = []) {
   for (const s of lista) if (s.tipo === 'tarxetas' && s.numerar === undefined) s.numerar = true;
@@ -178,47 +174,175 @@ export function normalizar(lista = []) {
 
 const resumo = (s) => s.titulo || s.etiqueta || s.destaque || (s.texto ? String(s.texto).slice(0, 60) : '') || '';
 
+// HTML libre
+Object.assign(tipos, {
+  html: { nome: 'HTML libre', icona: '</>', desc: 'O teu propio código: mapas, formularios externos, deseños especiais…', novo: () => ({ fondo: 'branco', html: '', ancho: 'normal' }),
+    campos: (d) => [
+      el('div', { class: 'campo-codigo' }, c.area(d, 'html', 'Código HTML', { filas: 14, placeholder: '<div>…</div>', axuda: 'Pódense usar etiquetas e estilos (class, style) e incrustar YouTube, Vimeo, Google Maps/Forms, OpenStreetMap, Genially, Padlet ou Canva. Os scripts elimínanse por seguridade.' })),
+      c.escolla(d, 'ancho', 'Ancho', [{ valor: 'estreito', texto: 'Estreito' }, { valor: 'normal', texto: 'Normal' }, { valor: 'completo', texto: 'Ancho' }]),
+    ] },
+});
+
+// ── Selector visual de seccións: categorías e debuxo esquemático de cada tipo ──
+const CATEGORIAS = [
+  ['Básicas', ['heroe', 'texto', 'texto_imaxe', 'columnas', 'imaxe', 'html']],
+  ['Visuais', ['tarxetas', 'galeria', 'video', 'cifras', 'cita']],
+  ['Información', ['cronoloxia', 'programa', 'acordeon', 'lista', 'documentos']],
+  ['Contidos da web', ['noticias', 'recursos', 'listado', 'edicions', 'edicion_actual', 'actividades', 'subpaxinas', 'logos']],
+  ['Participación', ['chamada', 'formulario']],
+];
+const C = { fondo: '#f4f2f8', escuro: '#2b2340', verde: '#3c783c', morado: '#8f7cb8', liña: '#cdc6da', branco: '#fff', foto: '#9fb7a0' };
+const R = (x, y, w, h, f, rx = 2) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${f}"/>`;
+const L = (x, y, w, n = 1, f = C.liña, paso = 6) => Array.from({ length: n }, (_, i) => R(x, y + i * paso, i === n - 1 && n > 1 ? w * 0.6 : w, 3, f, 1.5)).join('');
+const F = (x, y, w, h) => R(x, y, w, h, C.foto, 4) + `<path d="M${x + 4} ${y + h - 4} l${w * 0.3} -${h * 0.4} l${w * 0.2} ${h * 0.2} l${w * 0.15} -${h * 0.15} l${w * 0.25} ${h * 0.35}z" fill="#7d9a7e"/>`;
+const T = (x, y, w, f = C.escuro) => R(x, y, w, 5, f, 2);
+const DEBUXOS = {
+  heroe: R(0, 0, 120, 72, C.escuro, 0) + T(10, 20, 60, '#fff') + T(10, 28, 44, C.morado) + L(10, 40, 50, 2, '#6b5f86') + R(10, 54, 26, 8, C.verde, 4),
+  texto: T(14, 10, 50) + L(14, 22, 92, 6),
+  texto_imaxe: T(8, 12, 44) + L(8, 24, 48, 5) + F(64, 10, 48, 52),
+  columnas: T(8, 8, 40) + R(8, 20, 48, 44, '#ebe7f2', 4) + L(13, 26, 38, 4) + R(64, 20, 48, 44, '#ebe7f2', 4) + F(68, 24, 40, 22) + L(68, 51, 36, 2),
+  imaxe: F(8, 8, 104, 46) + L(8, 60, 50, 1),
+  html: R(10, 12, 100, 48, C.escuro, 6) + `<text x="60" y="42" text-anchor="middle" font-family="monospace" font-size="16" fill="#8fd18f">&lt;/&gt;</text>`,
+  tarxetas: [8, 44, 80].map((x) => R(x, 10, 32, 52, '#fff', 4) + F(x, 10, 32, 20) + T(x + 4, 35, 22) + L(x + 4, 45, 24, 2)).join(''),
+  galeria: F(14, 8, 92, 44) + R(6, 26, 8, 8, '#fff', 4) + R(106, 26, 8, 8, '#fff', 4) + [14, 33, 52, 71, 90].map((x) => R(x, 57, 16, 10, x === 14 ? C.verde : C.liña, 2)).join(''),
+  video: R(14, 8, 92, 56, C.escuro, 6) + `<circle cx="60" cy="36" r="11" fill="${C.verde}"/><path d="M56 30 l10 6 l-10 6z" fill="#fff"/>`,
+  cifras: [10, 48, 86].map((x) => `<text x="${x}" y="36" font-family="Georgia" font-weight="700" font-size="17" fill="${C.verde}">${x === 10 ? '4' : x === 48 ? '30' : '+1k'}</text>` + L(x, 44, 26, 2)).join(''),
+  cita: `<text x="10" y="30" font-family="Georgia" font-size="28" fill="${C.verde}">“</text>` + T(26, 22, 80) + T(26, 31, 64) + L(26, 46, 30, 1),
+  cronoloxia: R(16, 8, 2, 56, C.liña, 1) + [12, 32, 52].map((y, i) => `<circle cx="17" cy="${y}" r="4" fill="${i === 1 ? C.morado : C.verde}"/>` + L(28, y - 3, 20, 1, C.verde) + T(54, y - 4, 40) + L(54, y + 4, 52, 1)).join(''),
+  programa: T(10, 8, 40) + [20, 34, 48].map((y) => L(10, y + 1, 16, 1, C.verde) + T(32, y, 50) + L(32, y + 8, 70, 1)).join(''),
+  acordeon: [8, 26, 44].map((y, i) => R(8, y, 104, i === 0 ? 16 : 14, '#fff', 4) + T(14, y + 5, 60) + `<text x="104" y="${y + 11}" font-size="12" fill="${C.verde}">+</text>`).join(''),
+  lista: [[10, 12, 30], [44, 12, 36], [84, 12, 26], [10, 30, 40], [54, 30, 30], [88, 30, 22]].map(([x, y, w]) => R(x, y, w, 12, '#fff', 6) + L(x + 5, y + 4.5, w - 10, 1)).join(''),
+  documentos: [10, 28, 46].map((y) => R(8, y, 104, 14, '#fff', 4) + R(12, y + 3, 10, 8, '#e3dcef', 2) + T(28, y + 4.5, 50) + L(86, y + 5.5, 20, 1, C.verde)).join(''),
+  noticias: [8, 44, 80].map((x) => R(x, 10, 32, 52, '#fff', 4) + F(x, 10, 32, 22) + L(x + 4, 36, 14, 1, C.verde) + T(x + 4, 42, 24) + L(x + 4, 51, 22, 1)).join(''),
+  recursos: [10, 40, 70].map((x) => R(x, 8, 26, 34, C.morado, 3) + T(x, 46, 22) + R(x, 56, 26, 8, C.verde, 4)).join(''),
+  listado: [8, 26, 44].map((x) => R(x, 8, 16, 7, x === 8 ? C.escuro : '#fff', 4)).join('') + [8, 44, 80].map((x) => R(x, 22, 32, 40, '#fff', 4) + F(x, 22, 32, 18) + L(x + 4, 44, 22, 2)).join(''),
+  edicions: [8, 62].map((x) => R(x, 10, 50, 52, '#fff', 4) + F(x, 10, 50, 26) + T(x + 4, 41, 34) + L(x + 4, 50, 40, 1)).join(''),
+  edicion_actual: L(8, 12, 24, 1, C.verde) + T(8, 20, 50) + L(8, 32, 50, 3) + R(8, 52, 30, 9, C.verde, 4) + [70, 94].map((x) => `<text x="${x}" y="30" font-family="Georgia" font-weight="700" font-size="14" fill="${C.verde}">30</text>` + L(x, 36, 18, 1)).join(''),
+  actividades: R(8, 10, 104, 6, '#e3dcef', 3) + R(8, 10, 60, 6, C.verde, 3) + [24, 38, 52].map((y, i) => `<circle cx="13" cy="${y + 2}" r="4" fill="${i ? C.liña : C.verde}"/>` + T(22, y, 60) + L(22, y + 8, 80, 1)).join(''),
+  subpaxinas: [[8, 10], [62, 10], [8, 40], [62, 40]].map(([x, y]) => R(x, y, 50, 24, '#fff', 4) + T(x + 5, y + 6, 30) + L(x + 5, y + 15, 38, 1)).join(''),
+  logos: [10, 40, 70, 96].map((x, i) => `<circle cx="${x + 10}" cy="26" r="9" fill="${[C.verde, C.morado, '#c9a24a', '#6a9fc4'][i]}"/>` + L(x + 2, 40, 16, 1)).join('') + L(10, 54, 100, 1),
+  chamada: R(0, 14, 120, 44, '#6e5a9a', 0) + T(10, 26, 54, '#fff') + L(10, 36, 46, 1, '#b8abd4') + R(80, 30, 30, 10, '#fff', 5),
+  formulario: T(8, 12, 34) + L(8, 24, 34, 3) + R(56, 8, 56, 56, '#fff', 4) + [14, 26, 38].map((y) => R(61, y, 46, 7, '#ebe7f2', 2)).join('') + R(61, 50, 22, 8, C.verde, 4),
+};
+const debuxo = (tipo) => {
+  const sp = document.createElement('span');
+  sp.className = 'tipo-debuxo';
+  sp.innerHTML = `<svg viewBox="0 0 120 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="120" height="72" fill="${C.fondo}"/>${DEBUXOS[tipo] ?? ''}</svg>`;
+  return sp;
+};
+
+/** Grella de tipos de sección por categorías, con busca; escoller(tipo) cando se preme un */
+export function grellaTipos(escoller) {
+  const cont = el('div', { class: 'tipos-cats' });
+  const busca = el('input', { type: 'search', class: 'tipos-busca', placeholder: 'Buscar (texto, foto, columnas, mapa…)', oninput: () => pintar() });
+  const sen = (t) => t.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  function pintar() {
+    const q = sen(busca.value.trim());
+    cont.replaceChildren(...CATEGORIAS.map(([nome, ids]) => {
+      const vistos = ids.filter((id) => tipos[id] && (!q || sen(`${tipos[id].nome} ${tipos[id].desc} ${nome}`).includes(q)));
+      return vistos.length ? el('section', {},
+        el('h3', {}, nome),
+        el('div', { class: 'tipos-grella' }, vistos.map((id) => el('button', { type: 'button', class: 'tipo-boton', onclick: () => escoller(id) },
+          debuxo(id), el('b', {}, tipos[id].nome), el('small', {}, tipos[id].desc))))) : null;
+    }));
+    if (!cont.children.length) cont.append(el('p', { class: 'muted' }, 'Ningún tipo coincide coa busca.'));
+  }
+  pintar();
+  setTimeout(() => busca.focus(), 50);
+  return el('div', {}, busca, cont);
+}
+
+/** Que se engade co «+» dunha sección (tarxeta, fito, pregunta…); null se se fai desde o panel */
+export function novoElemento(s) {
+  const boton = { texto: 'Novo botón', url: '/participa/', estilo: 'principal' };
+  switch (s.tipo) {
+    case 'tarxetas': return ['items', { titulo: 'Novo título', texto: 'Texto da tarxeta.' }];
+    case 'cronoloxia': return ['fitos', { data: 'Data', titulo: 'Novo fito', estado: 'proximo' }];
+    case 'acordeon': return ['items', { pregunta: 'Nova pregunta?', corpo: '<p>Resposta.</p>' }];
+    case 'documentos': return ['items', { titulo: 'Novo documento' }];
+    case 'lista': return ['items', 'Novo elemento'];
+    case 'cifras': return ['cifras', { valor: '0', etiqueta: 'Texto da cifra' }];
+    case 'programa': return ['dias', { dia: 'Novo día', actividades: [{ hora: '10:00', titulo: 'Actividade' }] }];
+    case 'heroe': case 'chamada': case 'texto_imaxe': return ['botons', boton];
+    default: return null;
+  }
+}
+
+/** Bloques que se poden engadir nas columnas (co seu contido inicial) */
+export const BLOQUES_NOVOS = {
+  titulo: ['Título', () => ({ tipo: 'titulo', texto: 'Novo título', grande: false })],
+  texto: ['Texto', () => ({ tipo: 'texto', corpo: '<p>Escribe aquí o texto.</p>' })],
+  imaxe: ['Imaxe', null], // pide a foto
+  botons: ['Botóns', () => ({ tipo: 'botons', botons: [{ texto: 'Novo botón', url: '/participa/', estilo: 'principal' }] })],
+  video: ['Vídeo', null], // pide a ligazón
+  cita: ['Cita', () => ({ tipo: 'cita', texto: 'Unha frase para destacar.' })],
+  cifra: ['Cifra', () => ({ tipo: 'cifra', valor: '100', etiqueta: 'Texto da cifra' })],
+  lista: ['Lista', () => ({ tipo: 'lista', items: ['Primeiro elemento', 'Segundo elemento'] })],
+  espazo: ['Espazo', () => ({ tipo: 'espazo', grande: false })],
+};
+
 /**
  * Construtor: devolve o bloque do formulario que edita d[clave] (lista de seccións).
+ * Só hai unha sección aberta á vez (a que se está editando, tamén ao premela na vista previa).
  * opcions.aoAbrir(id): avisa cando se abre unha sección (para resaltala na vista previa).
  * opcions.abertas: Set cos ids abertos (para conservalos ao repintar o editor).
  * opcions.modelos: { engadir(grella, escoller) → Node, gardar(seccion) } para os modelos gardados.
- * O bloque devolto ten .abrir(id) para abrir unha sección desde fóra (p. ex. premendo na vista previa).
+ * O bloque devolto ten: .abrir(id), .repintar(), .accion(id, accion), .engadirEn(posicion), .posicion(id).
  */
-export function construtor(d, clave = 'seccions', { titulo = 'Seccións da páxina', axuda, aoAbrir, abertas = new Set(), modelos } = {}) {
+export function construtor(d, clave = 'seccions', { titulo = 'Seccións da páxina', axuda, aoAbrir, aoEngadir, abertas = new Set(), modelos } = {}) {
   if (!Array.isArray(d[clave])) d[clave] = [];
-  const lista = d[clave];
+  const lista = () => d[clave];
   const cont = el('div', { class: 'construtor' });
   let arrastrando = null;
 
   function engadir(posicion) {
     const escoller = (s) => {
-      lista.splice(posicion, 0, s);
+      lista().splice(posicion, 0, s);
+      abertas.clear();
       abertas.add(s.id);
       m.pechar();
+      aoEngadir?.(s.id);
       pintar();
       aoAbrir?.(s.id);
       setTimeout(() => cont.querySelector(`[data-sec="${s.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     };
-    const grella = el('div', { class: 'tipos-grella' }, ordenados().map(([tipo, t]) =>
-      el('button', { type: 'button', class: 'tipo-boton', onclick: () => escoller({ id: novoId(), tipo, oculta: false, fondo: 'claro', ...t.novo() }) },
-        el('span', { class: 'tipo-icona' }, t.icona), el('b', {}, t.nome), el('small', {}, t.desc))));
+    const grella = grellaTipos((tipo) => escoller({ id: novoId(), tipo, oculta: false, fondo: 'claro', ...tipos[tipo].novo() }));
     const m = modal('Engadir sección', modelos ? modelos.engadir(grella, (s) => escoller({ ...structuredClone(s), id: novoId() })) : grella, { ancho: true });
+    m.dialog.classList.add('modal-tipos');
   }
 
   function alternar(id) {
-    if (abertas.has(id)) abertas.delete(id);
-    else abertas.add(id);
+    const estaba = abertas.has(id);
+    abertas.clear();
+    if (!estaba) abertas.add(id);
     pintar();
-    if (abertas.has(id)) aoAbrir?.(id);
+    if (!estaba) aoAbrir?.(id);
   }
 
   function mover(de, a) {
-    if (de === a || de < 0 || a < 0 || de >= lista.length || a > lista.length) return;
-    const [s] = lista.splice(de, 1);
-    lista.splice(a > de ? a - 1 : a, 0, s);
+    const l = lista();
+    if (de === a || de < 0 || a < 0 || de >= l.length || a > l.length) return;
+    const [s] = l.splice(de, 1);
+    l.splice(a > de ? a - 1 : a, 0, s);
     pintar();
   }
+
+  async function borrar(s) {
+    const t = tipos[s.tipo];
+    if (await confirmar(`Borrar a sección «${s.titulo || t?.nome || s.tipo}»?`, { detalle: 'Podes recuperala con ↶ (desfacer) mentres non saias do editor.' })) {
+      lista().splice(lista().indexOf(s), 1);
+      pintar();
+      return true;
+    }
+    return false;
+  }
+  const duplicar = (s) => {
+    const copia = { ...structuredClone(s), id: novoId() };
+    aoEngadir?.(copia.id);
+    lista().splice(lista().indexOf(s) + 1, 0, copia);
+    pintar();
+    return copia;
+  };
 
   function tarxeta(s, i) {
     const t = tipos[s.tipo] ?? { nome: s.tipo, icona: '?', campos: () => [] };
@@ -236,7 +360,7 @@ export function construtor(d, clave = 'seccions', { titulo = 'Seccións da páxi
       if (arrastrando === null) return;
       e.preventDefault();
       const r = tx.getBoundingClientRect();
-      const antes = e.clientY < r.top + r.height / 2;
+      const antes = e.clientY < r.top + Math.min(r.height, 60) / 2;
       tx.classList.toggle('soltar-antes', antes);
       tx.classList.toggle('soltar-despois', !antes);
     });
@@ -258,12 +382,10 @@ export function construtor(d, clave = 'seccions', { titulo = 'Seccións da páxi
         el('div', { class: 'sec-ctrl' },
           ctrl('↑', 'Subir', () => mover(i, i - 1)),
           ctrl('↓', 'Baixar', () => mover(i, i + 2)),
-          ctrl('⧉', 'Duplicar', () => { const copia = { ...structuredClone(s), id: novoId() }; lista.splice(i + 1, 0, copia); pintar(); }),
+          ctrl('⧉', 'Duplicar', () => duplicar(s)),
           ctrl(s.oculta ? '◌' : '◉', s.oculta ? 'Mostrar na web' : 'Ocultar na web (sen borrar)', () => { s.oculta = !s.oculta; pintar(); }),
           modelos ? ctrl('☆', 'Gardar esta sección como modelo', () => modelos.gardar(s)) : null,
-          ctrl('🗑', 'Borrar sección', async () => {
-            if (await confirmar(`Borrar a sección «${s.titulo || t.nome}»?`, { detalle: 'Podes recuperala con ↶ (desfacer) mentres non saias do editor.' })) { lista.splice(lista.indexOf(s), 1); pintar(); }
-          }, 'perigo'),
+          ctrl('🗑', 'Borrar sección', () => borrar(s), 'perigo'),
           el('span', { class: 'sec-chevron', 'aria-hidden': 'true' }, aberta ? '▴' : '▾'))),
       corpo,
       el('button', { type: 'button', class: 'engadir-aqui', onclick: () => engadir(i + 1) }, '+ Engadir sección aquí'));
@@ -271,21 +393,38 @@ export function construtor(d, clave = 'seccions', { titulo = 'Seccións da páxi
   }
 
   function pintar() {
-    const algunha = lista.some((s) => abertas.has(s.id));
+    const l = lista();
     cont.replaceChildren(
-      lista.length > 1 && algunha ? el('div', { class: 'construtor-barra' }, el('button', { type: 'button', class: 'btn-ghost btn-peq', onclick: () => { abertas.clear(); pintar(); } }, 'Pregar todas')) : null,
-      ...(lista.length ? lista.map(tarxeta) : [el('div', { class: 'baleiro' }, 'Esta páxina aínda non ten seccións.')]),
-      el('button', { type: 'button', class: 'btn', onclick: () => engadir(lista.length) }, '+ Engadir sección'));
+      ...(l.length ? l.map(tarxeta) : [el('div', { class: 'baleiro' }, 'Esta páxina aínda non ten seccións. Engade a primeira:')]),
+      el('button', { type: 'button', class: 'btn', onclick: () => engadir(l.length) }, '+ Engadir sección'));
     cont.dispatchEvent(new Event('input', { bubbles: true }));
   }
   pintar();
-  const bloque = c.bloque(titulo, axuda ?? 'Preme nunha sección para editala. Arrastra ⠿ (ou usa as frechas) para ordenar, ◉ para ocultala sen borrala e «+ Engadir sección» para crear novas.', cont);
+  const bloque = c.bloque(titulo, axuda ?? 'Escribe os textos directamente na páxina da dereita. Aquí tes as opcións de cada sección: preme nunha para abrila, arrastra ⠿ para ordenar.', cont);
+  const busca = (id) => lista().find((s) => s.id === id);
+  bloque.posicion = (id) => lista().findIndex((s) => s.id === id);
   bloque.abrir = (id) => {
-    if (!lista.some((s) => s.id === id)) return false;
+    if (!busca(id)) return false;
     if (!abertas.has(id)) alternar(id);
     else aoAbrir?.(id);
     setTimeout(() => cont.querySelector(`[data-sec="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
     return true;
+  };
+  bloque.repintar = () => pintar();
+  bloque.engadirEn = (posicion) => engadir(posicion);
+  /** Accións que chegan da barra de sección da vista previa. Devolve true se cambiou algo. */
+  bloque.accion = async (id, accion) => {
+    const s = busca(id);
+    if (!s) return false;
+    const i = lista().indexOf(s);
+    switch (accion) {
+      case 'subir': if (i > 0) { mover(i, i - 1); return true; } return false;
+      case 'baixar': if (i < lista().length - 1) { mover(i, i + 2); return true; } return false;
+      case 'duplicar': duplicar(s); return true;
+      case 'ocultar': s.oculta = !s.oculta; pintar(); return true;
+      case 'borrar': return borrar(s);
+      default: return false;
+    }
   };
   return bloque;
 }

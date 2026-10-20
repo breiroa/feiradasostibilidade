@@ -6,6 +6,7 @@ import Envoltorio from './Envoltorio.astro';
 import Botons from './Botons.astro';
 import Img from '../Img.astro';
 import Video from '../Video.astro';
+import { ed, edItem, editando } from '../../lib/editable';
 
 type T = Extract<Seccion, { tipo: 'columnas' }>;
 interface Props { s: T }
@@ -14,48 +15,58 @@ const n = s.proporcion === '1-1-1' ? 3 : 2;
 const columnas = Array.from({ length: n }, (_, i) => s.columnas[i] ?? { bloques: [] });
 const plantilla = { '1-1': '1fr 1fr', '2-1': '2fr 1fr', '1-2': '1fr 2fr', '1-1-1': '1fr 1fr 1fr' }[s.proporcion];
 const escuro = escuroDe(s);
+const editar = editando(Astro.locals);
+const E = (r: string, t: 'texto' | 'area' | 'rico' | 'imaxe' = 'texto', ph?: string) => ed(Astro.locals, r, t, ph);
+const tamanos = n === 3 ? '(max-width: 860px) 100vw, 30vw' : '(max-width: 860px) 100vw, 50vw';
 ---
 
 <Envoltorio s={s} texto={s.texto}>
   <div class:list={['cols', `cols--${n}`, { 'cols--centro': s.vertical === 'centro' }]} style={`--cols: ${plantilla}`}>
     {
-      columnas.map((col) => (
-        <div class="col">
-          {col.bloques.map((b) => {
+      columnas.map((col, ci) => (
+        <div class="col" data-col={editar ? `columnas.${ci}` : undefined}>
+          {editar && !col.bloques.length && <p class="previa-baleira">Columna {ci + 1} baleira: engade bloques co botón «+ Bloque».</p>}
+          {col.bloques.map((b, bi) => {
+            const r = `columnas.${ci}.bloques.${bi}`;
+            const item = edItem(Astro.locals, r);
             switch (b.tipo) {
               case 'titulo':
-                return b.grande ? <h2 class="b-titulo">{b.texto}</h2> : <h3 class="b-titulo">{b.texto}</h3>;
+                return b.grande ? (
+                  <h2 class="b-titulo" {...item} {...E(`${r}.texto`, 'texto', 'Título')}>{b.texto}</h2>
+                ) : (
+                  <h3 class="b-titulo" {...item} {...E(`${r}.texto`, 'texto', 'Título')}>{b.texto}</h3>
+                );
               case 'texto':
-                return <div class="texto-longo b-texto"><Fragment set:html={b.corpo} /></div>;
+                return <div class="texto-longo b-texto" {...item} {...E(`${r}.corpo`, 'rico', 'Escribe aquí…')}><Fragment set:html={b.corpo} /></div>;
               case 'imaxe':
                 return (
-                  <figure class:list={['b-imaxe', `forma-${b.forma}`]}>
-                    <Img id={b.imaxe} alt={b.alt ?? ''} sizes={n === 3 ? '(max-width: 860px) 100vw, 30vw' : '(max-width: 860px) 100vw, 50vw'} />
-                    {b.pe && <figcaption>{b.pe}</figcaption>}
+                  <figure class:list={['b-imaxe', `forma-${b.forma}`]} {...item}>
+                    <Img id={b.imaxe} alt={b.alt ?? ''} sizes={tamanos} {...E(`${r}.imaxe`, 'imaxe')} />
+                    {(b.pe || editar) && <figcaption {...E(`${r}.pe`, 'texto', 'Pé de foto (opcional)')}>{b.pe}</figcaption>}
                   </figure>
                 );
               case 'botons':
-                return <Botons botons={b.botons} escuro={escuro} />;
+                return <div {...item}><Botons botons={b.botons} escuro={escuro} ruta={`${r}.botons`} /></div>;
               case 'video':
-                return <Video url={b.url} />;
+                return <div {...item}><Video url={b.url} /></div>;
               case 'cita':
                 return (
-                  <blockquote class="b-cita">
-                    <p>{b.texto}</p>
-                    {b.autoria && <footer>— {b.autoria}</footer>}
+                  <blockquote class="b-cita" {...item}>
+                    <p {...E(`${r}.texto`, 'area', 'A frase')}>{b.texto}</p>
+                    {(b.autoria || editar) && <footer>— <span {...E(`${r}.autoria`, 'texto', 'Autoría')}>{b.autoria}</span></footer>}
                   </blockquote>
                 );
               case 'cifra':
                 return (
-                  <p class="b-cifra">
-                    <strong>{b.valor}</strong>
-                    <span>{b.etiqueta}</span>
+                  <p class="b-cifra" {...item}>
+                    <strong {...E(`${r}.valor`, 'texto', 'Número')}>{b.valor}</strong>
+                    <span {...E(`${r}.etiqueta`, 'texto', 'Texto')}>{b.etiqueta}</span>
                   </p>
                 );
               case 'lista':
-                return <ul class="b-lista">{b.items.map((i) => <li>{i}</li>)}</ul>;
+                return <ul class="b-lista" {...item}>{b.items.map((x, k) => <li {...E(`${r}.items.${k}`)}>{x}</li>)}</ul>;
               case 'espazo':
-                return <div class:list={['b-espazo', { grande: b.grande }]} aria-hidden="true" />;
+                return <div class:list={['b-espazo', { grande: b.grande, 'previa-espazo': editar }]} aria-hidden="true" {...item} />;
               default:
                 return null;
             }
@@ -86,6 +97,8 @@ const escuro = escuroDe(s);
   .b-lista { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.4rem; }
   .b-espazo { height: 1rem; }
   .b-espazo.grande { height: 3rem; }
+  .previa-baleira { padding: 1.5rem; border: 2px dashed var(--linha); border-radius: 14px; text-align: center; color: var(--texto-suave); font-size: 0.9rem; }
+  .previa-espazo { outline: 1px dashed var(--linha); }
   :global(.fondo-escuro) .b-cita p, :global(.fondo-morado) .b-cita p { color: var(--branco); }
   :global(.fondo-escuro) .b-cifra strong, :global(.fondo-morado) .b-cifra strong { color: var(--verde-medio); }
   :global(.fondo-escuro) :is(.b-cifra span, .b-imaxe figcaption, .b-cita footer), :global(.fondo-morado) :is(.b-cifra span, .b-imaxe figcaption, .b-cita footer) { color: rgb(255 255 255 / 0.7); }

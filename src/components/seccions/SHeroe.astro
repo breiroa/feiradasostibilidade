@@ -3,17 +3,24 @@
 import type { Seccion } from '../../lib/esquemas';
 import { mediaUrl } from '../../lib/url';
 import Botons from './Botons.astro';
+import { ed, editando } from '../../lib/editable';
 
 type Heroe = Extract<Seccion, { tipo: 'heroe' }>;
+type Campo = 'etiqueta' | 'titulo' | 'destaque' | 'texto' | 'imaxe' | 'botons';
 interface Props {
   s: Heroe;
   h1?: boolean;
+  // Na portada das edicións os textos veñen doutros campos (p. ex. o lugar); null = non editable aquí
+  rutas?: Partial<Record<Campo, string | null>>;
 }
-const { s, h1 = true } = Astro.props;
+const { s, h1 = true, rutas = {} } = Astro.props;
 const Titulo = h1 ? 'h1' : 'h2';
+const editar = editando(Astro.locals);
+const E = (c: Campo, ph: string, t: 'texto' | 'area' = 'texto') => (rutas[c] === null ? {} : ed(Astro.locals, rutas[c] ?? c, t, ph));
+const rutaImaxe = rutas.imaxe === null ? undefined : rutas.imaxe ?? 'imaxe';
 ---
 
-<section class:list={['heroe-sec', { 'con-foto': s.imaxe }]} id={s.ancla} data-sec={s.id}>
+<section class:list={['heroe-sec', { 'con-foto': s.imaxe, 'previa-oculta': editar && s.oculta }]} id={s.ancla} data-sec={s.id} data-sec-tipo={editar ? 'heroe' : undefined} data-e-foto={editar ? rutaImaxe : undefined}>
   {
     s.imaxe && (
       <img
@@ -29,21 +36,21 @@ const Titulo = h1 ? 'h1' : 'h2';
   }
   <div class="heroe-veo" aria-hidden="true"></div>
   <div class="contedor heroe-contido">
-    {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
+    {(s.etiqueta || (editar && rutas.etiqueta !== null)) && <p class="etiqueta" {...E('etiqueta', 'Etiqueta (opcional)')}>{s.etiqueta}</p>}
     <Titulo class="heroe-titulo">
-      {s.titulo}{s.destaque && <>{' '}<em>{s.destaque}</em></>}
+      <span {...E('titulo', 'Título grande')}>{s.titulo}</span>{(s.destaque || editar) && <>{' '}<em {...E('destaque', 'Final en cor (opcional)')}>{s.destaque}</em></>}
     </Titulo>
-    {s.texto && <p class="heroe-texto">{s.texto}</p>}
-    <Botons botons={s.botons} escuro />
+    {(s.texto || editar) && <p class="heroe-texto" {...E('texto', 'Texto (opcional)', 'area')}>{s.texto}</p>}
+    <Botons botons={s.botons} escuro ruta={rutas.botons === null ? null : 'botons'} />
   </div>
   {
     s.cifras.length > 0 && (
       <div class="contedor heroe-cifras-cont">
         <dl class="heroe-cifras">
-          {s.cifras.map((c) => (
-            <div>
-              <dt>{c.etiqueta}</dt>
-              <dd>{c.valor}</dd>
+          {s.cifras.map((c, i) => (
+            <div data-item={editar ? `cifras.${i}` : undefined}>
+              <dt {...ed(Astro.locals, `cifras.${i}.etiqueta`)}>{c.etiqueta}</dt>
+              <dd {...ed(Astro.locals, `cifras.${i}.valor`)}>{c.valor}</dd>
             </div>
           ))}
         </dl>

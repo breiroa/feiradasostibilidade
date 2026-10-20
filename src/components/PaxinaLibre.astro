@@ -6,6 +6,7 @@ import Base from '../layouts/Base.astro';
 import Hero from './Hero.astro';
 import Seccions from './seccions/Seccions.astro';
 import { url } from '../lib/url';
+import { ed, editando } from '../lib/editable';
 
 interface Props {
   p: PaxinaLibre;
@@ -18,16 +19,19 @@ const conHeroe = visibles[0]?.tipo === 'heroe';
 const cab = p.cabeceira;
 const heroe = visibles.find((s) => s.tipo === 'heroe');
 const imaxeSocial = p.imaxe ?? (heroe && 'imaxe' in heroe ? heroe.imaxe : undefined) ?? cab?.imaxe;
+const editar = editando(Astro.locals);
+const E = (r: string, ph: string, t: 'texto' | 'area' = 'texto') => ed(Astro.locals, r, t, ph);
 ---
 
 <Base titulo={portada ? undefined : p.titulo} descricion={p.descricion} imaxe={imaxeSocial}>
   {
     !conHeroe && (
-      <div data-sec="_cabeceira" style="display: contents">
-      <Hero etiqueta={cab?.etiqueta} imaxe={cab?.imaxe} imaxeAlt={cab?.imaxeAlt} compacto>
+      <div data-sec="_cabeceira" style="display: contents" data-sec-tipo={editar ? '_cabeceira' : undefined} data-e-foto={editar ? 'cabeceira.imaxe' : undefined}>
+      <Hero etiqueta={editar ? undefined : cab?.etiqueta} imaxe={cab?.imaxe} imaxeAlt={cab?.imaxeAlt} compacto>
+        {editar && <p class="etiqueta" {...E('cabeceira.etiqueta', 'Etiqueta (opcional)')}>{cab?.etiqueta}</p>}
         {volver && <p class="volver"><a href={url(volver.href)}>← {volver.texto}</a></p>}
-        <h1>{cab?.titulo ?? p.titulo}{cab?.destaque && <>{' '}<em>{cab.destaque}</em></>}</h1>
-        {(cab?.texto ?? p.descricion) && <p class="entrada">{cab?.texto ?? p.descricion}</p>}
+        <h1><span {...E('cabeceira.titulo', p.titulo)}>{cab?.titulo ?? p.titulo}</span>{(cab?.destaque || editar) && <>{' '}<em {...E('cabeceira.destaque', 'Final en cor (opcional)')}>{cab?.destaque}</em></>}</h1>
+        {(cab?.texto ?? p.descricion ?? editar) && <p class="entrada" {...E('cabeceira.texto', 'Texto (opcional)', 'area')}>{cab?.texto ?? p.descricion}</p>}
         {
           cab?.datas.length ? (
             <ul class="datas">

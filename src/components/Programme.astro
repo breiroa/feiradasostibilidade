@@ -1,22 +1,26 @@
 ---
+import { ed, edItem, editando } from '../lib/editable';
+
 interface Props {
   programa: { dia: string; actividades: { hora?: string; titulo: string; descricion?: string }[] }[];
 }
 const { programa } = Astro.props;
+const editar = editando(Astro.locals);
+const E = (r: string, ph: string) => ed(Astro.locals, r, 'texto', ph);
 ---
 
 <div class="programa">
   {
-    programa.map((d) => (
-      <section>
-        <h3>{d.dia}</h3>
+    programa.map((d, i) => (
+      <section {...edItem(Astro.locals, `dias.${i}`)}>
+        <h3 {...E(`dias.${i}.dia`, 'Día')}>{d.dia}</h3>
         <ol>
-          {d.actividades.map((a) => (
-            <li>
-              {a.hora && <span class="hora">{a.hora}</span>}
+          {d.actividades.map((a, j) => (
+            <li {...edItem(Astro.locals, `dias.${i}.actividades.${j}`)}>
+              {(a.hora || editar) && <span class="hora" {...E(`dias.${i}.actividades.${j}.hora`, 'Hora')}>{a.hora}</span>}
               <div>
-                <p class="titulo">{a.titulo}</p>
-                {a.descricion && <p>{a.descricion}</p>}
+                <p class="titulo" {...E(`dias.${i}.actividades.${j}.titulo`, 'Actividade')}>{a.titulo}</p>
+                {(a.descricion || editar) && <p {...E(`dias.${i}.actividades.${j}.descricion`, 'Descrición (opcional)')}>{a.descricion}</p>}
               </div>
             </li>
           ))}

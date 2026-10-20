@@ -23,7 +23,8 @@ export async function navegacion(): Promise<{ menu: ItemNav[]; pe: LigazonNav[];
     const menu = nav.map((i) => ({ href: `/${i.href}`, texto: i.texto, edicions: Boolean(i.despregable), fillos: [] }));
     return { menu, pe: menu, legais: legaisBase };
   }
-  const paxs = new Map((await paxinasLibres()).map((p) => [p.id, p]));
+  const lista = await paxinasLibres();
+  const paxs = new Map(lista.map((p) => [p.id, p]));
   const resolver = (l: { tipo: string; paxina?: string; url?: string; texto?: string }): LigazonNav | null => {
     if (l.tipo === 'ligazon') return l.url && l.texto ? { href: l.url, texto: l.texto } : null;
     const p = l.paxina ? paxs.get(l.paxina) : undefined;
@@ -32,9 +33,17 @@ export async function navegacion(): Promise<{ menu: ItemNav[]; pe: LigazonNav[];
     return { href: rutaPaxina(p), texto: l.texto || p.titulo };
   };
   const menu = n.menu.flatMap((i): ItemNav[] => {
-    if (i.tipo === 'edicions') return [{ href: '/edicions/', texto: i.texto || 'Edicións', edicions: true, fillos: [] }];
+    // As edicións (despregable cos anos) son as subpáxinas automáticas da páxina Edicións
+    if (i.tipo === 'edicions' || (i.tipo === 'paxina' && i.paxina === 'edicions' && i.auto)) {
+      return [{ href: '/edicions/', texto: i.texto || paxs.get('edicions')?.titulo || 'Edicións', edicions: true, fillos: [] }];
+    }
     const r = resolver(i);
-    return r ? [{ ...r, fillos: i.fillos.map(resolver).filter((x): x is LigazonNav => Boolean(x)) }] : [];
+    if (!r) return [];
+    const fillos = i.fillos.map(resolver).filter((x): x is LigazonNav => Boolean(x));
+    if (i.auto && i.tipo === 'paxina' && i.paxina) {
+      for (const p of lista.filter((x) => x.nai === i.paxina)) if (!fillos.some((f) => f.href === rutaPaxina(p))) fillos.push({ href: rutaPaxina(p), texto: p.titulo });
+    }
+    return [{ ...r, fillos }];
   });
   const pe = n.peIgual || !n.pe.length ? menu : n.pe.map(resolver).filter((x): x is LigazonNav => Boolean(x));
   const legais = n.legais.length ? n.legais.map(resolver).filter((x): x is LigazonNav => Boolean(x)) : legaisBase;

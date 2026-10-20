@@ -1,9 +1,12 @@
 ---
+import { ed, edItem } from '../../lib/editable';
+
 interface Props {
   botons: { texto: string; url: string; estilo: 'principal' | 'secundario' }[];
   escuro?: boolean;
+  ruta?: string | null; // ruta da lista de botóns dentro da sección (para editala na vista previa)
 }
-const { botons, escuro = false } = Astro.props;
+const { botons, escuro = false, ruta = 'botons' } = Astro.props;
 const externa = (u: string) => /^https?:\/\//.test(u);
 ---
 
@@ -11,7 +14,7 @@ const externa = (u: string) => /^https?:\/\//.test(u);
   botons.length > 0 && (
     <div class:list={['botons', { escuro }]}>
       {botons.map((b) => (
-        <a class:list={['boton', { 'boton--contorno': b.estilo === 'secundario' }]} href={b.url} rel={externa(b.url) ? 'noopener' : undefined}>
+        <a class:list={['boton', { 'boton--contorno': b.estilo === 'secundario' }]} href={b.url} rel={externa(b.url) ? 'noopener' : undefined} {...(ruta ? ed(Astro.locals, `${ruta}.${botons.indexOf(b)}`, 'ligazon') : {})} {...(ruta ? edItem(Astro.locals, `${ruta}.${botons.indexOf(b)}`) : {})}>
           {b.texto}
         </a>
       ))}

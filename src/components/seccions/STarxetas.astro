@@ -2,28 +2,33 @@
 import type { Seccion } from '../../lib/esquemas';
 import Envoltorio from './Envoltorio.astro';
 import Img from '../Img.astro';
+import { ed, edItem, editando } from '../../lib/editable';
 
 type T = Extract<Seccion, { tipo: 'tarxetas' }>;
 interface Props { s: T }
 const { s } = Astro.props;
 const conImaxes = s.items.some((i) => i.imaxe);
+const editar = editando(Astro.locals);
+const E = (r: string, t: 'texto' | 'area' | 'imaxe' = 'texto', ph?: string) => ed(Astro.locals, r, t, ph);
 ---
 
 <Envoltorio s={s} texto={s.texto}>
   <ul class:list={['tx', `tx--${s.columnas}`, { 'tx--imaxes': conImaxes }]}>
     {
       s.items.map((it, n) => (
-        <li class:list={['tx-item', { 'con-ligazon': it.url }]}>
+        <li class:list={['tx-item', { 'con-ligazon': it.url }]} {...edItem(Astro.locals, `items.${n}`)} data-url-ruta={editar ? `items.${n}.url` : undefined}>
           {it.imaxe ? (
-            <Img id={it.imaxe} alt={it.imaxeAlt ?? ''} sizes="(max-width: 700px) 100vw, 33vw" class="tx-foto" />
+            <Img id={it.imaxe} alt={it.imaxeAlt ?? ''} sizes="(max-width: 700px) 100vw, 33vw" class="tx-foto" {...E(`items.${n}.imaxe`, 'imaxe')} />
+          ) : conImaxes && editar ? (
+            <div class="tx-foto previa-sen-imaxe" {...E(`items.${n}.imaxe`, 'imaxe')}>+ Foto</div>
           ) : (
             !conImaxes && s.numerar && <span class="tx-num" aria-hidden="true">{String(n + 1).padStart(2, '0')}</span>
           )}
           <div class="tx-corpo">
-            {it.etiqueta && <p class="tx-etiqueta">{it.etiqueta}</p>}
-            <h3>{it.url ? <a href={it.url}>{it.titulo}</a> : it.titulo}</h3>
-            {it.texto && <p>{it.texto}</p>}
-            {it.url && it.boton && <span class="tx-boton ligazon-frecha" aria-hidden="true">{it.boton}</span>}
+            {(it.etiqueta || editar) && <p class="tx-etiqueta" {...E(`items.${n}.etiqueta`, 'texto', 'Etiqueta')}>{it.etiqueta}</p>}
+            <h3>{it.url && !editar ? <a href={it.url}>{it.titulo}</a> : <span {...E(`items.${n}.titulo`, 'texto', 'Título')}>{it.titulo}</span>}</h3>
+            {(it.texto || editar) && <p {...E(`items.${n}.texto`, 'area', 'Texto')}>{it.texto}</p>}
+            {it.url && (it.boton || editar) && <span class="tx-boton ligazon-frecha" aria-hidden="true" {...E(`items.${n}.boton`, 'texto', 'Texto da ligazón')}>{it.boton}</span>}
           </div>
         </li>
       ))

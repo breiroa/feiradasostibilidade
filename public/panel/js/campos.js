@@ -297,6 +297,14 @@ export function rico(d, clave, etiqueta, { axuda, placeholder = 'Escribe aquí�
     el('span', { class: 'sep' }),
     b('🔗', 'Engadir ligazón (selecciona antes o texto)', ligazon), b('Sen ligazón', 'Quitar ligazón', cmd('unlink')), b('🖼', 'Inserir imaxe da biblioteca', inserirImaxe),
     el('span', { class: 'sep' }),
-    b('Limpar', 'Quitar formato do texto seleccionado', cmd('removeFormat')));
-  return campoBase(etiqueta, el('div', { class: 'rte' }, barra, area), { axuda });
+    b('Limpar', 'Quitar formato do texto seleccionado', cmd('removeFormat')),
+    el('span', { class: 'sep' }),
+    b('</>', 'Ver e editar o código HTML', () => {
+      codigo.hidden = !codigo.hidden;
+      area.hidden = !codigo.hidden;
+      if (!codigo.hidden) { codigo.value = d[clave] ?? ''; codigo.focus(); } else { area.innerHTML = d[clave] ?? ''; }
+    }));
+  // Modo código: edítase o HTML directamente (ao gardar límpase igual: só etiquetas de texto)
+  const codigo = el('textarea', { class: 'rte-codigo', hidden: true, rows: 10, spellcheck: false, oninput: () => { d[clave] = codigo.value; } });
+  return campoBase(etiqueta, el('div', { class: 'rte' }, barra, area, codigo), { axuda });
 }

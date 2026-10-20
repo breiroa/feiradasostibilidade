@@ -1,26 +1,29 @@
 ---
 import type { Seccion } from '../../lib/esquemas';
 import Envoltorio from './Envoltorio.astro';
+import { ed, edItem, editando } from '../../lib/editable';
 
 type T = Extract<Seccion, { tipo: 'cronoloxia' }>;
 interface Props { s: T }
 const { s } = Astro.props;
 const estados = { feito: 'Feito', agora: 'Estamos aquí', proximo: 'Próximo' };
+const editar = editando(Astro.locals);
+const E = (r: string, t: 'texto' | 'area' = 'texto', ph?: string) => ed(Astro.locals, r, t, ph);
 ---
 
 <Envoltorio s={s} texto={s.texto}>
   <ol class="crono">
     {
-      s.fitos.map((f) => (
-        <li class:list={['crono-fito', `estado-${f.estado}`]}>
+      s.fitos.map((f, i) => (
+        <li class:list={['crono-fito', `estado-${f.estado}`]} {...edItem(Astro.locals, `fitos.${i}`)}>
           <span class="crono-punto" aria-hidden="true" />
           <div class="crono-data">
-            {f.data}
+            <span {...E(`fitos.${i}.data`, 'texto', 'Data')}>{f.data}</span>
             {f.estado === 'agora' && <span class="crono-estado">{estados.agora}</span>}
           </div>
           <div class="crono-corpo">
-            <h3>{f.titulo}</h3>
-            {f.texto && <p>{f.texto}</p>}
+            <h3 {...E(`fitos.${i}.titulo`, 'texto', 'Título')}>{f.titulo}</h3>
+            {(f.texto || editar) && <p {...E(`fitos.${i}.texto`, 'area', 'Texto (opcional)')}>{f.texto}</p>}
           </div>
         </li>
       ))

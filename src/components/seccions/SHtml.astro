@@ -1,0 +1,27 @@
+---
+// HTML libre (xa saneado ao gardar): para contidos que non encaixan nas outras seccións.
+import type { Seccion } from '../../lib/esquemas';
+import Envoltorio from './Envoltorio.astro';
+import { editando } from '../../lib/editable';
+
+type T = Extract<Seccion, { tipo: 'html' }>;
+interface Props { s: T }
+const { s } = Astro.props;
+const editar = editando(Astro.locals);
+---
+
+<Envoltorio s={s} ancho={s.ancho === 'estreito' ? 'estreito' : s.ancho === 'completo' ? 'ancho' : 'normal'} cabeceira={Boolean(s.etiqueta || s.titulo)}>
+  {
+    s.html ? (
+      <div class="html-libre"><Fragment set:html={s.html} /></div>
+    ) : editar ? (
+      <p class="previa-baleira">Sección HTML baleira: escribe o código no panel da esquerda.</p>
+    ) : null
+  }
+</Envoltorio>
+
+<style>
+  .html-libre :global(iframe) { max-width: 100%; border: 0; }
+  .html-libre :global(img) { max-width: 100%; height: auto; }
+  .previa-baleira { padding: 2rem; border: 2px dashed var(--linha); border-radius: 14px; text-align: center; color: var(--texto-suave); }
+</style>

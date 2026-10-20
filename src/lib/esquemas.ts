@@ -91,6 +91,8 @@ export const seccion = z.discriminatedUnion('tipo', [
   }),
   // Preguntas frecuentes (acordeón)
   z.object({ tipo: z.literal('acordeon'), ...base, texto: opc(texto), items: z.array(z.object({ pregunta: texto.min(1), corpo: z.string().default('') })).default([]) }), // «corpo» para que o servidor limpe o HTML
+  // HTML libre (saneado ao gardar: sen scripts nin eventos; iframes só de servizos coñecidos)
+  z.object({ tipo: z.literal('html'), ...base, html: z.string().default(''), ancho: z.enum(['estreito', 'normal', 'completo']).default('normal') }),
   // Unha foto grande (ancho do texto, ancho normal ou toda a pantalla) con pé
   z.object({ tipo: z.literal('imaxe'), ...base, imaxe: mediaId, alt: opc(texto), pe: opc(texto), tamano: z.enum(['texto', 'normal', 'completa']).default('normal') }),
 ]);
@@ -207,7 +209,8 @@ export const esquemas = {
 
   // Menú superior, navegación do pé e ligazóns legais (documento único «xeral»)
   navegacion: z.object({
-    menu: z.array(ligazonMenu.extend({ tipo: z.enum(['paxina', 'ligazon', 'edicions']).default('paxina'), fillos: z.array(ligazonMenu).default([]) })).default([]),
+    // auto: o despregable mostra soas as subpáxinas da páxina (ou as edicións, se é a páxina Edicións)
+    menu: z.array(ligazonMenu.extend({ tipo: z.enum(['paxina', 'ligazon', 'edicions']).default('paxina'), fillos: z.array(ligazonMenu).default([]), auto: z.boolean().default(false) })).default([]),
     peIgual: z.boolean().default(true),
     pe: z.array(ligazonMenu).default([]),
     legais: z.array(ligazonMenu).default([]),

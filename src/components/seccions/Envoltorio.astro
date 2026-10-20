@@ -1,8 +1,9 @@
 ---
 // Envoltorio común das seccións: fondo, ancla, deseño (espazado, aliñamento, ancho, foto de fondo)
-// e cabeceira (etiqueta + título + texto).
+// e cabeceira (etiqueta + título + texto). Na vista previa do panel a cabeceira é editable.
 import type { Seccion } from '../../lib/esquemas';
 import { clasesDeseno, estiloDeseno, fondoDe } from '../../lib/deseno';
+import { CON_INTRO, ed, editando } from '../../lib/editable';
 
 interface Props {
   s: Seccion;
@@ -15,17 +16,20 @@ interface Props {
 const { s, texto, cabeceira = true, aparte = false } = Astro.props;
 // O ancho escollido no panel ten prioridade sobre o propio de cada tipo de sección
 const ancho = s.deseno?.ancho ?? Astro.props.ancho ?? 'normal';
-const conCabeceira = cabeceira && (s.etiqueta || s.titulo || texto);
+const editar = editando(Astro.locals);
+const E = (r: string, ph: string, t: 'texto' | 'area' = 'texto') => ed(Astro.locals, r, t, ph);
+const conIntro = CON_INTRO.has(s.tipo);
+const conCabeceira = cabeceira && (editar || s.etiqueta || s.titulo || texto);
 ---
 
-<section class:list={['sec', `fondo-${fondoDe(s)}`, `tipo-${s.tipo}`, ...clasesDeseno(s), { aparte }]} id={s.ancla} data-sec={s.id} style={estiloDeseno(s)}>
+<section class:list={['sec', `fondo-${fondoDe(s)}`, `tipo-${s.tipo}`, ...clasesDeseno(s), { aparte, 'previa-oculta': editar && s.oculta }]} id={s.ancla} data-sec={s.id} data-sec-tipo={editar ? s.tipo : undefined} style={estiloDeseno(s)}>
   <div class:list={['contedor', ancho !== 'normal' && `contedor--${ancho}`]}>
     {
       conCabeceira && (
         <header class="sec-cab">
-          {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
-          {s.titulo && <h2>{s.titulo}</h2>}
-          {texto && <p class="sec-intro">{texto}</p>}
+          {(editar || s.etiqueta) && <p class="etiqueta" {...E('etiqueta', 'Etiqueta (opcional)')}>{s.etiqueta}</p>}
+          {(editar || s.titulo) && <h2 {...E('titulo', 'Título da sección')}>{s.titulo}</h2>}
+          {(texto || (editar && conIntro)) && <p class="sec-intro" {...E('texto', 'Texto introdutorio (opcional)', 'area')}>{texto}</p>}
         </header>
       )
     }
