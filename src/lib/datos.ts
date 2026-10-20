@@ -66,6 +66,20 @@ export const proxectos = async () => (await listar('proxectos')) as unknown as P
 /** Todas as entidades nun mapa id → entidade (para resolver grupos de logos) */
 export async function mapaEntidades(): Promise<Map<string, Entidade>> {
   const lista = (await listar('entidades')) as unknown as Entidade[];
+  // Proporción (ancho/alto) de cada logo, para igualar o seu tamaño visual
+  const logos = lista.map((e) => e.logo).filter((l): l is string => Boolean(l));
+  if (logos.length) {
+    const prop = new Map<string, number>();
+    for (let i = 0; i < logos.length; i += 90) {
+      const lote = logos.slice(i, i + 90);
+      const { results } = await db()
+        .prepare(`SELECT id, ancho, alto FROM media WHERE id IN (${lote.map(() => '?').join(',')})`)
+        .bind(...lote)
+        .all<{ id: string; ancho: number | null; alto: number | null }>();
+      for (const r of results) if (r.ancho && r.alto) prop.set(r.id, r.ancho / r.alto);
+    }
+    for (const e of lista) if (e.logo && prop.has(e.logo)) e.proporcion = prop.get(e.logo);
+  }
   return new Map(lista.map((e) => [e.id, e]));
 }
 

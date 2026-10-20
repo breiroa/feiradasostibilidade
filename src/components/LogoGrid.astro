@@ -10,13 +10,20 @@ interface Props {
   escuro?: boolean;
 }
 
-const { entidades, tamano = 'normal', escuro = false } = Astro.props;
+const { entidades: todas, tamano = 'normal', escuro = false } = Astro.props;
+// Primeiro as que teñen logo; ao final as que só teñen nome (mantendo a orde dentro de cada grupo)
+const entidades = [...todas.filter((e) => e.logo), ...todas.filter((e) => !e.logo)];
+// Tamaño óptico: todos os logos ocupan unha superficie parecida (un cadrado non queda diminuto
+// ao lado dun logo moi apaisado). Altura = √(área / proporción), dentro duns límites.
+const base = { pequeno: 40, normal: 54, grande: 70 }[tamano];
+const area = base * base * 3.2;
+const altura = (p?: number) => (p ? Math.round(Math.min(base * 1.45, Math.max(base * 0.62, Math.sqrt(area / p)))) : base);
 ---
 
 <ul class:list={['logos', `logos--${tamano}`, { escuro }]}>
   {
     entidades.map((e) => {
-      const contido = e.logo ? <img src={mediaUrl(e.logo, 'g')} alt={e.nome} loading="lazy" decoding="async" /> : <span class="nome">{e.nome}</span>;
+      const contido = e.logo ? <img src={mediaUrl(e.logo, 'g')} alt={e.nome} loading="lazy" decoding="async" style={`height:${altura(e.proporcion)}px`} /> : <span class="nome">{e.nome}</span>;
       return (
         <li title={e.nome}>
           {e.web ? (
@@ -37,9 +44,7 @@ const { entidades, tamano = 'normal', escuro = false } = Astro.props;
   .logos.escuro { background: var(--crema); padding: 1.1rem 1.6rem; border-radius: 14px; }
   li { display: flex; align-items: center; }
   li > a { display: flex; align-items: center; text-decoration: none; border-radius: 6px; }
-  img { height: 54px; width: auto; max-width: 290px; object-fit: contain; mix-blend-mode: multiply; transition: transform 0.2s, filter 0.2s; }
-  .logos--pequeno img { height: 40px; max-width: 160px; }
-  .logos--grande img { height: 70px; max-width: 260px; }
+  img { height: 54px; width: auto; max-width: 300px; object-fit: contain; mix-blend-mode: multiply; transition: transform 0.2s, filter 0.2s; }
   a:hover img { transform: scale(1.04); }
   .nome {
     font-family: var(--serif); font-weight: 700; font-size: 1.02rem; line-height: 1.15; color: var(--texto);
