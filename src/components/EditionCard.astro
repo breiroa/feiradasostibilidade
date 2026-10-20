@@ -1,0 +1,63 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { Image } from 'astro:assets';
+import { romano, url } from '../lib/url';
+
+interface Props {
+  edicion: CollectionEntry<'edicions'>;
+}
+
+const { edicion } = Astro.props;
+const d = edicion.data;
+const proxima = d.estado === 'proxima';
+---
+
+<article class:list={['tarxeta', 'edicion', { proxima }]}>
+  <a href={url(`edicions/${edicion.id}/`)} class="ligazon-tarxeta">
+    <div class="cuberta">
+      {
+        d.portada ? (
+          <Image src={d.portada} alt={d.portadaAlt ?? ''} widths={[360, 600]} sizes="(max-width: 700px) 100vw, 360px" />
+        ) : (
+          <div class="sen-foto" aria-hidden="true"></div>
+        )
+      }
+      <span class="numero">{romano(d.numero)}</span>
+      {proxima && <span class="estado">Próxima edición</span>}
+    </div>
+    <div class="corpo">
+      <p class="ano">{d.datas}</p>
+      <h3>{d.titulo}</h3>
+      <p>{d.resumo}</p>
+    </div>
+  </a>
+</article>
+
+<style>
+  .edicion { height: 100%; transition: transform 0.2s, box-shadow 0.2s; }
+  .edicion:hover { transform: translateY(-3px); box-shadow: var(--sombra); }
+  .ligazon-tarxeta { display: flex; flex-direction: column; height: 100%; text-decoration: none; color: inherit; }
+  .cuberta { position: relative; aspect-ratio: 16 / 10; background: var(--negro); overflow: hidden; }
+  .cuberta img { width: 100%; height: 100%; object-fit: cover; }
+  .sen-foto {
+    height: 100%;
+    background:
+      radial-gradient(ellipse 80% 70% at 80% 20%, rgb(60 120 60 / 0.45), transparent 60%),
+      radial-gradient(ellipse 70% 80% at 10% 90%, rgb(100 80 140 / 0.45), transparent 60%),
+      var(--negro);
+  }
+  .numero {
+    position: absolute; left: 1rem; bottom: 0.8rem;
+    font-family: var(--serif); font-size: 2.6rem; font-weight: 900; line-height: 1; color: var(--branco);
+    text-shadow: 0 2px 12px rgb(0 0 0 / 0.5);
+  }
+  .estado {
+    position: absolute; top: 0.9rem; left: 0.9rem;
+    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+    background: var(--verde); color: var(--branco); padding: 0.3rem 0.65rem; border-radius: 99px;
+  }
+  .corpo { padding: 1.3rem 1.4rem 1.6rem; display: grid; gap: 0.5rem; }
+  .ano { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--verde); }
+  .corpo p:last-child { font-size: 0.95rem; }
+  .proxima { border-color: var(--verde); box-shadow: 0 0 0 1px var(--verde); }
+</style>

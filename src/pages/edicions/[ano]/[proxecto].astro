@@ -1,0 +1,87 @@
+---
+import { getCollection, getEntries, render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import Hero from '../../../components/Hero.astro';
+import StatsBar from '../../../components/StatsBar.astro';
+import ActivityList from '../../../components/ActivityList.astro';
+import LogoGrid from '../../../components/LogoGrid.astro';
+import NewsCard from '../../../components/NewsCard.astro';
+import { url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  const proxectos = await getCollection('proxectos');
+  return proxectos.map((proxecto) => ({
+    params: { ano: proxecto.data.edicion.id, proxecto: proxecto.id },
+    props: { proxecto },
+  }));
+}
+
+const { proxecto } = Astro.props;
+const p = proxecto.data;
+const { Content } = await render(proxecto);
+const entidades = await getEntries(p.entidades);
+const noticias = (await getCollection('noticias', ({ data }) => !data.borrador && data.edicion?.id === p.edicion.id))
+  .sort((a, b) => b.data.data.valueOf() - a.data.data.valueOf())
+  .slice(0, 6);
+---
+
+<Base titulo={p.nomeCurto} descricion={p.resumo}>
+  <Hero etiqueta={`Feira ${p.edicion.id} · Proxecto`} compacto>
+    <p class="volver"><a href={url(`edicions/${p.edicion.id}/`)}>← V Feira da Sostibilidade</a></p>
+    <h1>{p.nomeCurto}. <em>Xeración Eco-Étika</em></h1>
+    <p class="entrada">Construíndo cidadanía global dende as aulas a través da ciencia cidadá e a participación.</p>
+    <div slot="baixo" class="contedor"><StatsBar escuro cifras={p.cifras} /></div>
+  </Hero>
+
+  <section class="seccion seccion--branca">
+    <div class="contedor duas">
+      <div class="texto-longo">
+        <p class="etiqueta">O proxecto</p>
+        <p class="resumo">{p.resumo}</p>
+        <Content />
+      </div>
+      <aside class="financiamento">
+        <p class="etiqueta">Promoven e financian</p>
+        <LogoGrid entidades={entidades} />
+        <p>{p.financiamento}</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="seccion">
+    <div class="contedor">
+      <div class="cabeceira-seccion">
+        <div>
+          <p class="etiqueta">Actividades</p>
+          <h2>Investigar, contrastar, actuar.</h2>
+          <p>As actividades organízanse en tres resultados e converxen na V Feira da Sostibilidade. O seu estado actualízase ao longo do curso.</p>
+        </div>
+      </div>
+      <ActivityList actividades={p.actividades} />
+    </div>
+  </section>
+
+  {
+    noticias.length > 0 && (
+      <section class="seccion seccion--branca">
+        <div class="contedor">
+          <p class="etiqueta">Actualidade</p>
+          <h2 class="marxe">Diario do proxecto.</h2>
+          <div class="grella">
+            {noticias.map((n) => <NewsCard noticia={n} />)}
+          </div>
+        </div>
+      </section>
+    )
+  }
+</Base>
+
+<style>
+  .volver { margin-bottom: 1.2rem; font-size: 0.9rem; }
+  .volver a { color: var(--verde-medio); text-decoration: none; }
+  .duas { display: grid; grid-template-columns: 1.5fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: start; }
+  .resumo { font-family: var(--serif); font-size: clamp(1.2rem, 1.9vw, 1.45rem); line-height: 1.4; color: var(--texto); }
+  .financiamento { display: grid; gap: 1.2rem; padding: 1.6rem; background: var(--gris-pale); border-radius: var(--raio); font-size: 0.9rem; }
+  .marxe { margin-bottom: 2rem; }
+  @media (max-width: 860px) { .duas { grid-template-columns: 1fr; } }
+</style>

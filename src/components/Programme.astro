@@ -1,0 +1,37 @@
+---
+interface Props {
+  programa: { dia: string; actividades: { hora?: string; titulo: string; descricion?: string }[] }[];
+}
+const { programa } = Astro.props;
+---
+
+<div class="programa">
+  {
+    programa.map((d) => (
+      <section>
+        <h3>{d.dia}</h3>
+        <ol>
+          {d.actividades.map((a) => (
+            <li>
+              {a.hora && <span class="hora">{a.hora}</span>}
+              <div>
+                <p class="titulo">{a.titulo}</p>
+                {a.descricion && <p>{a.descricion}</p>}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))
+  }
+</div>
+
+<style>
+  .programa { display: grid; gap: 2rem; }
+  h3 { font-size: 1.15rem; margin-bottom: 0.8rem; color: var(--verde); font-family: var(--mono); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; }
+  ol { list-style: none; padding: 0; border-top: 1px solid var(--linha); }
+  li { display: flex; gap: 1.2rem; padding-block: 1rem; border-bottom: 1px solid var(--linha); }
+  .hora { font-family: var(--mono); font-size: 0.85rem; color: var(--morado); min-width: 4.5rem; padding-top: 0.15rem; }
+  .titulo { font-weight: 600; color: var(--texto); }
+  li p:not(.titulo) { font-size: 0.95rem; }
+</style>

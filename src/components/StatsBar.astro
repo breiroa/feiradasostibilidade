@@ -1,0 +1,29 @@
+---
+interface Props {
+  cifras: { valor: string; etiqueta: string }[];
+  escuro?: boolean;
+}
+const { cifras, escuro = false } = Astro.props;
+---
+
+<dl class:list={['cifras', { escuro }]}>
+  {
+    cifras.map((c) => (
+      <div>
+        <dt>{c.etiqueta}</dt>
+        <dd>{c.valor}</dd>
+      </div>
+    ))
+  }
+</dl>
+
+<style>
+  .cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); border-top: 1px solid var(--linha); }
+  .cifras > div { padding: 1.6rem 1.4rem 1.6rem 0; border-bottom: 1px solid var(--linha); display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 0.3rem; }
+  dd { font-family: var(--serif); font-size: clamp(2rem, 3.6vw, 2.9rem); font-weight: 700; line-height: 1; color: var(--verde); }
+  dt { font-size: 0.85rem; line-height: 1.4; color: var(--texto-suave); max-width: 22ch; }
+  .escuro { border-color: rgb(255 255 255 / 0.12); background: rgb(0 0 0 / 0.22); }
+  .escuro > div { border-color: rgb(255 255 255 / 0.12); padding-inline: clamp(1rem, 3vw, 2rem); }
+  .escuro dd { color: var(--verde-medio); }
+  .escuro dt { color: rgb(255 255 255 / 0.6); }
+</style>

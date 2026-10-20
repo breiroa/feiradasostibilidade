@@ -1,0 +1,170 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import LogoGrid from '../components/LogoGrid.astro';
+import { Image } from 'astro:assets';
+import fotoInvestigacion from '../assets/legacy/alumnado-presenta-investigacion.jpg';
+import fotoStand from '../assets/legacy/stand-alumnas.jpg';
+
+const organizan = (await getCollection('entidades'))
+  .filter((e) => e.data.papel === 'organiza')
+  .sort((a, b) => a.data.orde - b.data.orde);
+
+const metodoloxias = [
+  {
+    sigla: 'ABP',
+    nome: 'Aprendizaxe Baseada en Proxectos',
+    lema: 'Investigar para comprender',
+    texto: 'O alumnado deseña e executa proxectos de investigación interdisciplinar sobre retos da Axenda 2030, conectando saberes científicos, sociais e artísticos.',
+  },
+  {
+    sigla: 'ApS',
+    nome: 'Aprendizaxe Servizo · CIDEL Galicia',
+    lema: 'Actuar para transformar',
+    texto: 'O eixo que une aprendizaxe e acción comunitaria: o alumnado pon o seu coñecemento ao servizo da comunidade, con rede internacional con colectivos de Galicia e América Latina.',
+  },
+  {
+    sigla: 'CC',
+    nome: 'Ciencia cidadá · Post-Growth Innovation Lab',
+    lema: 'Investigar con rigor e impacto real',
+    texto: 'Co acompañamento científico da Universidade de Vigo, o alumnado convértese en investigador activo e conecta o local —o barrio de Monte Porreiro— co global.',
+  },
+];
+
+const linhas = [
+  { n: '01', titulo: 'Clima, enerxía e transición ecolóxica', texto: 'Cambio climático, consumo enerxético e transición xusta: datos reais, alternativas e comunicación á comunidade.', ods: 'ODS 7 · ODS 13' },
+  { n: '02', titulo: 'Consumo responsable e moda sostible', texto: 'O impacto da fast fashion e do consumismo, xogos educativos como Naturpoly e obradoiros de economía circular.', ods: 'ODS 12' },
+  { n: '03', titulo: 'Xustiza global e cooperación internacional', texto: 'Dereitos humanos, desigualdade e solidariedade internacional, en colaboración con Oxfam Intermón e SIG Comercio Xusto.', ods: 'ODS 10 · ODS 16' },
+  { n: '04', titulo: 'Igualdade de xénero e diversidade', texto: 'Investigación e acción sobre fendas de xénero, diversidade e inclusión, co proxecto NeoFem e o Comité UNESCO do centro.', ods: 'ODS 5' },
+  { n: '05', titulo: 'Territorio, barrio e identidade local', texto: 'Monte Porreiro como laboratorio social: mapeo comunitario e axendas políticas locais.', ods: 'ODS 11' },
+  { n: '06', titulo: 'Saúde, benestar e alimentación sostible', texto: 'Alimentación ecolóxica, hortas escolares, saúde mental e benestar, con entidades como Casa Grande de Xanceda e Feitoria Verde.', ods: 'ODS 2 · ODS 3' },
+];
+
+const premios = [
+  { ano: '2022 · 2023', texto: 'Premio Galicons-net de Innovación Educativa en Consumo Responsable (Xunta de Galicia)' },
+  { ano: '2024', texto: 'III Premio Galego de Educación para o Desenvolvemento e a Cidadanía Global, á experiencia de Eco-Étika e o IES Luís Seoane' },
+];
+---
+
+<Base titulo="A Feira" descricion="Que é a Feira da Sostibilidade: un laboratorio educativo permanente do IES Luís Seoane, CIDEL Galicia e a Universidade de Vigo.">
+  <Hero etiqueta="FeiraLab · Xeración Eco-Étika" imaxe={fotoStand} imaxeAlt="Alumnas explicando o seu stand na Feira">
+    <h1>Máis ca unha feira. <em>Un laboratorio permanente.</em></h1>
+    <p class="entrada">
+      A Feira é o momento no que meses de investigación, acción e construción colectiva de cidadanía crítica se fan visibles para toda a comunidade. Detrás hai un laboratorio de innovación educativa que traballa durante todo o curso.
+    </p>
+  </Hero>
+
+  <section class="seccion seccion--branca">
+    <div class="contedor duas">
+      <div class="texto-longo">
+        <p class="etiqueta">O movemento</p>
+        <h2>E se un instituto puidese cambiar o mundo?</h2>
+        <p>
+          A Feira da Sostibilidade «Pensa, consume e actúa» naceu da iniciativa do colectivo <strong>Eco-Étika</strong>, formado por alumnado do IES Luís Seoane de Pontevedra, e hoxe é un proxecto conxunto do <strong>IES Luís Seoane</strong>, <strong>CIDEL Galicia</strong> e o <strong>Post-Growth Innovation Lab da Universidade de Vigo</strong>.
+        </p>
+        <p>
+          O instituto, no barrio de Monte Porreiro, abre as súas portas cada primavera a centros educativos, universidade, entidades sociais, administracións e veciñanza. O alumnado non presenta só resultados: comparte o que investigou, dinamiza actividades e constrúe propostas para o seu territorio.
+        </p>
+      </div>
+      <Image src={fotoInvestigacion} alt="Alumnado presentando os resultados dunha investigación cidadá" widths={[400, 700]} sizes="(max-width: 860px) 100vw, 40vw" class="foto" />
+    </div>
+  </section>
+
+  <section class="seccion seccion--verde">
+    <div class="contedor">
+      <div class="cabeceira-seccion">
+        <div>
+          <p class="etiqueta">Como traballamos</p>
+          <h2>Tres metodoloxías que se retroalimentan.</h2>
+        </div>
+      </div>
+      <div class="grella">
+        {
+          metodoloxias.map((m) => (
+            <article class="tarxeta metodo">
+              <span class="sigla">{m.sigla}</span>
+              <p class="etiqueta">{m.nome}</p>
+              <h3>{m.lema}</h3>
+              <p>{m.texto}</p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion seccion--branca">
+    <div class="contedor">
+      <div class="cabeceira-seccion">
+        <div>
+          <p class="etiqueta">Liñas de traballo</p>
+          <h2>Proxectos que moven o mundo.</h2>
+          <p>O alumnado investiga en liñas temáticas conectadas cos ODS que se desenvolven ao longo do curso e culminan na Feira.</p>
+        </div>
+      </div>
+      <ol class="linhas">
+        {
+          linhas.map((l) => (
+            <li>
+              <span class="n">{l.n}</span>
+              <div>
+                <h3>{l.titulo}</h3>
+                <p>{l.texto}</p>
+                <p class="ods">{l.ods}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <section class="seccion seccion--escura">
+    <div class="contedor">
+      <p class="etiqueta">Recoñecementos</p>
+      <h2 class="marxe">Premios autonómicos de innovación educativa.</h2>
+      <ul class="premios">
+        {
+          premios.map((p) => (
+            <li>
+              <span>{p.ano}</span>
+              <p>{p.texto}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section class="seccion">
+    <div class="contedor">
+      <p class="etiqueta">Quen a impulsa</p>
+      <h2 class="marxe">Tres entidades, un obxectivo.</h2>
+      <LogoGrid entidades={organizan} />
+    </div>
+  </section>
+</Base>
+
+<style>
+  .duas { display: grid; grid-template-columns: 1.3fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+  .foto { width: 100%; border-radius: var(--raio); aspect-ratio: 4 / 3; object-fit: cover; }
+  .metodo { padding: 1.8rem; gap: 0.6rem; position: relative; }
+  .sigla { font-family: var(--serif); font-size: 3rem; font-weight: 900; color: var(--verde-suave); line-height: 1; }
+  .metodo p:last-child { font-size: 0.95rem; }
+  .linhas { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 0 3rem; }
+  .linhas li { display: flex; gap: 1.2rem; padding-block: 1.6rem; border-top: 1px solid var(--linha); }
+  .n { font-family: var(--mono); color: var(--morado); font-size: 0.9rem; padding-top: 0.2rem; }
+  .linhas h3 { margin-bottom: 0.4rem; }
+  .linhas p { font-size: 0.95rem; }
+  .ods { font-family: var(--mono); font-size: 0.72rem !important; color: var(--verde); margin-top: 0.5rem; letter-spacing: 0.06em; }
+  .marxe { margin-bottom: 2rem; }
+  .premios { list-style: none; padding: 0; display: grid; gap: 1.2rem; }
+  .premios li { display: grid; grid-template-columns: 9rem 1fr; gap: 1.5rem; padding-top: 1.2rem; border-top: 1px solid rgb(255 255 255 / 0.12); }
+  .premios span { font-family: var(--mono); color: var(--verde-medio); font-size: 0.85rem; }
+  .premios p { color: var(--branco); font-size: 1.1rem; }
+  @media (max-width: 860px) {
+    .duas { grid-template-columns: 1fr; }
+    .premios li { grid-template-columns: 1fr; gap: 0.3rem; }
+  }
+</style>

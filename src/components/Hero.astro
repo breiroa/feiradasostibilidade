@@ -1,0 +1,56 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  etiqueta?: string;
+  imaxe?: ImageMetadata;
+  imaxeAlt?: string;
+  compacto?: boolean;
+}
+
+// Cabeceira escura con degradado verde/morado (a da web orixinal) e foto opcional á dereita.
+const { etiqueta, imaxe, imaxeAlt = '', compacto = false } = Astro.props;
+---
+
+<section class:list={['heroe', { compacto, 'con-imaxe': imaxe }]}>
+  <div class="fondo" aria-hidden="true"></div>
+  <div class="contedor grella-heroe">
+    <div class="texto">
+      {etiqueta && <p class="etiqueta">{etiqueta}</p>}
+      <slot />
+    </div>
+    {
+      imaxe && (
+        <div class="foto">
+          <Image src={imaxe} alt={imaxeAlt} widths={[400, 700, 1000]} sizes="(max-width: 860px) 100vw, 45vw" loading="eager" fetchpriority="high" />
+        </div>
+      )
+    }
+  </div>
+  <slot name="baixo" />
+</section>
+
+<style>
+  .heroe { position: relative; overflow: hidden; background: var(--negro); color: rgb(255 255 255 / 0.72); }
+  .fondo {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 70% 60% at 75% 35%, rgb(60 120 60 / 0.32) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 75% at 10% 70%, rgb(100 80 140 / 0.3) 0%, transparent 55%),
+      linear-gradient(160deg, #1a2d1c 0%, #1a1428 55%, #231428 100%);
+  }
+  .grella-heroe { position: relative; display: grid; gap: 2.5rem; align-items: center; padding-block: clamp(3.5rem, 9vw, 7rem); }
+  .con-imaxe .grella-heroe { grid-template-columns: 1.15fr 0.85fr; }
+  .compacto .grella-heroe { padding-block: clamp(3rem, 6vw, 4.5rem); }
+  .etiqueta { color: var(--verde-medio); }
+  .texto :global(h1) { color: var(--branco); max-width: 16ch; margin-bottom: 1.4rem; }
+  .texto :global(h1 em) { font-style: italic; color: var(--morado-medio); }
+  .texto :global(p.entrada) { font-size: clamp(1.05rem, 1.5vw, 1.25rem); font-weight: 300; max-width: 52ch; }
+  .texto :global(.accions) { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2.2rem; }
+  .foto img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--raio); box-shadow: 0 30px 60px rgb(0 0 0 / 0.35); }
+  @media (max-width: 860px) {
+    .con-imaxe .grella-heroe { grid-template-columns: 1fr; }
+    .foto img { aspect-ratio: 16 / 10; }
+  }
+</style>

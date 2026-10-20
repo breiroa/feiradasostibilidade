@@ -1,0 +1,102 @@
+---
+import { Image } from 'astro:assets';
+import logo from '../assets/legacy/logo-feira.png';
+import { nav, site } from '../data/site';
+import { url } from '../lib/url';
+
+const ruta = Astro.url.pathname;
+const activa = (href: string) => ruta.startsWith(url(href));
+---
+
+<header class="cabeceira">
+  <div class="contedor barra">
+    <a class="marca" href={url()}>
+      <Image src={logo} alt="" width={44} height={40} loading="eager" />
+      <span>Feira da <em>Sostibilidade</em></span>
+    </a>
+
+    <button class="menu-boton" type="button" aria-expanded="false" aria-controls="menu-principal">
+      <span class="visualmente-oculto">Abrir menú</span>
+      <span class="hamburguesa" aria-hidden="true"></span>
+    </button>
+
+    <nav id="menu-principal" class="menu" aria-label="Principal">
+      <ul>
+        {
+          nav.map((item) => (
+            <li>
+              <a href={url(item.href)} aria-current={activa(item.href) ? 'page' : undefined}>
+                {item.texto}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <a class="boton cta" href={url(`edicions/${site.edicionActual}/`)}>V Feira · abril 2027</a>
+    </nav>
+  </div>
+</header>
+
+<script>
+  const boton = document.querySelector<HTMLButtonElement>('.menu-boton');
+  const menu = document.getElementById('menu-principal');
+  boton?.addEventListener('click', () => {
+    const aberto = boton.getAttribute('aria-expanded') === 'true';
+    boton.setAttribute('aria-expanded', String(!aberto));
+    menu?.classList.toggle('aberto', !aberto);
+  });
+</script>
+
+<style>
+  .cabeceira {
+    position: sticky; top: 0; z-index: 100;
+    background: rgb(26 20 40 / 0.97);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  }
+  .barra { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 68px; }
+  .marca { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: var(--branco); }
+  .marca img { width: 40px; height: auto; }
+  .marca span { font-family: var(--serif); font-weight: 700; font-size: 1.1rem; line-height: 1.1; }
+  .marca em { color: var(--verde-medio); font-style: italic; }
+
+  .menu { display: flex; align-items: center; gap: 2rem; }
+  .menu ul { display: flex; gap: 1.6rem; list-style: none; padding: 0; }
+  .menu ul a {
+    font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none;
+    color: rgb(255 255 255 / 0.72); padding-block: 0.4rem; border-bottom: 2px solid transparent;
+  }
+  .menu ul a:hover { color: var(--verde-medio); }
+  .menu ul a[aria-current='page'] { color: var(--branco); border-bottom-color: var(--verde-medio); }
+  .cta { padding: 0.6rem 1.1rem; font-size: 0.74rem; }
+
+  .menu-boton { display: none; }
+
+  @media (max-width: 960px) {
+    .menu-boton {
+      display: grid; place-items: center; width: 44px; height: 44px;
+      background: none; border: 1px solid rgb(255 255 255 / 0.2); border-radius: var(--raio); cursor: pointer;
+    }
+    .hamburguesa, .hamburguesa::before, .hamburguesa::after {
+      display: block; width: 20px; height: 2px; background: var(--branco); position: relative; transition: transform 0.2s;
+    }
+    .hamburguesa::before, .hamburguesa::after { content: ''; position: absolute; left: 0; }
+    .hamburguesa::before { top: -6px; }
+    .hamburguesa::after { top: 6px; }
+    [aria-expanded='true'] .hamburguesa { background: transparent; }
+    [aria-expanded='true'] .hamburguesa::before { transform: translateY(6px) rotate(45deg); }
+    [aria-expanded='true'] .hamburguesa::after { transform: translateY(-6px) rotate(-45deg); }
+
+    .menu {
+      display: none; position: absolute; inset: 68px 0 auto 0;
+      flex-direction: column; align-items: stretch; gap: 1rem;
+      background: var(--negro); padding: 1rem var(--marxe) 1.5rem;
+      border-bottom: 1px solid rgb(255 255 255 / 0.1);
+    }
+    .menu.aberto { display: flex; }
+    .menu ul { flex-direction: column; gap: 0; }
+    .menu ul a { display: block; padding-block: 0.9rem; font-size: 0.9rem; border-bottom: 1px solid rgb(255 255 255 / 0.08); }
+    .menu ul a[aria-current='page'] { border-bottom-color: rgb(255 255 255 / 0.08); color: var(--verde-medio); }
+    .cta { justify-content: center; }
+  }
+</style>

@@ -1,0 +1,223 @@
+---
+import { getCollection, getEntries, getEntry, render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import Hero from '../../../components/Hero.astro';
+import StatsBar from '../../../components/StatsBar.astro';
+import Programme from '../../../components/Programme.astro';
+import Gallery from '../../../components/Gallery.astro';
+import LogoGrid from '../../../components/LogoGrid.astro';
+import NewsCard from '../../../components/NewsCard.astro';
+import ProjectBanner from '../../../components/ProjectBanner.astro';
+import { romano, url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  const edicions = await getCollection('edicions');
+  return edicions.map((edicion) => ({ params: { ano: edicion.id }, props: { edicion } }));
+}
+
+const { edicion } = Astro.props;
+const d = edicion.data;
+const { Content } = await render(edicion);
+
+const entidades = (await getEntries(d.entidades)).sort((a, b) => a.data.orde - b.data.orde);
+const porPapel = (p: string) => entidades.filter((e) => e.data.papel === p);
+const proxecto = d.proxecto ? await getEntry(d.proxecto) : undefined;
+
+const noticias = (await getCollection('noticias', ({ data }) => !data.borrador && data.edicion?.id === edicion.id))
+  .sort((a, b) => b.data.data.valueOf() - a.data.data.valueOf());
+
+const todas = (await getCollection('edicions')).sort((a, b) => a.data.ano - b.data.ano);
+const pos = todas.findIndex((e) => e.id === edicion.id);
+const anterior = todas[pos - 1];
+const seguinte = todas[pos + 1];
+
+const grupos = [
+  { titulo: 'Organizan', items: porPapel('organiza') },
+  { titulo: 'Financia', items: porPapel('financia') },
+  { titulo: 'Colaboran', items: porPapel('colabora') },
+].filter((g) => g.items.length > 0);
+---
+
+<Base titulo={d.titulo} descricion={d.resumo}>
+  <Hero etiqueta={`${romano(d.numero)} edición · ${d.ano}`} imaxe={d.portada} imaxeAlt={d.portadaAlt}>
+    <h1>{d.titulo}{d.lema && <em class="lema">{d.lema}</em>}</h1>
+    <p class="entrada"><strong>{d.datas}</strong><br />{d.lugar}</p>
+    {
+      d.estado === 'proxima' && (
+        <div class="accions">
+          {proxecto && <a class="boton" href={url(`edicions/${edicion.id}/${proxecto.id}/`)}>Proxecto {proxecto.data.nomeCurto}</a>}
+          <a class="boton boton--contorno" href={url('participa/')}>Participa na Feira</a>
+        </div>
+      )
+    }
+  </Hero>
+
+  <section class="seccion seccion--branca">
+    <div class="contedor presentacion">
+      <div class="texto-longo">
+        <p class="etiqueta">A edición</p>
+        <p class="resumo">{d.resumo}</p>
+        <Content />
+        {
+          d.fitos.length > 0 && (
+            <ul class="chips">
+              {d.fitos.map((f) => <li class="chip">{f}</li>)}
+            </ul>
+          )
+        }
+      </div>
+      {d.cifras.length > 0 && <StatsBar cifras={d.cifras} />}
+    </div>
+  </section>
+
+  {
+    proxecto && (
+      <section class="seccion">
+        <div class="contedor">
+          <ProjectBanner proxecto={proxecto} />
+        </div>
+      </section>
+    )
+  }
+
+  {
+    d.programa.length > 0 && (
+      <section class="seccion seccion--branca">
+        <div class="contedor estreito">
+          <p class="etiqueta">Programa</p>
+          <h2>Que haberá na Feira.</h2>
+          <Programme programa={d.programa} />
+        </div>
+      </section>
+    )
+  }
+
+  {
+    d.galeria.length > 0 && (
+      <section class="seccion">
+        <div class="contedor">
+          <p class="etiqueta">Galería</p>
+          <h2 class="marxe">Imaxes da edición.</h2>
+          <Gallery imaxes={d.galeria} />
+        </div>
+      </section>
+    )
+  }
+
+  {
+    d.videos.length > 0 && (
+      <section class="seccion seccion--branca">
+        <div class="contedor">
+          <p class="etiqueta">Vídeos</p>
+          <ul class="grella lista-simple">
+            {d.videos.map((v) => (
+              <li class="tarxeta video">
+                <a class="ligazon-frecha" href={v.url} rel="noopener">{v.titulo}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    (d.centros.length > 0 || grupos.length > 0) && (
+      <section class="seccion seccion--verde">
+        <div class="contedor">
+          <p class="etiqueta">Quen participa</p>
+          <h2 class="marxe">Centros e entidades.</h2>
+          {d.centros.length > 0 && (
+            <div class="bloque">
+              <h3>Centros educativos</h3>
+              <ul class="centros">
+                {d.centros.map((c) => <li>{c}</li>)}
+              </ul>
+            </div>
+          )}
+          {grupos.map((g) => (
+            <div class="bloque">
+              <h3>{g.titulo}</h3>
+              <LogoGrid entidades={g.items} />
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    (d.documentos.length > 0 || d.prensa.length > 0) && (
+      <section class="seccion seccion--branca">
+        <div class="contedor documentos">
+          {d.documentos.length > 0 && (
+            <div>
+              <p class="etiqueta">Documentos</p>
+              <ul class="lista-simple">
+                {d.documentos.map((doc) =>
+                  doc.url ? (
+                    <li><a class="ligazon-frecha" href={doc.url} rel="noopener">{doc.titulo}</a></li>
+                  ) : (
+                    <li class="pendente">{doc.titulo} <span>· dispoñible en breve</span></li>
+                  ),
+                )}
+              </ul>
+            </div>
+          )}
+          {d.prensa.length > 0 && (
+            <div>
+              <p class="etiqueta">Na prensa</p>
+              <ul class="lista-simple">
+                {d.prensa.map((p) => (
+                  <li>
+                    {p.url ? <a href={p.url} rel="noopener">{p.medio}{p.titulo && `: ${p.titulo}`}</a> : <>{p.medio}{p.titulo && `: ${p.titulo}`}</>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    noticias.length > 0 && (
+      <section class="seccion">
+        <div class="contedor">
+          <p class="etiqueta">Actualidade</p>
+          <h2 class="marxe">Noticias desta edición.</h2>
+          <div class="grella">
+            {noticias.map((n) => <NewsCard noticia={n} />)}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <nav class="contedor navegacion-edicions" aria-label="Outras edicións">
+    {anterior ? <a href={url(`edicions/${anterior.id}/`)}>← {anterior.data.titulo}</a> : <span></span>}
+    {seguinte && <a href={url(`edicions/${seguinte.id}/`)}>{seguinte.data.titulo} →</a>}
+  </nav>
+</Base>
+
+<style>
+  .lema { display: block; font-size: 0.62em; margin-top: 0.4rem; }
+  .presentacion { display: grid; grid-template-columns: 1.4fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: start; }
+  .resumo { font-family: var(--serif); font-size: clamp(1.25rem, 2vw, 1.55rem); line-height: 1.4; color: var(--texto); }
+  .presentacion .chips { margin-top: 1.8rem; }
+  .estreito { max-width: 860px; }
+  .estreito h2, .marxe { margin-bottom: 2rem; }
+  .bloque + .bloque { margin-top: 2.2rem; }
+  .bloque h3 { font-size: 1.1rem; margin-bottom: 1rem; }
+  .centros { columns: 3 220px; padding-left: 1.2em; }
+  .centros li { break-inside: avoid; padding-block: 0.2rem; }
+  .lista-simple { list-style: none; padding: 0; display: grid; gap: 0.6rem; }
+  .video { padding: 1.2rem; }
+  .documentos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 2.5rem; }
+  .pendente { color: var(--texto); }
+  .pendente span { color: var(--texto-suave); font-style: italic; }
+  .navegacion-edicions { display: flex; justify-content: space-between; gap: 1rem; padding-block: 2.5rem; font-weight: 600; flex-wrap: wrap; }
+  .navegacion-edicions a { text-decoration: none; }
+  @media (max-width: 860px) { .presentacion { grid-template-columns: 1fr; } }
+</style>

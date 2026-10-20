@@ -1,0 +1,51 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { Image } from 'astro:assets';
+import { tiposRecurso } from '../data/site';
+import { url } from '../lib/url';
+
+interface Props {
+  recurso: CollectionEntry<'recursos'>;
+}
+
+const { recurso } = Astro.props;
+const d = recurso.data;
+---
+
+<article class="tarxeta recurso" data-tipo={d.tipo}>
+  {d.imaxe && <Image src={d.imaxe} alt={d.imaxeAlt ?? ''} widths={[360, 600]} sizes="(max-width: 700px) 100vw, 360px" class="foto" />}
+  <div class="corpo">
+    <p class="tipo">{tiposRecurso[d.tipo]}{d.edicion && ` · Feira ${d.edicion.id}`}</p>
+    <h3><a href={url(`recursos/${recurso.id}/`)}>{d.titulo}</a></h3>
+    <p>{d.resumo}</p>
+    {d.autoria && <p class="autoria">{d.autoria}</p>}
+    {
+      (d.temas.length > 0 || d.ods.length > 0) && (
+        <ul class="chips">
+          {d.temas.map((t) => <li class="chip">{t}</li>)}
+          {d.ods.map((o) => <li class="chip chip--morado">ODS {o}</li>)}
+        </ul>
+      )
+    }
+    <div class="pe">
+      <span class="ligazon-frecha">Ver ficha</span>
+      <span class="licenza">{d.licenza}</span>
+    </div>
+  </div>
+</article>
+
+<style>
+  .recurso { height: 100%; position: relative; transition: box-shadow 0.2s; }
+  .recurso:hover { box-shadow: var(--sombra); }
+  h3 a { color: var(--texto); text-decoration: none; }
+  h3 a::after { content: ''; position: absolute; inset: 0; }
+  .recurso:hover h3 a { color: var(--verde); }
+  .pe .ligazon-frecha { color: var(--verde); }
+  .foto { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+  .corpo { padding: 1.2rem 1.3rem 1.3rem; display: flex; flex-direction: column; gap: 0.65rem; flex: 1; }
+  .tipo { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--verde); }
+  .corpo > p:not(.tipo) { font-size: 0.95rem; }
+  .autoria { font-size: 0.85rem !important; color: var(--texto-suave); }
+  .pe { margin-top: auto; padding-top: 0.8rem; border-top: 1px solid var(--linha); display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; }
+  .licenza { font-family: var(--mono); font-size: 0.7rem; color: var(--texto-suave); align-self: center; }
+</style>

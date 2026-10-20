@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import { url } from '../lib/url';
+---
+
+<Base titulo="Páxina non atopada">
+  <Hero etiqueta="Erro 404" compacto>
+    <h1>Esta páxina <em>non existe.</em></h1>
+    <p class="entrada">Pode que cambiase de enderezo. Volve ao inicio ou consulta as edicións da Feira.</p>
+    <div class="accions">
+      <a class="boton" href={url()}>Ir ao inicio</a>
+      <a class="boton boton--contorno" href={url('edicions/')}>Edicións</a>
+    </div>
+  </Hero>
+</Base>

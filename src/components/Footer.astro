@@ -1,0 +1,66 @@
+---
+import { getCollection } from 'astro:content';
+import LogoGrid from './LogoGrid.astro';
+import { nav, site } from '../data/site';
+import { url } from '../lib/url';
+
+const entidades = await getCollection('entidades');
+const organizan = entidades.filter((e) => e.data.papel === 'organiza').sort((a, b) => a.data.orde - b.data.orde);
+const financian = entidades.filter((e) => e.data.papel === 'financia').sort((a, b) => a.data.orde - b.data.orde);
+---
+
+<footer class="rodape">
+  <div class="contedor">
+    <div class="logos">
+      <div>
+        <p class="etiqueta">Organizan</p>
+        <LogoGrid entidades={organizan} escuro />
+      </div>
+      <div>
+        <p class="etiqueta">Financia a V edición</p>
+        <LogoGrid entidades={financian} escuro />
+      </div>
+    </div>
+
+    <div class="columnas">
+      <div>
+        <p class="nome">Feira da <em>Sostibilidade</em></p>
+        <p>{site.lema}. Un movemento educativo nacido no IES Luís Seoane de Pontevedra, impulsado polo colectivo Eco-Étika, CIDEL Galicia e a Universidade de Vigo.</p>
+      </div>
+      <nav aria-label="Pé de páxina">
+        <p class="etiqueta">Navegación</p>
+        <ul>
+          {nav.map((i) => <li><a href={url(i.href)}>{i.texto}</a></li>)}
+        </ul>
+      </nav>
+      <div>
+        <p class="etiqueta">Síguenos</p>
+        <ul>
+          <li><a href={site.instagram} rel="noopener">Instagram {site.instagramUsuario}</a></li>
+          <li><a href={site.webIes} rel="noopener">Web do IES Luís Seoane</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="legal">
+      <p>Contidos baixo licenza <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.gl" rel="license noopener">CC BY-SA 4.0</a>, salvo indicación.</p>
+      <a href={url('aviso-legal/')}>Aviso legal e privacidade</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .rodape { background: var(--negro); color: rgb(255 255 255 / 0.7); padding-block: 3.5rem 2rem; font-size: 0.95rem; }
+  .rodape a { color: rgb(255 255 255 / 0.85); }
+  .rodape a:hover { color: var(--verde-medio); }
+  .etiqueta { color: var(--verde-medio); }
+  .logos { display: grid; grid-template-columns: 3fr 1fr; gap: 2rem; padding-bottom: 2.5rem; border-bottom: 1px solid rgb(255 255 255 / 0.1); }
+  .columnas { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 2rem; padding-block: 2.5rem; }
+  .columnas ul { list-style: none; padding: 0; display: grid; gap: 0.4rem; }
+  .nome { font-family: var(--serif); font-size: 1.4rem; font-weight: 700; color: var(--branco); margin-bottom: 0.6rem; }
+  .nome em { color: var(--verde-medio); }
+  .legal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; padding-top: 1.5rem; border-top: 1px solid rgb(255 255 255 / 0.1); font-size: 0.85rem; }
+  @media (max-width: 760px) {
+    .logos, .columnas { grid-template-columns: 1fr; }
+  }
+</style>

@@ -1,0 +1,20 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Hero from '../../components/Hero.astro';
+import EditionCard from '../../components/EditionCard.astro';
+
+const edicions = (await getCollection('edicions')).sort((a, b) => b.data.ano - a.data.ano);
+---
+
+<Base titulo="Edicións" descricion="Todas as edicións da Feira da Sostibilidade do IES Luís Seoane, dende 2023.">
+  <Hero etiqueta="As edicións · 2023 — 2027" compacto>
+    <h1>Unha Feira cada abril. <em>Un laboratorio que medra.</em></h1>
+    <p class="entrada">Cada edición suma coñecemento, amplía a rede e deixa materiais, memorias e aprendizaxes para a seguinte.</p>
+  </Hero>
+  <section class="seccion">
+    <div class="contedor grella">
+      {edicions.map((e) => <EditionCard edicion={e} />)}
+    </div>
+  </section>
+</Base>

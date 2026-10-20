@@ -1,0 +1,54 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Hero from '../../components/Hero.astro';
+import NewsCard from '../../components/NewsCard.astro';
+
+const noticias = (await getCollection('noticias', ({ data }) => !data.borrador)).sort(
+  (a, b) => b.data.data.valueOf() - a.data.data.valueOf(),
+);
+const edicions = [...new Set(noticias.map((n) => n.data.edicion?.id).filter(Boolean))].sort().reverse() as string[];
+---
+
+<Base titulo="Actualidade" descricion="Noticias e crónicas da Feira da Sostibilidade e dos proxectos que a acompañan.">
+  <Hero etiqueta="Actualidade" compacto>
+    <h1>O proceso <em>en directo.</em></h1>
+    <p class="entrada">Noticias, crónicas e reflexións do que acontece arredor da Feira ao longo do curso.</p>
+  </Hero>
+
+  <section class="seccion">
+    <div class="contedor">
+      {
+        edicions.length > 1 && (
+          <div class="filtros" role="group" aria-label="Filtrar por edición">
+            <button type="button" data-filtro="todas" aria-pressed="true">Todas</button>
+            {edicions.map((e) => (
+              <button type="button" data-filtro={e} aria-pressed="false">Feira {e}</button>
+            ))}
+          </div>
+        )
+      }
+      <div class="grella" id="lista">
+        {
+          noticias.map((n) => (
+            <div data-edicion={n.data.edicion?.id ?? ''}>
+              <NewsCard noticia={n} />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  const botons = document.querySelectorAll<HTMLButtonElement>('[data-filtro]');
+  const items = document.querySelectorAll<HTMLElement>('#lista > [data-edicion]');
+  botons.forEach((b) =>
+    b.addEventListener('click', () => {
+      const f = b.dataset.filtro;
+      botons.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      items.forEach((i) => (i.hidden = f !== 'todas' && i.dataset.edicion !== f));
+    }),
+  );
+</script>

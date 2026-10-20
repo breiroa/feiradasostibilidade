@@ -1,0 +1,54 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import { Image } from 'astro:assets';
+import Base from '../../layouts/Base.astro';
+import { tiposRecurso } from '../../data/site';
+import { url } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const recursos = await getCollection('recursos');
+  return recursos.map((recurso) => ({ params: { slug: recurso.id }, props: { recurso } }));
+}
+
+const { recurso } = Astro.props;
+const d = recurso.data;
+const { Content } = await render(recurso);
+const edicion = d.edicion ? await getEntry(d.edicion) : undefined;
+const destino = d.ligazon ?? d.ficheiro;
+---
+
+<Base titulo={d.titulo} descricion={d.resumo}>
+  <article class="seccion seccion--branca">
+    <div class="contedor artigo">
+      <p class="volver"><a href={url('recursos/')}>← Recursos</a></p>
+      <p class="tipo">{tiposRecurso[d.tipo]}{edicion && <> · <a href={url(`edicions/${edicion.id}/`)}>{edicion.data.titulo}</a></>}</p>
+      <h1>{d.titulo}</h1>
+      <p class="resumo">{d.resumo}</p>
+      {d.imaxe && <Image src={d.imaxe} alt={d.imaxeAlt ?? ''} widths={[600, 900, 1300]} sizes="(max-width: 900px) 100vw, 860px" class="foto" loading="eager" />}
+      <div class="texto-longo"><Content /></div>
+
+      <dl class="ficha">
+        {d.autoria && <div><dt>Autoría</dt><dd>{d.autoria}</dd></div>}
+        {d.temas.length > 0 && <div><dt>Temas</dt><dd>{d.temas.join(' · ')}</dd></div>}
+        {d.ods.length > 0 && <div><dt>ODS</dt><dd>{d.ods.map((o) => `ODS ${o}`).join(' · ')}</dd></div>}
+        <div><dt>Licenza</dt><dd>{d.licenza}</dd></div>
+      </dl>
+      {destino ? <a class="boton" href={destino} rel="noopener">Acceder ao recurso</a> : <p class="pronto">O material descargable estará dispoñible en breve.</p>}
+    </div>
+  </article>
+</Base>
+
+<style>
+  .artigo { max-width: 860px; }
+  .volver { margin-bottom: 1.5rem; font-size: 0.9rem; }
+  .volver a { text-decoration: none; }
+  .tipo { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--verde); margin-bottom: 1rem; }
+  h1 { font-size: clamp(2rem, 4.5vw, 3.2rem); margin-bottom: 1.2rem; }
+  .resumo { font-family: var(--serif); font-size: clamp(1.15rem, 1.8vw, 1.4rem); line-height: 1.45; color: var(--texto); margin-bottom: 2rem; }
+  .foto { width: 100%; border-radius: var(--raio); margin-bottom: 2.2rem; max-height: 560px; object-fit: cover; }
+  .ficha { display: grid; gap: 0.7rem; margin-block: 2.5rem 2rem; padding: 1.5rem; background: var(--gris-pale); border-radius: var(--raio); }
+  .ficha div { display: grid; grid-template-columns: 7rem 1fr; gap: 1rem; }
+  dt { font-family: var(--mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texto-suave); padding-top: 0.2rem; }
+  dd { color: var(--texto); }
+  .pronto { color: var(--texto-suave); font-style: italic; }
+</style>

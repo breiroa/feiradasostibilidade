@@ -1,0 +1,178 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import StatsBar from '../components/StatsBar.astro';
+import EditionCard from '../components/EditionCard.astro';
+import NewsCard from '../components/NewsCard.astro';
+import Gallery from '../components/Gallery.astro';
+import LogoGrid from '../components/LogoGrid.astro';
+import { site } from '../data/site';
+import { url } from '../lib/url';
+import foto from '../assets/legacy/multitude-corredor.jpg';
+
+const edicions = (await getCollection('edicions')).sort((a, b) => b.data.ano - a.data.ano);
+const actual = await getEntry('edicions', site.edicionActual);
+if (!actual) throw new Error(`Non existe a edición ${site.edicionActual}`);
+
+const noticias = (await getCollection('noticias', ({ data }) => !data.borrador))
+  .sort((a, b) => b.data.data.valueOf() - a.data.data.valueOf())
+  .slice(0, 3);
+
+// Galería e entidades da última edición celebrada
+const ultimaPasada = edicions.find((e) => e.data.estado === 'pasada');
+const galeria = ultimaPasada?.data.galeria.slice(0, 8) ?? [];
+const entidades = (await getCollection('entidades'))
+  .filter((e) => e.data.papel === 'colabora')
+  .sort((a, b) => a.data.orde - b.data.orde);
+---
+
+<Base>
+  <Hero etiqueta="#AFeira · IES Luís Seoane · Pontevedra" imaxe={foto} imaxeAlt="Corredor do IES Luís Seoane cheo de xente durante a Feira">
+    <h1>A Feira non son dous días. <em>É un movemento.</em></h1>
+    <p class="entrada">
+      Dende 2023, a Feira da Sostibilidade converte o IES Luís Seoane nun laboratorio aberto onde o alumnado investiga, actúa e constrúe cidadanía crítica xunto a centros educativos, universidade e entidades sociais.
+    </p>
+    <div class="accions">
+      <a class="boton" href={url(`edicions/${actual.id}/`)}>V Feira · 28–30 abril 2027</a>
+      <a class="boton boton--contorno" href={url('a-feira/')}>Que é a Feira</a>
+    </div>
+    <div slot="baixo" class="contedor cifras-heroe">
+      <StatsBar
+        escuro
+        cifras={[
+          { valor: '4', etiqueta: 'edicións celebradas' },
+          { valor: '+1.000', etiqueta: 'persoas participantes por edición' },
+          { valor: '30', etiqueta: 'entidades colaboradoras na IV edición' },
+          { valor: '13', etiqueta: 'centros de Galicia, España e Europa' },
+        ]}
+      />
+    </div>
+  </Hero>
+
+  <section class="seccion seccion--branca">
+    <div class="contedor proxima">
+      <div>
+        <p class="etiqueta">Próxima edición</p>
+        <h2>{actual.data.titulo}</h2>
+        {actual.data.lema && <p class="lema">{actual.data.lema}</p>}
+        <p class="datas"><strong>{actual.data.datas}</strong><br />{actual.data.lugar}</p>
+        <p>{actual.data.resumo}</p>
+        <ul class="chips">
+          {actual.data.fitos.map((f) => <li class="chip">{f}</li>)}
+        </ul>
+        <a class="boton" href={url(`edicions/${actual.id}/`)}>Ver a V edición</a>
+      </div>
+      <StatsBar cifras={actual.data.cifras} />
+    </div>
+  </section>
+
+  <section class="seccion">
+    <div class="contedor">
+      <div class="cabeceira-seccion">
+        <div>
+          <p class="etiqueta">As edicións</p>
+          <h2>Cada edición suma.</h2>
+          <p>A Feira é un proceso vivo que medra cada curso: máis centros, máis entidades e máis proxectos do alumnado.</p>
+        </div>
+        <a class="ligazon-frecha" href={url('edicions/')}>Todas as edicións</a>
+      </div>
+      <div class="grella">
+        {edicions.map((e) => <EditionCard edicion={e} />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="cita">
+    <div class="contedor">
+      <blockquote>
+        <p>O futuro non se explica. <span>Constrúese.</span></p>
+      </blockquote>
+    </div>
+  </section>
+
+  {
+    noticias.length > 0 && (
+      <section class="seccion seccion--branca">
+        <div class="contedor">
+          <div class="cabeceira-seccion">
+            <div>
+              <p class="etiqueta">Actualidade</p>
+              <h2>O proceso en directo.</h2>
+            </div>
+            <a class="ligazon-frecha" href={url('actualidade/')}>Todas as noticias</a>
+          </div>
+          <div class="grella">
+            {noticias.map((n) => <NewsCard noticia={n} />)}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    galeria.length > 0 && ultimaPasada && (
+      <section class="seccion">
+        <div class="contedor">
+          <div class="cabeceira-seccion">
+            <div>
+              <p class="etiqueta">{ultimaPasada.data.titulo}</p>
+              <h2>Así foi a última Feira.</h2>
+            </div>
+            <a class="ligazon-frecha" href={url(`edicions/${ultimaPasada.id}/`)}>Ver a edición {ultimaPasada.data.ano}</a>
+          </div>
+          <Gallery imaxes={galeria} />
+        </div>
+      </section>
+    )
+  }
+
+  <section class="seccion seccion--verde">
+    <div class="contedor">
+      <div class="cabeceira-seccion">
+        <div>
+          <p class="etiqueta">O ecosistema</p>
+          <h2>Unha rede que multiplica o impacto.</h2>
+          <p>Entidades sociais, ONGD, cooperativas, administracións e iniciativas do territorio que fan a Feira posible.</p>
+        </div>
+      </div>
+      <LogoGrid entidades={entidades} />
+    </div>
+  </section>
+
+  <section class="seccion seccion--escura bloque-participa">
+    <div class="contedor participa">
+      <div>
+        <p class="etiqueta">Participa</p>
+        <h2>Non veñas só mirar. Participa.</h2>
+        <p>Centros educativos, entidades, empresas e medios: hai moitas formas de formar parte da Feira.</p>
+      </div>
+      <div class="accions">
+        <a class="boton" href={url('participa/')}>Como participar</a>
+        <a class="boton boton--contorno" href={site.instagram} rel="noopener">{site.instagramUsuario}</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .cifras-heroe { position: relative; padding-bottom: 0; }
+  .proxima { display: grid; grid-template-columns: 1.1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+  .proxima h2 { margin-bottom: 0.4rem; }
+  .lema { font-family: var(--serif); font-style: italic; font-size: 1.35rem; color: var(--morado); margin-bottom: 1.2rem; }
+  .datas { margin-bottom: 1rem; color: var(--texto); }
+  .proxima .chips { margin-block: 1.4rem 2rem; }
+  .cita { background: var(--verde); padding-block: clamp(2.5rem, 6vw, 4rem); }
+  blockquote p { font-family: var(--serif); font-style: italic; font-size: clamp(1.6rem, 3.4vw, 2.6rem); line-height: 1.25; color: var(--branco); }
+  blockquote span { color: var(--negro); font-style: normal; }
+  .bloque-participa { background: var(--morado); color: rgb(255 255 255 / 0.85); }
+  .bloque-participa .etiqueta { color: var(--morado-suave); }
+  .bloque-participa .boton { background: var(--branco); border-color: var(--branco); color: var(--morado); }
+  .bloque-participa .boton:hover { background: var(--morado-pale); border-color: var(--morado-pale); color: var(--negro); }
+  .bloque-participa .boton--contorno { background: transparent; color: var(--branco); border-color: rgb(255 255 255 / 0.5); }
+  .bloque-participa .boton--contorno:hover { background: transparent; color: var(--branco); border-color: var(--branco); }
+  .participa { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 2rem; }
+  .participa p:not(.etiqueta) { max-width: 52ch; margin-top: 0.8rem; }
+  .accions { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+  @media (max-width: 860px) { .proxima { grid-template-columns: 1fr; } }
+</style>
