@@ -5,6 +5,11 @@ import { sucio, vistaEditor, vistaLista } from './coleccions.js';
 import * as contidos from './contidos.js';
 import * as outras from './outras.js';
 
+// O panel úsase só no dominio principal (as sesións son por dominio)
+if (/\.workers\.dev$|^www\./.test(location.hostname)) {
+  location.replace(`https://feiradasostibilidade.com${location.pathname}${location.search}${location.hash}`);
+}
+
 const app = document.getElementById('app');
 
 const menu = [

@@ -4,6 +4,12 @@
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // Dominio propio (a zona está na mesma conta de Cloudflare). workers.dev segue activo e redirixe ao dominio.
+  "routes": [
+    { "pattern": "feiradasostibilidade.com", "custom_domain": true },
+    { "pattern": "www.feiradasostibilidade.com", "custom_domain": true }
+  ],
+  "workers_dev": true,
   "d1_databases": [
     {
       "binding": "DB",
