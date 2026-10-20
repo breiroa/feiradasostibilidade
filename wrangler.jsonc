@@ -8,8 +8,8 @@
     {
       "binding": "DB",
       "database_name": "feira",
-      // Substituír polo id real tras `npx wrangler d1 create feira`
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      // Base de datos D1 en Cloudflare (rexión Europa occidental)
+      "database_id": "068dd575-3e21-42c9-b746-7ef4ffac8c3a",
       "migrations_dir": "migrations"
     }
   ]
