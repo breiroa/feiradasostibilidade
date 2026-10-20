@@ -37,7 +37,7 @@ export const seccion = z.discriminatedUnion('tipo', [
     tipo: z.literal('tarxetas'), ...base, texto: opc(texto), columnas: z.coerce.number().int().min(2).max(4).default(3),
     items: z.array(z.object({ titulo: texto.min(1), etiqueta: opc(texto), texto: opc(texto), imaxe: opc(mediaId), imaxeAlt: opc(texto), url: opc(url) })).default([]),
   }),
-  z.object({ tipo: z.literal('galeria'), ...base, imaxes: z.array(imaxeAlt).default([]) }),
+  z.object({ tipo: z.literal('galeria'), ...base, modo: z.enum(['carrusel', 'grella']).default('carrusel'), imaxes: z.array(imaxeAlt).default([]) }),
   z.object({ tipo: z.literal('video'), ...base, texto: opc(texto), url }),
   z.object({ tipo: z.literal('logos'), ...base, texto: opc(texto), grupos: z.array(grupoLogos).default([]) }),
   z.object({

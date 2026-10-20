@@ -1,28 +1,67 @@
 ---
-// Galería: grella de miniaturas; ao premer ábrese un visor a pantalla completa
-// con frechas, teclado (← → Esc), xestos no móbil e contador.
+// Galería de imaxes.
+//  - modo «carrusel» (por defecto): unha foto grande con frechas, contador e miniaturas debaixo
+//  - modo «grella»: miniaturas en grella
+// En ambos, premer abre a foto a pantalla completa (frechas, teclado ← → Esc e xestos no móbil).
 import { mediaUrl } from '../lib/url';
 
 interface Props {
   imaxes: { imaxe: string; alt?: string }[];
+  modo?: 'carrusel' | 'grella';
 }
 
-const { imaxes } = Astro.props;
+const { imaxes, modo = 'carrusel' } = Astro.props;
 const datos = JSON.stringify(imaxes.map((i) => ({ src: mediaUrl(i.imaxe, 'g'), alt: i.alt ?? '' })));
 ---
 
-<div class="galeria-cont" data-galeria={datos}>
-  <ul class="galeria">
-    {
-      imaxes.map((i, n) => (
-        <li>
-          <a href={mediaUrl(i.imaxe, 'g')} data-n={n} aria-label={`Ampliar imaxe ${n + 1}${i.alt ? `: ${i.alt}` : ''}`}>
-            <img src={mediaUrl(i.imaxe, 'm')} alt={i.alt ?? ''} loading="lazy" decoding="async" />
-          </a>
-        </li>
-      ))
-    }
-  </ul>
+<div class:list={['galeria-cont', `modo-${modo}`]} data-galeria={datos}>
+  {
+    modo === 'carrusel' ? (
+      <div class="carrusel">
+        <div class="carrusel-marco">
+          <ul class="carrusel-pista" tabindex="0" aria-label="Fotos (usa as frechas para pasar)">
+            {imaxes.map((i, n) => (
+              <li class="carrusel-diapo" data-n={n}>
+                <button type="button" class="ampliar" data-n={n} aria-label={`Ver a pantalla completa${i.alt ? `: ${i.alt}` : ''}`}>
+                  <img
+                    src={mediaUrl(i.imaxe, 'g')}
+                    srcset={`${mediaUrl(i.imaxe, 'm')} 640w, ${mediaUrl(i.imaxe, 'g')} 1600w`}
+                    sizes="(max-width: 900px) 100vw, 1100px"
+                    alt={i.alt ?? ''}
+                    loading={n < 2 ? 'eager' : 'lazy'}
+                    decoding="async"
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button type="button" class="carrusel-frecha ant" aria-label="Foto anterior">‹</button>
+          <button type="button" class="carrusel-frecha seg" aria-label="Foto seguinte">›</button>
+          <p class="carrusel-contador" aria-live="polite"><span>1</span> / {imaxes.length}</p>
+        </div>
+        <p class="carrusel-pe"></p>
+        <ul class="carrusel-miniaturas">
+          {imaxes.map((i, n) => (
+            <li>
+              <button type="button" data-ir={n} aria-label={`Ir á foto ${n + 1}`} aria-current={n === 0 ? 'true' : undefined}>
+                <img src={mediaUrl(i.imaxe, 'm')} alt="" loading="lazy" decoding="async" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : (
+      <ul class="galeria">
+        {imaxes.map((i, n) => (
+          <li>
+            <button type="button" class="ampliar" data-n={n} aria-label={`Ampliar imaxe ${n + 1}${i.alt ? `: ${i.alt}` : ''}`}>
+              <img src={mediaUrl(i.imaxe, 'm')} alt={i.alt ?? ''} loading="lazy" decoding="async" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    )
+  }
   <dialog class="visor" aria-label="Galería de imaxes">
     <button type="button" class="visor-pechar" aria-label="Pechar">×</button>
     <button type="button" class="visor-frecha ant" aria-label="Imaxe anterior">‹</button>
@@ -38,35 +77,79 @@ const datos = JSON.stringify(imaxes.map((i) => ({ src: mediaUrl(i.imaxe, 'g'), a
 <script>
   document.querySelectorAll<HTMLElement>('[data-galeria]').forEach((cont) => {
     const lista: { src: string; alt: string }[] = JSON.parse(cont.dataset.galeria ?? '[]');
+    const total = lista.length;
+
+    // ── Carrusel ──
+    const pista = cont.querySelector<HTMLElement>('.carrusel-pista');
+    let actual = 0;
+    const pe = cont.querySelector('.carrusel-pe');
+    const contador = cont.querySelector('.carrusel-contador span');
+    const minis = [...cont.querySelectorAll<HTMLButtonElement>('[data-ir]')];
+    const marcar = (n: number) => {
+      actual = n;
+      if (contador) contador.textContent = String(n + 1);
+      if (pe) pe.textContent = lista[n]?.alt ?? '';
+      minis.forEach((m, i) => (i === n ? m.setAttribute('aria-current', 'true') : m.removeAttribute('aria-current')));
+      // Centrar a miniatura activa só dentro da súa fila (sen mover a páxina)
+      const m = minis[n];
+      const fila = m?.closest('ul');
+      if (m && fila) fila.scrollTo({ left: m.offsetLeft - fila.clientWidth / 2 + m.clientWidth / 2, behavior: 'smooth' });
+    };
+    const ir = (n: number) => {
+      if (!pista) return;
+      const i = (n + total) % total;
+      // Cargar xa a foto de destino e a seguinte (as demais van en «lazy»)
+      [i, (i + 1) % total].forEach((k) => pista.querySelectorAll('img')[k]?.setAttribute('loading', 'eager'));
+      pista.scrollTo({ left: i * pista.clientWidth, behavior: 'smooth' });
+      marcar(i);
+    };
+    if (pista) {
+      marcar(0);
+      cont.querySelector('.carrusel-frecha.ant')?.addEventListener('click', () => ir(actual - 1));
+      cont.querySelector('.carrusel-frecha.seg')?.addEventListener('click', () => ir(actual + 1));
+      minis.forEach((m) => m.addEventListener('click', () => ir(Number(m.dataset.ir))));
+      pista.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); ir(actual - 1); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); ir(actual + 1); }
+      });
+      // Ao desprazar co dedo (scroll-snap), actualizar o contador
+      let t: number | undefined;
+      pista.addEventListener('scroll', () => {
+        clearTimeout(t);
+        t = window.setTimeout(() => marcar(Math.round(pista.scrollLeft / pista.clientWidth)), 80);
+      }, { passive: true });
+    }
+
+    // ── Visor a pantalla completa ──
     const visor = cont.querySelector<HTMLDialogElement>('dialog')!;
     const img = visor.querySelector('img')!;
-    const pe = visor.querySelector('figcaption')!;
+    const vpe = visor.querySelector('figcaption')!;
     const conta = visor.querySelector('.visor-contador')!;
     let n = 0;
     const amosar = (i: number) => {
-      n = (i + lista.length) % lista.length;
+      n = (i + total) % total;
       img.src = lista[n].src;
       img.alt = lista[n].alt;
-      pe.textContent = lista[n].alt;
-      conta.textContent = `${n + 1} / ${lista.length}`;
-      // Precargar a seguinte
-      new Image().src = lista[(n + 1) % lista.length].src;
+      vpe.textContent = lista[n].alt;
+      conta.textContent = `${n + 1} / ${total}`;
+      new Image().src = lista[(n + 1) % total].src;
     };
-    cont.querySelectorAll<HTMLAnchorElement>('a[data-n]').forEach((a) =>
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        amosar(Number(a.dataset.n));
+    cont.querySelectorAll<HTMLButtonElement>('.ampliar').forEach((b) =>
+      b.addEventListener('click', () => {
+        amosar(Number(b.dataset.n));
         visor.showModal();
       }),
     );
-    visor.querySelector('.ant')!.addEventListener('click', () => amosar(n - 1));
-    visor.querySelector('.seg')!.addEventListener('click', () => amosar(n + 1));
+    visor.querySelector('.visor-frecha.ant')!.addEventListener('click', () => amosar(n - 1));
+    visor.querySelector('.visor-frecha.seg')!.addEventListener('click', () => amosar(n + 1));
     visor.querySelector('.visor-pechar')!.addEventListener('click', () => visor.close());
     visor.addEventListener('click', (e) => { if (e.target === visor) visor.close(); });
     visor.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft') amosar(n - 1);
       if (e.key === 'ArrowRight') amosar(n + 1);
     });
+    // Ao pechar, o carrusel queda na foto que se estaba vendo
+    visor.addEventListener('close', () => { if (pista) ir(n); });
     let x0: number | null = null;
     visor.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
     visor.addEventListener('touchend', (e) => {
@@ -79,10 +162,44 @@ const datos = JSON.stringify(imaxes.map((i) => ({ src: mediaUrl(i.imaxe, 'g'), a
 </script>
 
 <style>
+  .ampliar { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+
+  /* Carrusel */
+  .carrusel { display: grid; gap: 0.8rem; }
+  .carrusel-marco { position: relative; border-radius: 20px; overflow: hidden; background: var(--negro); box-shadow: 0 20px 50px rgb(26 20 40 / 0.18); }
+  .carrusel-pista { list-style: none; margin: 0; padding: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; outline: none; }
+  .carrusel-pista::-webkit-scrollbar { display: none; }
+  .carrusel-pista:focus-visible { box-shadow: inset 0 0 0 3px var(--morado-claro); }
+  .carrusel-diapo { flex: 0 0 100%; scroll-snap-align: start; aspect-ratio: 16 / 10; max-height: min(72vh, 640px); }
+  .carrusel-diapo .ampliar { height: 100%; }
+  .carrusel-diapo img { width: 100%; height: 100%; object-fit: cover; }
+  .carrusel-frecha {
+    position: absolute; top: 50%; transform: translateY(-50%); width: 3.2rem; height: 3.2rem; border-radius: 50%;
+    border: 0; background: rgb(255 255 255 / 0.92); color: var(--negro); font-size: 2rem; line-height: 1; cursor: pointer;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 0.25); transition: background 0.2s, transform 0.2s;
+  }
+  .carrusel-frecha:hover { background: var(--verde); color: var(--branco); transform: translateY(-50%) scale(1.06); }
+  .carrusel-frecha.ant { left: 1rem; }
+  .carrusel-frecha.seg { right: 1rem; }
+  .carrusel-contador {
+    position: absolute; right: 1rem; bottom: 1rem; margin: 0; padding: 0.3rem 0.8rem; border-radius: 99px;
+    background: rgb(26 20 40 / 0.7); color: var(--branco); font-family: var(--mono); font-size: 0.8rem;
+  }
+  .carrusel-pe { min-height: 1.4em; font-size: 0.93rem; color: var(--texto-suave); text-align: center; }
+  .carrusel-miniaturas { list-style: none; margin: 0; padding: 0.2rem; display: flex; gap: 0.5rem; overflow-x: auto; scrollbar-width: thin; }
+  .carrusel-miniaturas li { flex: 0 0 auto; }
+  .carrusel-miniaturas button { display: block; padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; cursor: pointer; background: none; opacity: 0.6; transition: opacity 0.2s, border-color 0.2s; }
+  .carrusel-miniaturas button:hover { opacity: 1; }
+  .carrusel-miniaturas button[aria-current='true'] { opacity: 1; border-color: var(--verde); }
+  .carrusel-miniaturas img { width: 92px; height: 64px; object-fit: cover; display: block; }
+
+  /* Grella */
   .galeria { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(min(46%, 220px), 1fr)); }
-  .galeria a { display: block; overflow: hidden; border-radius: 12px; cursor: zoom-in; }
+  .galeria .ampliar { overflow: hidden; border-radius: 12px; }
   .galeria img { width: 100%; aspect-ratio: 1; object-fit: cover; transition: transform 0.4s; }
-  .galeria a:hover img { transform: scale(1.05); }
+  .galeria .ampliar:hover img { transform: scale(1.05); }
+
+  /* Visor */
   .visor {
     width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
     background: rgb(14 10 22 / 0.96); color: var(--branco);
@@ -100,6 +217,11 @@ const datos = JSON.stringify(imaxes.map((i) => ({ src: mediaUrl(i.imaxe, 'g'), a
   .visor-pechar { position: absolute; top: 1rem; right: 1.2rem; width: 2.8rem; height: 2.8rem; border: 0; border-radius: 50%; background: rgb(255 255 255 / 0.1); color: var(--branco); font-size: 1.8rem; cursor: pointer; }
   .visor-contador { position: absolute; top: 1.4rem; left: 1.4rem; font-family: var(--mono); font-size: 0.85rem; color: rgb(255 255 255 / 0.7); }
   @media (max-width: 700px) {
+    .carrusel-frecha { width: 2.6rem; height: 2.6rem; font-size: 1.6rem; }
+    .carrusel-frecha.ant { left: 0.5rem; }
+    .carrusel-frecha.seg { right: 0.5rem; }
+    .carrusel-diapo { aspect-ratio: 4 / 3; }
+    .carrusel-miniaturas img { width: 70px; height: 50px; }
     .visor[open] { grid-template-columns: 1fr; }
     .visor figure { grid-column: 1; padding-inline: 0.5rem; }
     .visor-frecha { position: absolute; bottom: 1.2rem; }

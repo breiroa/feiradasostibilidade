@@ -70,7 +70,7 @@ const escuro = (s: Seccion) => s.fondo === 'escuro' || s.fondo === 'morado';
       case 'galeria':
         return (
           <Envoltorio s={s}>
-            <Gallery imaxes={s.imaxes} />
+            <Gallery imaxes={s.imaxes} modo={s.modo} />
           </Envoltorio>
         );
       case 'video':
