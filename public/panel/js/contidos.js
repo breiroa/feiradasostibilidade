@@ -1,6 +1,7 @@
 // Configuración das seccións de contido: que columnas teñen as listas e que campos os editores.
-import { coleccion, dataCurta, el, mediaUrl } from './nucleo.js';
+import { coleccion, dataCurta, el, mediaUrl, slug as slugify } from './nucleo.js';
 import * as c from './campos.js';
+import { construtor } from './seccions.js';
 
 const romanos = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV'];
 const miniatura = (id, logo = false) => (id ? el('img', { class: `miniatura${logo ? ' logo' : ''}`, src: mediaUrl(id, logo ? 'g' : 'm'), alt: '' }) : el('span', { class: 'miniatura' }));
@@ -31,7 +32,7 @@ export const edicions = {
   coleccion: 'edicions',
   titulo: 'Edicións da Feira',
   singular: 'Edición',
-  intro: 'Cada edición ten a súa páxina. A marcada como «Próxima» destácase na portada (escóllea en Axustes).',
+  intro: 'Cada edición ten a súa páxina, construída con seccións. A edición destacada escóllese en Axustes.',
   novoTexto: 'Nova edición',
   titular: (d) => d.titulo,
   verNaWeb: (id) => `/edicions/${id}/`,
@@ -42,50 +43,22 @@ export const edicions = {
     { titulo: 'Estado', valor: (it) => el('span', { class: `pill ${it.datos.estado === 'proxima' ? 'verde' : ''}` }, it.datos.estado === 'proxima' ? 'Próxima' : 'Pasada') },
     { titulo: 'Fotos', valor: (it) => String(it.datos.galeria?.length ?? 0) },
   ],
-  novo: () => ({ numero: undefined, ano: new Date().getFullYear() + 1, titulo: '', datas: '', lugar: 'IES Luís Seoane · Monte Porreiro, Pontevedra', estado: 'proxima', resumo: '', corpo: '', cifras: [], fitos: [], programa: [], centros: [], grupos: [{ titulo: 'Organiza', entidades: ['ies-luis-seoane'] }, { titulo: 'Impulsan', entidades: ['cidel-galicia', 'universidade-de-vigo'] }], galeria: [], videos: [], documentos: [], prensa: [] }),
+  novo: () => ({ numero: undefined, ano: new Date().getFullYear() + 1, titulo: '', datas: '', lugar: 'IES Luís Seoane · Monte Porreiro, Pontevedra', estado: 'proxima', resumo: '', cifras: [], fitos: [],
+    seccions: [{ id: 'logos1', tipo: 'logos', oculta: false, fondo: 'verde', etiqueta: 'Quen participa', titulo: 'Centros e entidades.', grupos: [{ titulo: 'Organiza', entidades: ['ies-luis-seoane'] }, { titulo: 'Impulsan', entidades: ['cidel-galicia', 'universidade-de-vigo'] }] }] }),
   editor: (d, { novo }) => [
-    c.bloque('Datos básicos', null,
+    c.bloque('Datos básicos', 'Saen na portada da edición, nas tarxetas e no menú.',
       el('div', { class: 'fila3' },
         c.texto(d, 'numero', 'Número de edición', { tipo: 'number', obrig: true, axuda: '1, 2, 3… (sae en números romanos)' }),
         c.texto(d, 'ano', 'Ano', { tipo: 'number', obrig: true, bloqueado: !novo, axuda: novo ? 'Será o enderezo: /edicions/ano' : 'O ano é o enderezo da páxina e non se cambia.' }),
         c.escolla(d, 'estado', 'Estado', [{ valor: 'proxima', texto: 'Próxima' }, { valor: 'pasada', texto: 'Pasada' }])),
-      c.texto(d, 'titulo', 'Título', { obrig: true, placeholder: 'VI Feira da Sostibilidade' }),
+      c.texto(d, 'titulo', 'Título', { obrig: true, placeholder: 'VI Feira da Sostibilidade', axuda: 'Para un subtítulo destacado usa « · », p. ex. «V Feira da Sostibilidade · SENDA 2030».' }),
       c.texto(d, 'lema', 'Lema', { placeholder: 'Eco-Étika en acción' }),
       el('div', { class: 'fila2' }, c.texto(d, 'datas', 'Datas (texto libre)', { obrig: true, placeholder: '28, 29 e 30 de abril de 2027' }), c.texto(d, 'lugar', 'Lugar', { obrig: true })),
       c.area(d, 'resumo', 'Resumo', { obrig: true, axuda: 'Dúas ou tres frases. Sae nas tarxetas e ao comezo da páxina.' })),
     c.bloque('Foto de portada', null, c.imaxe(d, 'portada', '', { claveAlt: 'portadaAlt', etiquetaBib: 'edicions' })),
-    c.bloque('Presentación', 'Texto longo da páxina da edición.', c.rico(d, 'corpo', '')),
-    c.bloque('Cifras e fitos', null, cifras(d), c.listaTextos(d, 'fitos', 'Fitos destacados', { axuda: 'Etiquetas curtas: «II Foro de Desenvolvemento Local»… Arrastra para ordenar.' })),
-    c.bloque('Programa', 'Organízao por días (ou bloques). A hora é opcional.',
-      c.repetidor(d, 'programa', '', {
-        novo: () => ({ dia: '', actividades: [] }),
-        engadirTexto: '+ Engadir día',
-        pintarItem: (dia) => [
-          c.texto(dia, 'dia', 'Día', { placeholder: 'Mércores 28 de abril' }),
-          c.repetidor(dia, 'actividades', 'Actividades', {
-            novo: () => ({ hora: '', titulo: '', descricion: '' }),
-            engadirTexto: '+ Engadir actividade',
-            pintarItem: (a) => [el('div', { class: 'fila3' }, c.texto(a, 'hora', 'Hora', { placeholder: '10:00' }), el('div', { style: { gridColumn: 'span 2' } }, c.texto(a, 'titulo', 'Título'))), c.area(a, 'descricion', 'Descrición', { filas: 2 })],
-          }),
-        ],
-      })),
-    c.bloque('Quen participa', 'Grupos de logos con título libre (Organiza, Impulsan, Co apoio de, Colaboran…).',
-      c.repetidor(d, 'grupos', '', {
-        novo: () => ({ titulo: '', entidades: [] }),
-        engadirTexto: '+ Engadir grupo',
-        pintarItem: (g) => [c.texto(g, 'titulo', 'Título do grupo', { placeholder: 'Colaboran' }), c.entidades(g, 'entidades', 'Entidades')],
-      }),
-      c.listaTextos(d, 'centros', 'Centros educativos', { axuda: 'Nome de cada centro. Arrastra para ordenar.' })),
-    c.bloque('Galería de fotos', 'Arrastra varias fotos á vez. Optimízanse automaticamente.', c.galeria(d, 'galeria', '', { etiquetaBib: 'edicions' })),
-    c.bloque('Vídeos, documentos e prensa', null,
-      c.repetidor(d, 'videos', 'Vídeos', { novo: () => ({ titulo: '', url: '' }), engadirTexto: '+ Engadir vídeo', pintarItem: (v) => el('div', { class: 'fila2' }, c.texto(v, 'titulo', 'Título'), c.texto(v, 'url', 'Ligazón (YouTube, Vimeo…)', { tipo: 'url' })) }),
-      c.repetidor(d, 'documentos', 'Documentos (memorias…)', {
-        novo: () => ({ titulo: '' }),
-        engadirTexto: '+ Engadir documento',
-        pintarItem: (doc) => [c.texto(doc, 'titulo', 'Título'), c.ficheiro(doc, 'ficheiro', 'PDF'), c.texto(doc, 'url', 'Ou ligazón externa', { tipo: 'url', axuda: 'Se non subes PDF nin pos ligazón, aparece como «dispoñible en breve».' })],
-      }),
-      c.repetidor(d, 'prensa', 'Na prensa', { novo: () => ({ medio: '' }), engadirTexto: '+ Engadir peza', pintarItem: (p) => [el('div', { class: 'fila2' }, c.texto(p, 'medio', 'Medio'), c.texto(p, 'titulo', 'Título da peza')), c.texto(p, 'url', 'Ligazón', { tipo: 'url' })] })),
-    c.bloque('Proxecto vinculado', 'Se a edición forma parte dun proxecto (como SENDA 2030), aparece un bloque destacado e a súa subpáxina.', proxectoVinculado(d)),
+    c.bloque('Datos destacados', 'Aparecen na presentación da edición e na portada da web.', cifras(d), c.listaTextos(d, 'fitos', 'Fitos destacados', { axuda: 'Etiquetas curtas: «II Foro de Desenvolvemento Local»… Arrastra para ordenar.' })),
+    c.bloque('Proxecto vinculado', 'Se a edición forma parte dun proxecto (como SENDA 2030). As súas actividades móstranse coa sección «Actividades dun proxecto».', proxectoVinculado(d)),
+    construtor(d, 'seccions', { titulo: 'Seccións da páxina da edición' }),
   ],
 };
 
@@ -230,3 +203,34 @@ export const proxectos = {
       })),
   ],
 };
+
+// ───────────────── PÁXINAS LIBRES ─────────────────
+const nais = [{ valor: '', texto: 'Páxina solta (/enderezo/)' }, { valor: 'feiralab', texto: 'Dentro de FeiraLab (/feiralab/enderezo/)' }];
+export const paxinas_libres = {
+  coleccion: 'paxinas_libres',
+  titulo: 'Páxinas',
+  singular: 'Páxina',
+  intro: 'FeiraLab, as súas subpáxinas, as páxinas legais e calquera outra páxina construída con seccións.',
+  novoTexto: 'Nova páxina',
+  titular: (d) => d.titulo,
+  verNaWeb: (id, d) => (d.borrador ? null : id === 'feiralab' ? '/feiralab/' : d.nai ? `/${d.nai}/${id}/` : `/${id}/`),
+  columnas: [
+    { titulo: 'Páxina', valor: (it) => el('b', {}, it.datos.titulo) },
+    { titulo: 'Enderezo', valor: (it) => (it.id === 'feiralab' ? '/feiralab/' : it.datos.nai ? `/${it.datos.nai}/${it.id}/` : `/${it.id}/`), clase: 'muted' },
+    { titulo: 'Seccións', valor: (it) => String(it.datos.seccions?.length ?? 0) },
+    { titulo: 'Estado', valor: (it) => el('span', { class: `pill ${it.datos.borrador ? 'aviso' : 'verde'}` }, it.datos.borrador ? 'Borrador' : 'Publicada') },
+  ],
+  filtrar: (items, f) => items.filter((it) => coincide(f.q, it.datos.titulo)),
+  filtros: (f, repintar) => [busca(f, repintar, 'Buscar páxinas…')],
+  novo: () => ({ titulo: '', nai: 'feiralab', borrador: false, seccions: [{ id: 'texto1', tipo: 'texto', oculta: false, fondo: 'branco', corpo: '', estreito: true }] }),
+  editor: (d, { novo, idCampo }) => [
+    c.bloque('Páxina', null,
+      c.texto(d, 'titulo', 'Título', { obrig: true, aoCambiar: (v) => { if (novo && !idCampo.manual) { idCampo.id = slugify(v); const i = document.getElementById('enderezo-pax'); if (i) i.value = idCampo.id; } } }),
+      novo ? el('div', { class: 'campo' }, el('label', { for: 'enderezo-pax' }, 'Enderezo'), el('input', { id: 'enderezo-pax', type: 'text', placeholder: 'metodoloxia', oninput: (e) => { idCampo.id = slugify(e.target.value); idCampo.manual = true; } }), el('div', { class: 'axuda' }, 'Só minúsculas, números e guións. Non se pode cambiar despois.')) : null,
+      el('div', { class: 'fila2' }, c.escolla(d, 'nai', 'Onde vai', nais), c.marca(d, 'borrador', 'Borrador (aínda non publicar)')),
+      c.area(d, 'descricion', 'Descrición', { filas: 2, axuda: 'Para buscadores e redes; tamén sae nas tarxetas de subpáxinas.' }),
+      c.imaxe(d, 'imaxe', 'Imaxe para compartir en redes (opcional)')),
+    construtor(d, 'seccions'),
+  ],
+};
+

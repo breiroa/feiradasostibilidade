@@ -90,24 +90,39 @@ export function listaTextos(d, clave, etiqueta, { axuda, placeholder = 'Escribe 
   return campoBase(etiqueta, cont, { axuda: axuda ?? 'Arrastra para cambiar a orde.' });
 }
 
-/** Selector de entidades (logos) con busca; garda a lista de ids en orde */
-export function entidades(d, clave, etiqueta, { axuda } = {}) {
+/** Selector de elementos doutra colección (entidades, recursos…); garda a lista de ids en orde */
+export function refs(d, clave, etiqueta, { colec, nomeDe = (x) => x.datos.nome ?? x.datos.titulo ?? x.id, engadir = '+ Engadir…', axuda } = {}) {
   if (!Array.isArray(d[clave])) d[clave] = [];
   const lista = d[clave];
   const cont = el('div', { class: 'chips' });
   const sel = el('select', { style: { border: '0', flex: '1', minWidth: '180px', font: '.92rem var(--sans)', background: 'transparent' } });
   let todas = [];
-  const nome = (id) => todas.find((e) => e.id === id)?.datos.nome ?? id;
+  const nome = (id) => { const x = todas.find((e) => e.id === id); return x ? nomeDe(x) : id; };
   function pintar() {
-    sel.replaceChildren(el('option', { value: '' }, '+ Engadir entidade…'),
-      todas.filter((e) => !lista.includes(e.id)).sort((a, b) => a.datos.nome.localeCompare(b.datos.nome, 'gl')).map((e) => el('option', { value: e.id }, e.datos.nome)));
+    sel.replaceChildren(el('option', { value: '' }, engadir),
+      todas.filter((e) => !lista.includes(e.id)).sort((a, b) => nomeDe(a).localeCompare(nomeDe(b), 'gl')).map((e) => el('option', { value: e.id }, nomeDe(e))));
     cont.replaceChildren(...lista.map((id, i) => el('span', { class: 'chip' }, nome(id), el('button', { type: 'button', title: 'Quitar', onclick: () => { lista.splice(i, 1); pintar(); } }, '×'))), sel);
     chipsOrdenables(cont, lista, pintar);
   }
   sel.addEventListener('change', () => { if (sel.value) { lista.push(sel.value); pintar(); } });
-  coleccion('entidades').then((e) => { todas = e; pintar(); });
+  coleccion(colec).then((e) => { todas = e; pintar(); });
   pintar();
-  return campoBase(etiqueta, cont, { axuda: axuda ?? 'Arrastra para cambiar a orde. As entidades novas créanse en «Entidades e logos».' });
+  return campoBase(etiqueta, cont, { axuda: axuda ?? 'Arrastra para cambiar a orde.' });
+}
+
+/** Selector de entidades (logos) con busca; garda a lista de ids en orde */
+export const entidades = (d, clave, etiqueta, { axuda } = {}) =>
+  refs(d, clave, etiqueta, { colec: 'entidades', engadir: '+ Engadir entidade…', axuda: axuda ?? 'Arrastra para cambiar a orde. As entidades novas créanse en «Entidades e logos».' });
+
+/** Despregable cos elementos doutra colección (unha soa escolla) */
+export function refUnica(d, clave, etiqueta, { colec, nomeDe = (x) => x.datos.titulo ?? x.datos.nomeCurto ?? x.datos.nome ?? x.id, baleiro = '— Ningún —', obrig, axuda, ordenar } = {}) {
+  const cont = el('div');
+  coleccion(colec).then((xs) => {
+    const lista = ordenar ? [...xs].sort(ordenar) : xs;
+    cont.replaceChildren(escolla(d, clave, etiqueta, lista.map((x) => ({ valor: x.id, texto: nomeDe(x) })), { baleiro: obrig ? undefined : baleiro, obrig, axuda }));
+    if (obrig && !d[clave] && lista.length) d[clave] = lista[0].id;
+  });
+  return cont;
 }
 
 /**

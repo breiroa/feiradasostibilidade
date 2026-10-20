@@ -1,0 +1,40 @@
+---
+// Actividades dun proxecto co seu estado e unha barra de progreso.
+import type { Proxecto, Seccion } from '../../lib/esquemas';
+import Envoltorio from './Envoltorio.astro';
+import ActivityList from '../ActivityList.astro';
+
+type T = Extract<Seccion, { tipo: 'actividades' }>;
+interface Props { s: T; proxecto?: Proxecto | null }
+const { s, proxecto } = Astro.props;
+const acts = proxecto?.actividades ?? [];
+const feitas = acts.filter((a) => a.estado === 'feita').length;
+const curso = acts.filter((a) => a.estado === 'en-curso').length;
+const pct = (n: number) => (acts.length ? (n / acts.length) * 100 : 0);
+---
+
+{
+  proxecto && (
+    <Envoltorio s={s} texto={s.texto}>
+      <div class="progreso" role="img" aria-label={`${feitas} feitas, ${curso} en curso, de ${acts.length} actividades`}>
+        <div class="barra">
+          <span class="feita" style={`width:${pct(feitas)}%`} />
+          <span class="curso" style={`width:${pct(curso)}%`} />
+        </div>
+        <p>
+          <b>{feitas}</b> feitas · <b>{curso}</b> en curso · <b>{acts.length - feitas - curso}</b> previstas
+        </p>
+      </div>
+      <ActivityList actividades={acts} />
+    </Envoltorio>
+  )
+}
+
+<style>
+  .progreso { margin-bottom: 2.4rem; display: grid; gap: 0.6rem; max-width: 640px; }
+  .barra { display: flex; height: 12px; border-radius: 99px; overflow: hidden; background: var(--morado-pale); }
+  .feita { background: var(--verde); }
+  .curso { background: var(--morado); }
+  .progreso p { font-size: 0.9rem; color: var(--texto-suave); }
+  .progreso b { color: var(--texto); }
+</style>

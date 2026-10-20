@@ -43,7 +43,7 @@ const imaxeSocial = imaxe ? new URL(mediaUrl(imaxe, 'g'), Astro.url.origin).href
   </head>
   <body>
     <a class="saltar" href="#contido">Saltar ao contido</a>
-    <Header edicions={eds} edicionActual={ax.edicionActual} />
+    <Header edicions={eds} />
     <main id="contido">
       <slot />
     </main>

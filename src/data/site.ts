@@ -2,7 +2,7 @@
 
 export const nav = [
   { href: '', texto: 'Inicio' },
-  { href: 'a-feira/', texto: 'A Feira' },
+  { href: 'feiralab/', texto: 'FeiraLab' },
   { href: 'edicions/', texto: 'Edicións', despregable: true },
   { href: 'actualidade/', texto: 'Actualidade' },
   { href: 'recursos/', texto: 'Recursos' },

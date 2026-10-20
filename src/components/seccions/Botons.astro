@@ -1,0 +1,26 @@
+---
+interface Props {
+  botons: { texto: string; url: string; estilo: 'principal' | 'secundario' }[];
+  escuro?: boolean;
+}
+const { botons, escuro = false } = Astro.props;
+const externa = (u: string) => /^https?:\/\//.test(u);
+---
+
+{
+  botons.length > 0 && (
+    <div class:list={['botons', { escuro }]}>
+      {botons.map((b) => (
+        <a class:list={['boton', { 'boton--contorno': b.estilo === 'secundario' }]} href={b.url} rel={externa(b.url) ? 'noopener' : undefined}>
+          {b.texto}
+        </a>
+      ))}
+    </div>
+  )
+}
+
+<style>
+  .botons { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2rem; }
+  .escuro .boton--contorno { color: var(--branco); border-color: rgb(255 255 255 / 0.4); background: transparent; }
+  .escuro .boton--contorno:hover { color: var(--verde-medio); border-color: var(--verde-medio); }
+</style>

@@ -1,0 +1,9 @@
+---
+import PaxinaLibre from '../../components/PaxinaLibre.astro';
+import { paxinaLibre } from '../../lib/datos';
+
+const p = await paxinaLibre(Astro.params.slug ?? '');
+if (!p || p.nai !== 'feiralab') return new Response(null, { status: 404 });
+---
+
+<PaxinaLibre p={p} volver={{ href: 'feiralab/', texto: 'FeiraLab' }} />

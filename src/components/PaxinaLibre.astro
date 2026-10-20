@@ -1,0 +1,34 @@
+---
+// Páxina construída con seccións. Se non empeza cunha portada, móstrase unha cabeceira sinxela co título.
+import type { PaxinaLibre } from '../lib/esquemas';
+import Base from '../layouts/Base.astro';
+import Hero from './Hero.astro';
+import Seccions from './seccions/Seccions.astro';
+import { url } from '../lib/url';
+
+interface Props {
+  p: PaxinaLibre;
+  volver?: { href: string; texto: string };
+}
+const { p, volver } = Astro.props;
+const visibles = p.seccions.filter((s) => !s.oculta);
+const conHeroe = visibles[0]?.tipo === 'heroe';
+---
+
+<Base titulo={p.titulo} descricion={p.descricion} imaxe={p.imaxe}>
+  {
+    !conHeroe && (
+      <Hero compacto>
+        {volver && <p class="volver"><a href={url(volver.href)}>← {volver.texto}</a></p>}
+        <h1>{p.titulo}</h1>
+        {p.descricion && <p class="entrada">{p.descricion}</p>}
+      </Hero>
+    )
+  }
+  <Seccions seccions={p.seccions} primeiraH1={conHeroe} />
+</Base>
+
+<style>
+  .volver { margin-bottom: 1rem; font-size: 0.9rem; }
+  .volver a { color: var(--verde-medio); text-decoration: none; }
+</style>

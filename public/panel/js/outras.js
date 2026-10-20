@@ -4,6 +4,7 @@ import { api, aviso, caixaErros, coleccion, confirmar, copiar, dataCurta, el, es
 import { conProgreso, subirFicheiro, subirImaxe, zonaSoltar } from './imaxes.js';
 import { sucio } from './coleccions.js';
 import * as c from './campos.js';
+import { construtor } from './seccions.js';
 
 const cab = (titulo, intro, ...extra) => el('div', { class: 'cab' }, el('div', {}, el('h1', {}, titulo), intro ? el('p', { class: 'muted' }, intro) : null), ...extra);
 const tiposInsc = { centro: 'Centro educativo', entidade: 'Entidade', prensa: 'Prensa', contacto: 'Consulta' };
@@ -40,34 +41,8 @@ export async function inicio(main) {
 const lista2 = (it, a, b, ea, eb) => el('div', { class: 'fila2' }, c.texto(it, a, ea), c.texto(it, b, eb));
 const paxinas = {
   inicio: {
-    titulo: 'Inicio (portada)', ver: '/',
-    editor: (d) => [
-      c.bloque('Cabeceira', null,
-        c.texto(d, 'heroEtiqueta', 'Etiqueta superior'),
-        lista2(d, 'heroTitulo', 'heroDestaque', 'Título', 'Título destacado (cor)'),
-        c.area(d, 'heroTexto', 'Texto'),
-        c.imaxe(d, 'heroImaxe', 'Foto', { claveAlt: 'heroImaxeAlt' })),
-      c.bloque('Cifras da cabeceira', null, c.repetidor(d, 'cifras', '', { novo: () => ({ valor: '', etiqueta: '' }), pintarItem: (it) => lista2(it, 'valor', 'etiqueta', 'Número', 'Texto'), engadirTexto: '+ Engadir cifra' })),
-      c.bloque('Seccións', null,
-        c.texto(d, 'edicionsTitulo', 'Título de «As edicións»'), c.area(d, 'edicionsTexto', 'Texto de «As edicións»', { filas: 2 }),
-        lista2(d, 'cita', 'citaDestaque', 'Frase da franxa verde', 'Final destacado'),
-        c.texto(d, 'ecosistemaTitulo', 'Título de «O ecosistema»'), c.area(d, 'ecosistemaTexto', 'Texto de «O ecosistema»', { filas: 2 }),
-        c.entidades(d, 'ecosistemaEntidades', 'Entidades de «O ecosistema»'),
-        c.texto(d, 'participaTitulo', 'Título do bloque Participa'), c.area(d, 'participaTexto', 'Texto do bloque Participa', { filas: 2 })),
-    ],
-  },
-  'a-feira': {
-    titulo: 'A Feira', ver: '/a-feira/',
-    editor: (d) => [
-      c.bloque('Cabeceira', null, c.texto(d, 'heroEtiqueta', 'Etiqueta superior'), lista2(d, 'heroTitulo', 'heroDestaque', 'Título', 'Título destacado (cor)'), c.area(d, 'heroTexto', 'Texto'), c.imaxe(d, 'heroImaxe', 'Foto', { claveAlt: 'heroImaxeAlt' })),
-      c.bloque('O movemento', null, c.texto(d, 'introTitulo', 'Título'), c.rico(d, 'introCorpo', 'Texto'), c.imaxe(d, 'introImaxe', 'Foto', { claveAlt: 'introImaxeAlt' })),
-      c.bloque('Metodoloxías', null, c.texto(d, 'metodoloxiasTitulo', 'Título'),
-        c.repetidor(d, 'metodoloxias', '', { novo: () => ({ sigla: '', nome: '', lema: '', texto: '' }), engadirTexto: '+ Engadir metodoloxía', pintarItem: (m) => [el('div', { class: 'fila3' }, c.texto(m, 'sigla', 'Sigla'), el('div', { style: { gridColumn: 'span 2' } }, c.texto(m, 'nome', 'Nome'))), c.texto(m, 'lema', 'Lema'), c.area(m, 'texto', 'Texto', { filas: 2 })] })),
-      c.bloque('Liñas de traballo', null, c.texto(d, 'linhasTitulo', 'Título'), c.area(d, 'linhasTexto', 'Texto', { filas: 2 }),
-        c.repetidor(d, 'linhas', '', { novo: () => ({ titulo: '', texto: '', ods: '' }), engadirTexto: '+ Engadir liña', pintarItem: (l) => [c.texto(l, 'titulo', 'Título'), c.area(l, 'texto', 'Texto', { filas: 2 }), c.texto(l, 'ods', 'ODS', { placeholder: 'ODS 7 · ODS 13' })] })),
-      c.bloque('Premios', null, c.texto(d, 'premiosTitulo', 'Título'),
-        c.repetidor(d, 'premios', '', { novo: () => ({ ano: '', texto: '' }), engadirTexto: '+ Engadir premio', pintarItem: (p) => [c.texto(p, 'ano', 'Ano'), c.area(p, 'texto', 'Premio', { filas: 2 })] })),
-    ],
+    titulo: 'Portada (Inicio)', ver: '/',
+    editor: (d) => [construtor(d, 'seccions', { titulo: 'Seccións da portada', axuda: 'A primeira sección «Portada» é a cabeceira grande. Preme nunha sección para editala; usa as frechas para ordenar.' })],
   },
   participa: {
     titulo: 'Participa', ver: '/participa/',
@@ -86,15 +61,12 @@ const paxinas = {
       c.bloque('Formulario', null, c.texto(d, 'formularioTitulo', 'Título'), c.area(d, 'formularioTexto', 'Texto', { filas: 2 }), lista2(d, 'graciasTitulo', 'graciasTexto', 'Mensaxe de grazas: título', 'Mensaxe de grazas: texto')),
     ],
   },
-  'aviso-legal': {
-    titulo: 'Aviso legal e privacidade', ver: '/aviso-legal/',
-    editor: (d) => [c.bloque('Texto', null, c.rico(d, 'corpo', ''))],
-  },
 };
 
 export async function listaPaxinas(main) {
-  main.replaceChildren(cab('Textos das páxinas', 'Os textos fixos de cada páxina da web.'),
-    el('div', { class: 'tarxetas' }, Object.entries(paxinas).map(([id, p]) => el('a', { class: 'tarxeta', href: `#/paxinas/${id}` }, el('b', { style: { fontSize: '1.15rem' } }, p.titulo), el('span', {}, 'Editar textos →')))));
+  main.replaceChildren(cab('Portada e Participa', 'A portada constrúese con seccións; Participa ten os seus textos e formularios. FeiraLab e as demais páxinas están en «Páxinas».'),
+    el('div', { class: 'tarxetas' }, Object.entries(paxinas).map(([id, p]) => el('a', { class: 'tarxeta', href: `#/paxinas/${id}` }, el('b', { style: { fontSize: '1.15rem' } }, p.titulo), el('span', {}, 'Editar →'))),
+      el('a', { class: 'tarxeta', href: '#/paxinas_libres' }, el('b', { style: { fontSize: '1.15rem' } }, 'FeiraLab e outras páxinas'), el('span', {}, 'Ir a Páxinas →'))));
 }
 
 export async function editarPaxina(main, id) {
@@ -102,7 +74,7 @@ export async function editarPaxina(main, id) {
   if (!p) return listaPaxinas(main);
   const items = await coleccion('paxinas', { forzar: true });
   const d = structuredClone(items.find((x) => x.id === id)?.datos ?? {});
-  await editorSimple(main, { titulo: p.titulo, volver: ['#/paxinas', 'Textos das páxinas'], ver: p.ver, campos: p.editor(d), gardar: () => api('documentos', { metodo: 'POST', datos: { coleccion: 'paxinas', id, datos: d } }), aoGardar: () => invalidar('paxinas') });
+  await editorSimple(main, { titulo: p.titulo, volver: ['#/paxinas', 'Portada e Participa'], ver: p.ver, campos: p.editor(d), gardar: () => api('documentos', { metodo: 'POST', datos: { coleccion: 'paxinas', id, datos: d } }), aoGardar: () => invalidar('paxinas') });
 }
 
 /** Editor dun único documento (páxinas, axustes) */
@@ -125,7 +97,7 @@ async function editorSimple(main, { titulo, intro, volver, ver, campos, gardar: 
 export async function axustes(main) {
   const [items, eds] = await Promise.all([coleccion('axustes', { forzar: true }), coleccion('edicions', { forzar: true })]);
   const d = structuredClone(items.find((x) => x.id === 'xeral')?.datos ?? {});
-  d.pe ??= { texto: '', grupos: [] };
+  d.pe ??= { texto: '', grupos: [], premios: [] };
   await editorSimple(main, {
     titulo: 'Axustes xerais',
     intro: 'Nome da web, edición destacada, redes e pé de páxina.',
@@ -143,6 +115,11 @@ export async function axustes(main) {
           novo: () => ({ titulo: '', entidades: [] }),
           engadirTexto: '+ Engadir grupo',
           pintarItem: (g) => [el('div', { class: 'fila2' }, c.texto(g, 'titulo', 'Título', { placeholder: 'Organiza' }), c.texto(g, 'nota', 'Nota pequena (opcional)')), c.entidades(g, 'entidades', 'Entidades')],
+        }),
+        c.repetidor(d.pe, 'premios', 'Premios e recoñecementos', {
+          novo: () => ({ ano: '', texto: '' }),
+          engadirTexto: '+ Engadir premio',
+          pintarItem: (p) => el('div', { class: 'fila3' }, c.texto(p, 'ano', 'Ano'), el('div', { style: { gridColumn: 'span 2' } }, c.texto(p, 'texto', 'Premio'))),
         })),
       c.bloque('Copia de seguridade', 'Descarga todos os textos e inscricións nun ficheiro. A base de datos garda ademais copias automáticas dos últimos 7 días.',
         el('a', { class: 'btn-ghost', href: '/api/panel/copia', download: '' }, 'Descargar copia (JSON)')),

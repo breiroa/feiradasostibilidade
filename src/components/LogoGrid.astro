@@ -1,27 +1,30 @@
 ---
+// Fila de logos sen caixas: cada logo á mesma altura óptica; se a entidade non ten logo, móstrase o nome con tipografía coidada.
+// Sobre fondos escuros os logos van nunha placa clara común (non unha caixa por logo).
 import type { Entidade } from '../lib/esquemas';
-import Img from './Img.astro';
+import { mediaUrl } from '../lib/url';
 
 interface Props {
   entidades: Entidade[];
+  tamano?: 'pequeno' | 'normal' | 'grande';
+  escuro?: boolean;
 }
 
-// Se a entidade aínda non ten logo, móstrase o seu nome nunha tarxeta.
-const { entidades } = Astro.props;
+const { entidades, tamano = 'normal', escuro = false } = Astro.props;
 ---
 
-<ul class="logos">
+<ul class:list={['logos', `logos--${tamano}`, { escuro }]}>
   {
     entidades.map((e) => {
-      const contido = e.logo ? <Img id={e.logo} alt={e.nome} so="g" class="logo" /> : <span class="nome">{e.nome}</span>;
+      const contido = e.logo ? <img src={mediaUrl(e.logo, 'g')} alt={e.nome} loading="lazy" decoding="async" /> : <span class="nome">{e.nome}</span>;
       return (
-        <li>
+        <li title={e.nome}>
           {e.web ? (
-            <a href={e.web} rel="noopener" title={e.nome}>
+            <a href={e.web} rel="noopener">
               {contido}
             </a>
           ) : (
-            <div title={e.nome}>{contido}</div>
+            contido
           )}
         </li>
       );
@@ -30,13 +33,18 @@ const { entidades } = Astro.props;
 </ul>
 
 <style>
-  .logos { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.75rem; }
-  li > * {
-    display: grid; place-items: center; min-height: 76px; min-width: 150px; padding: 0.8rem 1.1rem;
-    background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio);
-    text-decoration: none; color: var(--texto);
+  .logos { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 1.4rem 2.6rem; }
+  .logos.escuro { background: var(--crema); padding: 1.1rem 1.6rem; border-radius: 14px; }
+  li { display: flex; align-items: center; }
+  li > a { display: flex; align-items: center; text-decoration: none; border-radius: 6px; }
+  img { height: 54px; width: auto; max-width: 210px; object-fit: contain; mix-blend-mode: multiply; transition: transform 0.2s, filter 0.2s; }
+  .logos--pequeno img { height: 40px; max-width: 160px; }
+  .logos--grande img { height: 70px; max-width: 260px; }
+  a:hover img { transform: scale(1.04); }
+  .nome {
+    font-family: var(--serif); font-weight: 700; font-size: 1.02rem; line-height: 1.15; color: var(--texto);
+    max-width: 16ch; padding-left: 0.75rem; border-left: 3px solid var(--verde-suave);
   }
-  a:hover { border-color: var(--verde); }
-  li :global(.logo) { height: 48px; width: auto; max-width: 200px; object-fit: contain; }
-  .nome { font-weight: 600; font-size: 0.9rem; text-align: center; line-height: 1.25; max-width: 18ch; }
+  .logos--pequeno .nome { font-size: 0.92rem; }
+  a:hover .nome { color: var(--verde); border-left-color: var(--verde); }
 </style>

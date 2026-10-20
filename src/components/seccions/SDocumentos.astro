@@ -1,0 +1,44 @@
+---
+import type { Seccion } from '../../lib/esquemas';
+import Envoltorio from './Envoltorio.astro';
+import { mediaUrl } from '../../lib/url';
+
+type T = Extract<Seccion, { tipo: 'documentos' }>;
+interface Props { s: T }
+const { s } = Astro.props;
+---
+
+<Envoltorio s={s} ancho="estreito">
+  <ul class="docs">
+    {
+      s.items.map((d) => {
+        const destino = d.ficheiro ? mediaUrl(d.ficheiro, 'f') : d.url;
+        const pdf = Boolean(d.ficheiro) || /\.pdf($|\?)/i.test(d.url ?? '');
+        return (
+          <li class:list={['doc', { pendente: !destino }]}>
+            <span class="doc-icona" aria-hidden="true">{pdf ? 'PDF' : destino ? '↗' : '…'}</span>
+            <div class="doc-texto">
+              {destino ? <a href={destino} rel="noopener" download={d.ficheiro ? '' : undefined}>{d.titulo}</a> : <span>{d.titulo}</span>}
+              {(d.detalle || !destino) && <small>{d.detalle ?? 'Dispoñible en breve'}</small>}
+            </div>
+            {destino && <span class="doc-accion" aria-hidden="true">{d.ficheiro ? 'Descargar' : 'Abrir'}</span>}
+          </li>
+        );
+      })
+    }
+  </ul>
+</Envoltorio>
+
+<style>
+  .docs { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.6rem; }
+  .doc { position: relative; display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.1rem; background: var(--branco); border: 1px solid var(--linha); border-radius: 14px; transition: border-color 0.2s, transform 0.2s; }
+  .doc:not(.pendente):hover { border-color: var(--verde); transform: translateX(3px); }
+  .doc-icona { flex: none; width: 46px; height: 46px; border-radius: 10px; display: grid; place-items: center; font-family: var(--mono); font-size: 0.72rem; font-weight: 700; background: var(--morado-pale); color: var(--morado); }
+  .doc-texto { flex: 1; display: grid; gap: 0.1rem; min-width: 0; }
+  .doc-texto a { font-weight: 600; color: var(--texto); text-decoration: none; }
+  .doc-texto a::after { content: ''; position: absolute; inset: 0; }
+  .doc-texto small { color: var(--texto-suave); font-size: 0.85rem; }
+  .doc-accion { font-size: 0.8rem; font-weight: 700; color: var(--verde); white-space: nowrap; }
+  .pendente { opacity: 0.75; }
+  .pendente .doc-texto span { font-weight: 600; color: var(--texto); }
+</style>

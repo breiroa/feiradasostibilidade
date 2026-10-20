@@ -1,0 +1,47 @@
+---
+import type { Seccion } from '../../lib/esquemas';
+import Envoltorio from './Envoltorio.astro';
+
+type T = Extract<Seccion, { tipo: 'cronoloxia' }>;
+interface Props { s: T }
+const { s } = Astro.props;
+const estados = { feito: 'Feito', agora: 'Agora', proximo: 'Próximo' };
+---
+
+<Envoltorio s={s} texto={s.texto}>
+  <ol class="crono">
+    {
+      s.fitos.map((f) => (
+        <li class:list={['crono-fito', `estado-${f.estado}`]}>
+          <span class="crono-punto" aria-hidden="true" />
+          <div class="crono-data">
+            {f.data}
+            {f.estado === 'agora' && <span class="crono-estado">{estados.agora}</span>}
+          </div>
+          <div class="crono-corpo">
+            <h3>{f.titulo}</h3>
+            {f.texto && <p>{f.texto}</p>}
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</Envoltorio>
+
+<style>
+  .crono { list-style: none; padding: 0; margin: 0; position: relative; }
+  .crono::before { content: ''; position: absolute; left: 11px; top: 8px; bottom: 8px; width: 2px; background: linear-gradient(var(--verde), var(--morado)); opacity: 0.35; }
+  .crono-fito { position: relative; display: grid; grid-template-columns: 13rem 1fr; gap: 0.4rem 2rem; padding: 0 0 2.2rem 3rem; }
+  .crono-fito:last-child { padding-bottom: 0; }
+  .crono-punto { position: absolute; left: 3px; top: 4px; width: 18px; height: 18px; border-radius: 50%; background: var(--branco); border: 3px solid var(--morado-suave); }
+  .estado-feito .crono-punto { background: var(--verde); border-color: var(--verde); }
+  .estado-agora .crono-punto { background: var(--morado); border-color: var(--morado); box-shadow: 0 0 0 6px rgb(100 80 140 / 0.18); }
+  .crono-data { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.04em; color: var(--verde-escuro); padding-top: 0.15rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .crono-estado { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; background: var(--morado); color: var(--branco); padding: 0.15rem 0.55rem; border-radius: 99px; }
+  .crono-corpo h3 { font-size: 1.2rem; margin-bottom: 0.35rem; }
+  .crono-corpo p { font-size: 0.97rem; }
+  :global(.fondo-escuro) .crono-data { color: var(--verde-medio); }
+  :global(.fondo-escuro) .crono-punto { background: var(--negro); }
+  :global(.fondo-escuro) .estado-feito .crono-punto { background: var(--verde-medio); border-color: var(--verde-medio); }
+  @media (max-width: 700px) { .crono-fito { grid-template-columns: 1fr; } }
+</style>

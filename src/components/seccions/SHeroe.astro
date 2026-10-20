@@ -1,0 +1,91 @@
+---
+// Portada a ancho completo: foto de fondo con degradado, título grande, botóns e cifras.
+import type { Seccion } from '../../lib/esquemas';
+import { mediaUrl } from '../../lib/url';
+import Botons from './Botons.astro';
+
+type Heroe = Extract<Seccion, { tipo: 'heroe' }>;
+interface Props {
+  s: Heroe;
+  h1?: boolean;
+}
+const { s, h1 = true } = Astro.props;
+const Titulo = h1 ? 'h1' : 'h2';
+---
+
+<section class:list={['heroe-sec', { 'con-foto': s.imaxe }]} id={s.ancla}>
+  {
+    s.imaxe && (
+      <img
+        class="heroe-foto"
+        src={mediaUrl(s.imaxe, 'g')}
+        srcset={`${mediaUrl(s.imaxe, 'm')} 640w, ${mediaUrl(s.imaxe, 'g')} 1600w`}
+        sizes="100vw"
+        alt={s.imaxeAlt ?? ''}
+        fetchpriority="high"
+        decoding="async"
+      />
+    )
+  }
+  <div class="heroe-veo" aria-hidden="true"></div>
+  <div class="contedor heroe-contido">
+    {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
+    <Titulo class="heroe-titulo">
+      {s.titulo}{s.destaque && <>{' '}<em>{s.destaque}</em></>}
+    </Titulo>
+    {s.texto && <p class="heroe-texto">{s.texto}</p>}
+    <Botons botons={s.botons} escuro />
+  </div>
+  {
+    s.cifras.length > 0 && (
+      <div class="contedor heroe-cifras-cont">
+        <dl class="heroe-cifras">
+          {s.cifras.map((c) => (
+            <div>
+              <dt>{c.etiqueta}</dt>
+              <dd>{c.valor}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    )
+  }
+</section>
+
+<style>
+  .heroe-sec {
+    position: relative; overflow: hidden; color: rgb(255 255 255 / 0.82); isolation: isolate;
+    background:
+      radial-gradient(ellipse 70% 60% at 75% 35%, rgb(60 120 60 / 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 75% at 10% 70%, rgb(100 80 140 / 0.32) 0%, transparent 55%),
+      linear-gradient(160deg, #1a2d1c 0%, #1a1428 55%, #231428 100%);
+    min-height: min(82vh, 760px); display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .heroe-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+  .heroe-veo { position: absolute; inset: 0; z-index: -1; }
+  .con-foto .heroe-veo {
+    background:
+      linear-gradient(90deg, rgb(26 20 40 / 0.92) 0%, rgb(26 20 40 / 0.72) 45%, rgb(26 20 40 / 0.25) 100%),
+      linear-gradient(0deg, rgb(26 20 40 / 0.85) 0%, transparent 45%);
+  }
+  .heroe-contido { padding-block: clamp(5rem, 14vh, 9rem) clamp(2.5rem, 6vh, 4rem); }
+  .heroe-contido .etiqueta { color: var(--verde-medio); }
+  .heroe-titulo {
+    font-family: var(--serif); font-weight: 900; color: var(--branco); line-height: 1.02;
+    font-size: clamp(2.6rem, 6.4vw, 5.6rem); max-width: 15ch; margin-bottom: 1.4rem; text-wrap: balance;
+  }
+  .heroe-titulo em { font-style: italic; color: var(--morado-claro); }
+  .heroe-texto { font-size: clamp(1.05rem, 1.5vw, 1.3rem); font-weight: 300; max-width: 50ch; color: rgb(255 255 255 / 0.85); }
+  .heroe-cifras-cont { padding-bottom: 0; }
+  .heroe-cifras {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+    border-top: 1px solid rgb(255 255 255 / 0.18); margin: 0;
+  }
+  .heroe-cifras > div { padding: 1.4rem 1.2rem 1.6rem 0; display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 0.25rem; }
+  .heroe-cifras dd { margin: 0; font-family: var(--serif); font-weight: 700; font-size: clamp(1.9rem, 3.4vw, 2.8rem); line-height: 1; color: var(--verde-medio); }
+  .heroe-cifras dt { font-size: 0.85rem; color: rgb(255 255 255 / 0.65); max-width: 22ch; }
+  @media (max-width: 700px) {
+    .heroe-sec { min-height: 0; }
+    .con-foto .heroe-veo { background: linear-gradient(0deg, rgb(26 20 40 / 0.95) 15%, rgb(26 20 40 / 0.55) 100%); }
+  }
+</style>

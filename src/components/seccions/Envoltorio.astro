@@ -1,0 +1,30 @@
+---
+// Envoltorio común das seccións: fondo, ancla e cabeceira (etiqueta + título + texto).
+import type { Seccion } from '../../lib/esquemas';
+
+interface Props {
+  s: Seccion;
+  texto?: string;
+  ancho?: 'estreito' | 'normal' | 'ancho';
+  cabeceira?: boolean;
+  aparte?: boolean; // sen padding vertical (p. ex. heroe)
+}
+
+const { s, texto, ancho = 'normal', cabeceira = true, aparte = false } = Astro.props;
+const conCabeceira = cabeceira && (s.etiqueta || s.titulo || texto);
+---
+
+<section class:list={['sec', `fondo-${s.fondo}`, `tipo-${s.tipo}`, { aparte }]} id={s.ancla}>
+  <div class:list={['contedor', ancho !== 'normal' && `contedor--${ancho}`]}>
+    {
+      conCabeceira && (
+        <header class="sec-cab">
+          {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
+          {s.titulo && <h2>{s.titulo}</h2>}
+          {texto && <p class="sec-intro">{texto}</p>}
+        </header>
+      )
+    }
+    <slot />
+  </div>
+</section>

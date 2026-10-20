@@ -1,50 +1,78 @@
 ---
+// Tarxeta de recurso ao estilo das publicacións de TIAS Lab:
+// portada sempre visible (premer abre a ficha) e botón inferior para descargar ou ver.
 import type { Recurso } from '../lib/esquemas';
-import Img from './Img.astro';
 import { tiposRecurso } from '../data/site';
-import { url } from '../lib/url';
+import { mediaUrl, url } from '../lib/url';
 
 interface Props {
   recurso: Recurso;
 }
 
 const { recurso: d } = Astro.props;
+const ficha = url(`recursos/${d.id}/`);
+const capa = d.portada ?? d.imaxe;
+const destino = d.ficheiro ? mediaUrl(d.ficheiro, 'f') : d.ligazon;
 ---
 
-<article class="tarxeta recurso" data-tipo={d.tipo}>
-  {d.imaxe && <Img id={d.imaxe} alt={d.imaxeAlt ?? ''} sizes="(max-width: 700px) 100vw, 360px" class="foto" />}
-  <div class="corpo">
-    <p class="tipo">{tiposRecurso[d.tipo]}{d.edicion && ` · Feira ${d.edicion}`}</p>
-    <h3><a href={url(`recursos/${d.id}/`)}>{d.titulo}</a></h3>
-    <p>{d.resumo}</p>
-    {d.autoria && <p class="autoria">{d.autoria}</p>}
+<article class="rec" data-tipo={d.tipo}>
+  <a class="rec-capa" href={ficha} aria-label={d.titulo}>
     {
-      (d.temas.length > 0 || d.ods.length > 0) && (
-        <ul class="chips">
-          {d.temas.map((t) => <li class="chip">{t}</li>)}
-          {d.ods.map((o) => <li class="chip chip--morado">ODS {o}</li>)}
-        </ul>
+      capa ? (
+        <img src={mediaUrl(capa, 'm')} alt="" loading="lazy" decoding="async" class:list={{ portada: Boolean(d.portada) }} />
+      ) : (
+        <span class="rec-sen-capa">
+          <span class="rec-tipo-grande">{tiposRecurso[d.tipo]}</span>
+          <span class="rec-titulo-capa">{d.titulo}</span>
+        </span>
       )
     }
-    <div class="pe">
-      <span class="ligazon-frecha">Ver ficha</span>
-      <span class="licenza">{d.licenza}</span>
-    </div>
+  </a>
+  <div class="rec-corpo">
+    <p class="rec-tipo">{tiposRecurso[d.tipo]}{d.edicion && ` · ${d.edicion}`}</p>
+    <h3><a href={ficha}>{d.titulo}</a></h3>
   </div>
+  {
+    destino ? (
+      <a class="rec-boton" href={destino} rel="noopener" download={d.ficheiro ? '' : undefined}>
+        {d.ficheiro ? 'Descargar' : 'Ver recurso'}
+      </a>
+    ) : (
+      <a class="rec-boton rec-boton--suave" href={ficha}>Ver ficha</a>
+    )
+  }
 </article>
 
 <style>
-  .recurso { height: 100%; position: relative; transition: box-shadow 0.2s; }
-  .recurso:hover { box-shadow: var(--sombra); }
+  .rec {
+    display: flex; flex-direction: column; height: 100%; background: var(--branco); border-radius: 20px; overflow: hidden;
+    box-shadow: 0 1px 2px rgb(26 20 40 / 0.05), 0 12px 30px rgb(26 20 40 / 0.08); transition: transform 0.25s, box-shadow 0.25s;
+  }
+  .rec:hover { transform: translateY(-4px); box-shadow: 0 2px 4px rgb(26 20 40 / 0.06), 0 24px 48px rgb(26 20 40 / 0.14); }
+  .rec-capa { display: block; aspect-ratio: 1 / 1.3; background: var(--crema); overflow: hidden; }
+  .rec-capa img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s; }
+  .rec-capa img.portada { object-position: top center; }
+  .rec:hover .rec-capa img { transform: scale(1.03); }
+  .rec-sen-capa {
+    height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 1.6rem;
+    background:
+      radial-gradient(ellipse 90% 70% at 85% 10%, rgb(60 120 60 / 0.35), transparent 60%),
+      radial-gradient(ellipse 80% 80% at 0% 100%, rgb(100 80 140 / 0.4), transparent 60%),
+      var(--negro);
+    color: var(--branco);
+  }
+  .rec-tipo-grande { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--verde-medio); }
+  .rec-titulo-capa { font-family: var(--serif); font-weight: 700; font-size: 1.55rem; line-height: 1.15; }
+  .rec-corpo { padding: 1.1rem 1.3rem 1.2rem; display: grid; gap: 0.35rem; }
+  .rec-tipo { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--verde); }
+  h3 { font-size: 1.08rem; line-height: 1.25; }
   h3 a { color: var(--texto); text-decoration: none; }
-  h3 a::after { content: ''; position: absolute; inset: 0; }
-  .recurso:hover h3 a { color: var(--verde); }
-  .pe .ligazon-frecha { color: var(--verde); }
-  .recurso :global(.foto) { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
-  .corpo { padding: 1.2rem 1.3rem 1.3rem; display: flex; flex-direction: column; gap: 0.65rem; flex: 1; }
-  .tipo { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--verde); }
-  .corpo > p:not(.tipo) { font-size: 0.95rem; }
-  .autoria { font-size: 0.85rem !important; color: var(--texto-suave); }
-  .pe { margin-top: auto; padding-top: 0.8rem; border-top: 1px solid var(--linha); display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; }
-  .licenza { font-family: var(--mono); font-size: 0.7rem; color: var(--texto-suave); align-self: center; }
+  h3 a:hover { color: var(--verde); }
+  .rec-boton {
+    margin-top: auto; display: block; text-align: center; padding: 0.95rem; background: var(--negro); color: var(--branco);
+    font-weight: 700; letter-spacing: 0.03em; text-decoration: none; transition: background 0.2s;
+  }
+  .rec-boton:hover { background: var(--verde); color: var(--branco); }
+  .rec-boton--suave { background: var(--crema); color: var(--texto); }
+  .rec-boton--suave:hover { background: var(--verde-pale); color: var(--verde-escuro); }
 </style>

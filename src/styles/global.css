@@ -12,6 +12,8 @@
   --negro: #1a1428;
   --negro-2: #241c36;
   --gris-pale: #f5f4f7;
+  --crema: #f7f4ee;
+  --morado-claro: #c3b5e3;
   --linha: #e0dce8;
   --texto: #1a1428;
   --texto-medio: #4a4260;
@@ -136,3 +138,24 @@ p { text-wrap: pretty; }
 }
 .filtros button[aria-pressed='true'] { background: var(--negro); border-color: var(--negro); color: var(--branco); }
 [hidden] { display: none !important; }
+
+/* ── Seccións (construtor de páxinas) ── */
+.sec { padding-block: clamp(3.8rem, 8vw, 6.5rem); }
+.fondo-claro { background: var(--crema); }
+.fondo-branco { background: var(--branco); }
+.fondo-verde { background: var(--verde-pale); }
+.fondo-morado { background: var(--morado); color: rgb(255 255 255 / 0.86); }
+.fondo-escuro { background: var(--negro); color: rgb(255 255 255 / 0.78); }
+.fondo-morado :is(h2, h3), .fondo-escuro :is(h2, h3) { color: var(--branco); }
+.fondo-morado .etiqueta { color: var(--morado-claro); }
+.fondo-escuro .etiqueta { color: var(--verde-medio); }
+.fondo-morado .boton:not(.boton--contorno) { background: var(--branco); border-color: var(--branco); color: var(--morado); }
+.fondo-morado .boton:not(.boton--contorno):hover { background: var(--morado-pale); color: var(--negro); }
+.fondo-morado a:not(.boton), .fondo-escuro a:not(.boton) { color: var(--branco); }
+/* Dúas seccións seguidas co mesmo fondo xúntanse visualmente */
+.sec.fondo-claro + .sec.fondo-claro, .sec.fondo-branco + .sec.fondo-branco, .sec.fondo-verde + .sec.fondo-verde { padding-top: 0; }
+.sec-cab { margin-bottom: clamp(2rem, 4vw, 3rem); max-width: 54rem; }
+.sec-cab h2 { margin-bottom: 0.2rem; }
+.sec-intro { font-size: clamp(1.05rem, 1.4vw, 1.2rem); margin-top: 0.9rem; max-width: 62ch; }
+.contedor--estreito { max-width: 900px; }
+.contedor--ancho { max-width: 1400px; }

@@ -1,0 +1,238 @@
+---
+// Pinta unha lista de seccións. Carga só os datos que necesitan as seccións presentes.
+import type { Seccion } from '../../lib/esquemas';
+import { axustes, edicions, mapaEntidades, noticias, paxinasLibres, proxectos, recursos, resolverEntidades } from '../../lib/datos';
+import { romano, url } from '../../lib/url';
+import Envoltorio from './Envoltorio.astro';
+import SHeroe from './SHeroe.astro';
+import STextoImaxe from './STextoImaxe.astro';
+import STarxetas from './STarxetas.astro';
+import SCronoloxia from './SCronoloxia.astro';
+import SVideo from './SVideo.astro';
+import SDocumentos from './SDocumentos.astro';
+import SActividades from './SActividades.astro';
+import StatsBar from '../StatsBar.astro';
+import Gallery from '../Gallery.astro';
+import LogoGrid from '../LogoGrid.astro';
+import Programme from '../Programme.astro';
+import NewsCard from '../NewsCard.astro';
+import EditionCard from '../EditionCard.astro';
+import ResourceCard from '../ResourceCard.astro';
+import Botons from './Botons.astro';
+
+interface Props {
+  seccions: Seccion[];
+  primeiraH1?: boolean; // a primeira portada leva o h1 da páxina
+}
+
+const { seccions, primeiraH1 = true } = Astro.props;
+const visibles = seccions.filter((s) => !s.oculta);
+const hai = (...t: Seccion['tipo'][]) => visibles.some((s) => t.includes(s.tipo));
+
+const [mapa, eds, nots, recs, proxs, libres, ax] = await Promise.all([
+  hai('logos') ? mapaEntidades() : null,
+  hai('edicions', 'edicion_actual') ? edicions() : null,
+  hai('noticias') ? noticias() : null,
+  hai('recursos') ? recursos() : null,
+  hai('actividades') ? proxectos() : null,
+  hai('subpaxinas') ? paxinasLibres() : null,
+  hai('edicion_actual') ? axustes() : null,
+]);
+const actual = eds?.find((e) => e.id === ax?.edicionActual);
+let h1Usado = !primeiraH1;
+const escuro = (s: Seccion) => s.fondo === 'escuro' || s.fondo === 'morado';
+---
+
+{
+  visibles.map((s) => {
+    switch (s.tipo) {
+      case 'heroe': {
+        const h1 = !h1Usado;
+        h1Usado = true;
+        return <SHeroe s={s} h1={h1} />;
+      }
+      case 'texto':
+        return (
+          <Envoltorio s={s} ancho={s.estreito ? 'estreito' : 'normal'}>
+            <div class="texto-longo"><Fragment set:html={s.corpo} /></div>
+          </Envoltorio>
+        );
+      case 'texto_imaxe':
+        return <STextoImaxe s={s} />;
+      case 'cifras':
+        return (
+          <Envoltorio s={s} texto={s.texto}>
+            <StatsBar cifras={s.cifras} escuro={escuro(s)} />
+          </Envoltorio>
+        );
+      case 'tarxetas':
+        return <STarxetas s={s} />;
+      case 'galeria':
+        return (
+          <Envoltorio s={s}>
+            <Gallery imaxes={s.imaxes} />
+          </Envoltorio>
+        );
+      case 'video':
+        return <SVideo s={s} />;
+      case 'logos':
+        return (
+          <Envoltorio s={s} texto={s.texto}>
+            <div class="grupos-logos">
+              {s.grupos.map((g) => {
+                const items = resolverEntidades(g.entidades, mapa!);
+                return items.length ? (
+                  <div class="grupo-logos">
+                    {s.grupos.length > 1 && <h3>{g.titulo}</h3>}
+                    <LogoGrid entidades={items} escuro={escuro(s)} />
+                  </div>
+                ) : null;
+              })}
+            </div>
+          </Envoltorio>
+        );
+      case 'programa':
+        return (
+          <Envoltorio s={s} texto={s.texto} ancho="estreito">
+            <Programme programa={s.dias} />
+          </Envoltorio>
+        );
+      case 'actividades':
+        return <SActividades s={s} proxecto={proxs?.find((p) => p.id === s.proxecto)} />;
+      case 'cronoloxia':
+        return <SCronoloxia s={s} />;
+      case 'documentos':
+        return <SDocumentos s={s} />;
+      case 'lista':
+        return (
+          <Envoltorio s={s}>
+            <ul class="lista-cols">
+              {s.items.map((i) => (
+                <li>{i}</li>
+              ))}
+            </ul>
+          </Envoltorio>
+        );
+      case 'recursos': {
+        const lista = s.recursos.length ? s.recursos.map((id) => recs!.find((r) => r.id === id)).filter(Boolean) : recs!.filter((r) => !s.edicion || r.edicion === s.edicion);
+        return lista.length ? (
+          <Envoltorio s={s} texto={s.texto}>
+            <div class="grella-recursos">{lista.map((r) => <ResourceCard recurso={r!} />)}</div>
+          </Envoltorio>
+        ) : null;
+      }
+      case 'cita':
+        return (
+          <section class:list={['sec', 'sec-cita', `fondo-${s.fondo}`]} id={s.ancla}>
+            <div class="contedor">
+              <blockquote>
+                <p>
+                  {s.texto} {s.destaque && <span>{s.destaque}</span>}
+                </p>
+                {s.autoria && <footer>— {s.autoria}</footer>}
+              </blockquote>
+            </div>
+          </section>
+        );
+      case 'chamada':
+        return (
+          <section class:list={['sec', 'sec-chamada', `fondo-${s.fondo}`]} id={s.ancla}>
+            <div class="contedor chamada">
+              <div>
+                {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
+                {s.titulo && <h2>{s.titulo}</h2>}
+                {s.texto && <p class="sec-intro">{s.texto}</p>}
+              </div>
+              <Botons botons={s.botons} escuro={escuro(s)} />
+            </div>
+          </section>
+        );
+      case 'noticias': {
+        const lista = nots!.filter((n) => !s.edicion || n.edicion === s.edicion).slice(0, s.numero);
+        return lista.length ? (
+          <Envoltorio s={s}>
+            <div class="grella">{lista.map((n) => <NewsCard noticia={n} />)}</div>
+            {!s.edicion && <p class="ver-mais"><a class="ligazon-frecha" href={url('actualidade/')}>Todas as noticias</a></p>}
+          </Envoltorio>
+        ) : null;
+      }
+      case 'edicions':
+        return (
+          <Envoltorio s={s} texto={s.texto}>
+            <div class="grella">{eds!.map((e) => <EditionCard edicion={e} />)}</div>
+          </Envoltorio>
+        );
+      case 'edicion_actual':
+        return actual ? (
+          <Envoltorio s={s} cabeceira={false}>
+            <div class="ed-actual">
+              <div>
+                <p class="etiqueta">{s.etiqueta ?? (actual.estado === 'proxima' ? 'Próxima edición' : 'Edición actual')}</p>
+                <h2>{s.titulo ?? actual.titulo}</h2>
+                {actual.lema && <p class="lema">{actual.lema}</p>}
+                <p class="datas"><strong>{actual.datas}</strong><br />{actual.lugar}</p>
+                <p>{actual.resumo}</p>
+                {actual.fitos.length > 0 && <ul class="chips">{actual.fitos.map((f) => <li class="chip">{f}</li>)}</ul>}
+                <div class="botons-ed"><a class="boton" href={url(`edicions/${actual.id}/`)}>Ver a {romano(actual.numero)} edición</a></div>
+              </div>
+              {actual.cifras.length > 0 && <StatsBar cifras={actual.cifras} />}
+            </div>
+          </Envoltorio>
+        ) : null;
+      case 'subpaxinas': {
+        const fillas = libres!.filter((p) => p.nai === s.nai);
+        return fillas.length ? (
+          <Envoltorio s={s} texto={s.texto}>
+            <ul class="subpax">
+              {fillas.map((p) => (
+                <li>
+                  <a href={url(`${s.nai}/${p.id}/`)}>
+                    <strong>{p.titulo}</strong>
+                    {p.descricion && <span>{p.descricion}</span>}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Envoltorio>
+        ) : null;
+      }
+      default:
+        return null;
+    }
+  })
+}
+
+<style>
+  .grupos-logos { display: grid; gap: 2.2rem; }
+  .grupo-logos h3 { font-family: var(--mono); font-weight: 400; font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--texto-suave); margin-bottom: 1rem; }
+  :global(.fondo-escuro) .grupo-logos h3, :global(.fondo-morado) .grupo-logos h3 { color: rgb(255 255 255 / 0.65); }
+  .lista-cols { columns: 3 230px; padding-left: 1.2em; margin: 0; }
+  .lista-cols li { break-inside: avoid; padding-block: 0.25rem; }
+  .grella-recursos { display: grid; gap: clamp(1rem, 2.4vw, 1.75rem); grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+  .sec-cita { padding-block: clamp(3rem, 7vw, 5rem); }
+  .sec-cita blockquote { margin: 0; }
+  .sec-cita p { font-family: var(--serif); font-style: italic; font-size: clamp(1.7rem, 3.6vw, 2.9rem); line-height: 1.22; color: var(--texto); max-width: 30ch; }
+  .sec-cita span { font-style: normal; color: var(--verde); }
+  .sec-cita footer { margin-top: 1rem; font-family: var(--mono); font-size: 0.8rem; color: var(--texto-suave); }
+  .sec-cita.fondo-verde { background: var(--verde); }
+  .sec-cita.fondo-verde p { color: var(--branco); }
+  .sec-cita.fondo-verde span { color: var(--negro); }
+  .sec-cita.fondo-verde footer { color: rgb(255 255 255 / 0.75); }
+  .sec-chamada { padding-block: clamp(3.5rem, 7vw, 5.5rem); }
+  .chamada { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem 3rem; }
+  .chamada > div:first-child { max-width: 46rem; }
+  .chamada :global(.botons) { margin-top: 0; }
+  .ver-mais { margin-top: 1.6rem; }
+  .ed-actual { display: grid; grid-template-columns: 1.1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+  .ed-actual h2 { margin-bottom: 0.4rem; }
+  .lema { font-family: var(--serif); font-style: italic; font-size: 1.35rem; color: var(--morado); margin-bottom: 1.2rem; }
+  .datas { margin-bottom: 1rem; color: var(--texto); }
+  .ed-actual .chips { margin-block: 1.4rem 0; }
+  .botons-ed { margin-top: 2rem; }
+  .subpax { list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+  .subpax a { display: grid; gap: 0.4rem; height: 100%; padding: 1.4rem 1.5rem; background: var(--branco); border-radius: 16px; text-decoration: none; color: var(--texto-medio); border: 1px solid var(--linha); transition: border-color 0.2s, transform 0.2s; }
+  .subpax a:hover { border-color: var(--verde); transform: translateY(-3px); }
+  .subpax strong { font-family: var(--serif); font-size: 1.25rem; color: var(--texto); }
+  .subpax strong::after { content: ' →'; color: var(--verde); }
+  @media (max-width: 860px) { .ed-actual { grid-template-columns: 1fr; } }
+</style>

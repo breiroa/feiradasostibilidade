@@ -5,7 +5,7 @@
 // DELETE {coleccion, id}         → borra (se non se usa noutro sitio)
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/datos';
-import { esquemas, type Coleccion } from '../../../lib/esquemas';
+import { esquemaInicio, esquemas, type Coleccion } from '../../../lib/esquemas';
 import { conAdmin, erro, json, lerJson, slug } from '../../../lib/panel/api';
 import { sanearHtml } from '../../../lib/panel/saneado';
 
@@ -14,6 +14,8 @@ export const prerender = false;
 const COLECCIONS = Object.keys(esquemas) as Coleccion[];
 const valida = (c: unknown): c is Coleccion => typeof c === 'string' && (COLECCIONS as string[]).includes(c);
 const ID = /^[a-z0-9-]{1,80}$/;
+// Enderezos que xa usan outras páxinas da web
+const RESERVADOS = ['inicio', 'feiralab', 'edicions', 'actualidade', 'recursos', 'participa', 'panel', 'api', 'media', 'vieja', 'a-feira', 'documentos', '404'];
 
 /** Limpa recursivamente os campos de texto enriquecido (os que se chaman corpo ou rematan en Corpo) */
 async function limparHtml(v: unknown, clave = ''): Promise<unknown> {
@@ -40,7 +42,8 @@ export const POST: APIRoute = conAdmin(async ({ request }) => {
   const c = b.coleccion;
 
   const limpos = await limparHtml(b.datos ?? {});
-  const res = esquemas[c].safeParse(limpos);
+  const esquema = c === 'paxinas' && b.id === 'inicio' ? esquemaInicio : esquemas[c];
+  const res = esquema.safeParse(limpos);
   if (!res.success) {
     return erro(res.error.issues.map((i) => `${i.path.join(' › ') || 'Datos'}: ${i.message}`), 422);
   }
@@ -53,6 +56,7 @@ export const POST: APIRoute = conAdmin(async ({ request }) => {
     else if (c === 'edicions') id = String(datos.ano);
     else if (!id) id = slug(String(datos.titulo ?? datos.nome ?? datos.nomeCurto ?? 'elemento'));
     if (!ID.test(id)) return erro('O enderezo (identificador) só pode ter letras minúsculas, números e guións.', 422);
+    if (c === 'paxinas_libres' && RESERVADOS.includes(id)) return erro(`O enderezo «${id}» está reservado para outra parte da web. Escolle outro.`, 422);
     const existe = await db().prepare('SELECT 1 FROM documentos WHERE coleccion = ? AND id = ?').bind(c, id).first();
     if (existe) {
       if (c === 'edicions') return erro(`Xa existe unha edición do ano ${id}.`, 409);
@@ -86,29 +90,39 @@ export const PATCH: APIRoute = conAdmin(async ({ request }) => {
   return json({ ok: true });
 });
 
+/** Percorre un documento (incluídas as súas seccións) e di se referencia o id */
+function referencia(v: unknown, c: Coleccion, id: string, clave = ''): boolean {
+  if (Array.isArray(v)) {
+    if ((c === 'entidades' && (clave === 'entidades' || clave === 'ecosistemaEntidades')) || (c === 'recursos' && clave === 'recursos')) {
+      if (v.includes(id)) return true;
+    }
+    return v.some((x) => referencia(x, c, id));
+  }
+  if (v && typeof v === 'object') return Object.entries(v).some(([k, x]) => referencia(x, c, id, k));
+  if (typeof v === 'string' && v === id) {
+    if (c === 'edicions' && (clave === 'edicion' || clave === 'edicionActual')) return true;
+    if (c === 'proxectos' && clave === 'proxecto') return true;
+  }
+  return false;
+}
+
 /** Onde se usa un documento (para non deixar referencias rotas) */
 async function usos(c: Coleccion, id: string): Promise<string[]> {
-  if (c !== 'entidades' && c !== 'edicions' && c !== 'proxectos') return [];
+  if (!['entidades', 'edicions', 'proxectos', 'recursos'].includes(c)) return [];
   const { results } = await db().prepare('SELECT coleccion, id, datos FROM documentos').all<{ coleccion: string; id: string; datos: string }>();
-  const onde: string[] = [];
-  for (const r of results) {
-    const d = JSON.parse(r.datos);
-    const titulo = d.titulo ?? d.nome ?? d.nomeCurto ?? r.id;
-    if (c === 'entidades') {
-      const grupos = [...(d.grupos ?? []), ...(d.pe?.grupos ?? [])];
-      const listas = [...grupos.map((g: { entidades?: string[] }) => g.entidades ?? []), d.entidades ?? [], d.ecosistemaEntidades ?? []];
-      if (listas.some((l: unknown) => Array.isArray(l) && l.includes(id))) onde.push(`${r.coleccion}: ${titulo}`);
-    }
-    if (c === 'edicions' && (d.edicion === id || d.edicionActual === id)) onde.push(`${r.coleccion}: ${titulo}`);
-    if (c === 'proxectos' && d.proxecto === id) onde.push(`${r.coleccion}: ${titulo}`);
-  }
-  return onde;
+  return results
+    .filter((r) => !(r.coleccion === c && r.id === id) && referencia(JSON.parse(r.datos), c, id))
+    .map((r) => {
+      const d = JSON.parse(r.datos);
+      return `${r.coleccion}: ${d.titulo ?? d.nome ?? d.nomeCurto ?? r.id}`;
+    });
 }
 
 export const DELETE: APIRoute = conAdmin(async ({ request }) => {
   const b = await lerJson<{ coleccion?: string; id?: string }>(request);
   if (!valida(b.coleccion) || !b.id || !ID.test(b.id)) return erro('Datos non válidos.');
   if (b.coleccion === 'axustes') return erro('Os axustes non se poden borrar.');
+  if (b.coleccion === 'paxinas_libres' && b.id === 'feiralab') return erro('A páxina principal de FeiraLab non se pode borrar (podes ocultar as súas seccións).');
   const onde = await usos(b.coleccion, b.id);
   if (onde.length) return erro([`Non se pode borrar porque se usa en:`, ...onde.slice(0, 8)], 409);
   await db().prepare('DELETE FROM documentos WHERE coleccion = ? AND id = ?').bind(b.coleccion, b.id).run();

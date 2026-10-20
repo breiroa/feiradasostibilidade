@@ -1,0 +1,50 @@
+---
+import type { Seccion } from '../../lib/esquemas';
+import Envoltorio from './Envoltorio.astro';
+import Img from '../Img.astro';
+import Botons from './Botons.astro';
+
+type T = Extract<Seccion, { tipo: 'texto_imaxe' }>;
+interface Props { s: T }
+const { s } = Astro.props;
+const escuro = s.fondo === 'escuro' || s.fondo === 'morado';
+---
+
+<Envoltorio s={s} cabeceira={false}>
+  <div class:list={['ti', `ti--${s.posicion}`, { 'sen-imaxe': !s.imaxe }]}>
+    <div class="ti-texto">
+      {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
+      {s.titulo && <h2>{s.titulo}</h2>}
+      <div class="texto-longo"><Fragment set:html={s.corpo} /></div>
+      <Botons botons={s.botons} escuro={escuro} />
+    </div>
+    {
+      s.imaxe && (
+        <figure class="ti-imaxe">
+          <Img id={s.imaxe} alt={s.imaxeAlt ?? ''} sizes="(max-width: 860px) 100vw, 46vw" />
+        </figure>
+      )
+    }
+  </div>
+</Envoltorio>
+
+<style>
+  .ti { display: grid; grid-template-columns: 1.1fr 1fr; gap: clamp(2rem, 6vw, 5.5rem); align-items: start; }
+  .ti-imaxe { position: sticky; top: 100px; }
+  .ti.sen-imaxe { grid-template-columns: 1fr; max-width: 760px; }
+  .ti--esquerda .ti-imaxe { order: -1; }
+  .ti-texto h2 { margin-bottom: 1.3rem; }
+  .ti-imaxe { margin: 0; }
+  .ti-imaxe::before {
+    content: ''; position: absolute; inset: 1.4rem -1.4rem -1.4rem 1.4rem; border-radius: 22px;
+    background: linear-gradient(135deg, var(--verde-suave), var(--morado-suave)); z-index: 0;
+  }
+  .ti--esquerda .ti-imaxe::before { inset: 1.4rem 1.4rem -1.4rem -1.4rem; }
+  .ti-imaxe :global(img) { position: relative; z-index: 1; width: 100%; aspect-ratio: 4 / 3.4; object-fit: cover; border-radius: 18px; box-shadow: 0 24px 50px rgb(26 20 40 / 0.18); }
+  @media (max-width: 860px) {
+    .ti { grid-template-columns: 1fr; }
+    .ti-imaxe { position: relative; top: 0; }
+    .ti--esquerda .ti-imaxe { order: 0; }
+    .ti-imaxe::before { inset: 0.8rem -0.6rem -0.8rem 0.8rem; }
+  }
+</style>

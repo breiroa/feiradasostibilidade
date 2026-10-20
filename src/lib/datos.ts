@@ -1,7 +1,7 @@
 // Acceso á base de datos (Cloudflare D1). Toda a web pública le os contidos desde aquí.
 // Se algún día se cambia de base de datos, só hai que tocar este ficheiro.
 import { env } from 'cloudflare:workers';
-import { esquemas, type Axustes, type Coleccion, type Edicion, type Entidade, type Noticia, type Proxecto, type Recurso } from './esquemas';
+import { esquemas, seccion, type Seccion, type Axustes, type Coleccion, type Edicion, type Entidade, type Noticia, type PaxinaLibre, type Proxecto, type Recurso } from './esquemas';
 
 export const db = (): D1Database => (env as unknown as { DB: D1Database }).DB;
 
@@ -90,4 +90,23 @@ export async function axustes(): Promise<Axustes> {
 export async function paxina<T = Record<string, unknown>>(id: string): Promise<T> {
   const p = await obter('paxinas', id);
   return (p ?? {}) as T;
+}
+
+// ── Páxinas libres (FeiraLab, subpáxinas, legais…) ──
+export const paxinasLibres = async () =>
+  ((await listar('paxinas_libres')) as unknown as PaxinaLibre[]).filter((p) => !p.borrador);
+
+export async function paxinaLibre(id: string) {
+  const p = (await obter('paxinas_libres', id)) as unknown as PaxinaLibre | null;
+  return p && !p.borrador ? p : null;
+}
+
+/** Valida unha lista de seccións unha a unha; as non válidas omítense (e avísase no rexistro) */
+export function seccionsValidas(lista: unknown): Seccion[] {
+  if (!Array.isArray(lista)) return [];
+  return lista.flatMap((x) => {
+    const r = seccion.safeParse(x);
+    if (!r.success) console.warn('Sección non válida', r.error.issues);
+    return r.success ? [r.data] : [];
+  });
 }

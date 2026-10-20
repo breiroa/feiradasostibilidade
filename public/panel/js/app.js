@@ -13,14 +13,15 @@ if (/\.workers\.dev$|^www\./.test(location.hostname)) {
 const app = document.getElementById('app');
 
 const menu = [
-  { zona: null, items: [{ ruta: '', texto: 'Inicio', icona: '⌂' }] },
+  { zona: null, items: [{ ruta: '', texto: 'Resumo', icona: '◔' }] },
   { zona: 'Contido', items: [
+    { ruta: 'paxinas', texto: 'Portada e Participa', icona: '⌂' },
     { ruta: 'edicions', texto: 'Edicións', icona: '★' },
+    { ruta: 'paxinas_libres', texto: 'Páxinas e FeiraLab', icona: '⊞' },
     { ruta: 'noticias', texto: 'Noticias', icona: '✎' },
     { ruta: 'recursos', texto: 'Recursos', icona: '◫' },
     { ruta: 'proxectos', texto: 'Proxectos', icona: '◎' },
     { ruta: 'entidades', texto: 'Entidades e logos', icona: '◇' },
-    { ruta: 'paxinas', texto: 'Textos das páxinas', icona: '¶' },
     { ruta: 'biblioteca', texto: 'Biblioteca', icona: '▦' },
   ] },
   { zona: 'Comunidade', items: [
@@ -73,6 +74,7 @@ const rutas = {
   noticias: (id) => (id ? vistaEditor(main, contidos.noticias, id) : vistaLista(main, contidos.noticias)),
   recursos: (id) => (id ? vistaEditor(main, contidos.recursos, id) : vistaLista(main, contidos.recursos)),
   proxectos: (id) => (id ? vistaEditor(main, contidos.proxectos, id) : vistaLista(main, contidos.proxectos)),
+  paxinas_libres: (id) => (id ? vistaEditor(main, contidos.paxinas_libres, id) : vistaLista(main, contidos.paxinas_libres)),
   entidades: (id) => (id ? vistaEditor(main, contidos.entidades, id) : vistaLista(main, contidos.entidades)),
   paxinas: (id) => (id ? outras.editarPaxina(main, id) : outras.listaPaxinas(main)),
   biblioteca: () => outras.biblioteca(main),
