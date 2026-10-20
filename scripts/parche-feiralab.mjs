@@ -33,12 +33,16 @@ const nova = {
     {
       etiqueta: '2025 – 2026 · Feito',
       titulo: 'Consumo de alimentos e clima',
+      imaxe: 'f-alumnado-presenta-investigacion',
+      imaxeAlt: 'Alumnado presentando os resultados da investigación cidadá',
       texto:
         'Que comemos nos fogares de Pontevedra e que pegada climática deixa? O alumnado do IES Luís Seoane fixo enquisas por todo o concello, coa Universidade de Vigo e CIDEL Galicia, e presentou os resultados no I Foro de Desenvolvemento Local.',
     },
     {
       etiqueta: '2026 – 2027 · SENDA 2030 · En marcha',
       titulo: 'Ciencia cidadá e cidadanía global',
+      imaxe: 'f-charla-auditorio',
+      imaxeAlt: 'Charla no salón de actos ante o alumnado',
       texto:
         'Pode a ciencia cidadá axudar a educar para unha cidadanía global? Estudámolo durante todo o curso, con cuestionarios ao alumnado ao comezo e ao final e valoracións do profesorado. O resultado será un informe aberto con recomendacións para os centros.',
     },
@@ -50,6 +54,27 @@ const ids = new Set(['fl-laboratorio', 'fl-investigacions']);
 const pos = d.seccions.findIndex((s) => ids.has(s.id));
 d.seccions = d.seccions.filter((s) => !ids.has(s.id));
 d.seccions.splice(pos >= 0 ? pos : d.seccions.findIndex((s) => s.tipo === 'heroe') + 1, 0, nova);
+// Fotos da Feira nas tarxetas de «Como traballamos» e «Liñas de traballo» (só se aínda non teñen)
+const fotos = {
+  'Investigar para comprender': 'f-xogo-mesa',
+  'Actuar para transformar': 'f-stand-4-ruleta',
+  'Investigar con rigor e impacto real': 'f-obradoiro-mans',
+  'Clima, enerxía e transición ecolóxica': 'f-exposicion-carteis',
+  'Consumo responsable e moda sostible': 'f-stand-15',
+  'Xustiza global e cooperación internacional': 'f-stand-sociocultural',
+  'Igualdade de xénero e diversidade': 'f-xogo-inclusivo',
+  'Territorio, barrio e identidade local': 'f-multitude-corredor',
+  'Saúde, benestar e alimentación sostible': 'f-obradoiro-cocina',
+};
+const alts = JSON.parse(wr(`--json --command "SELECT id, alt FROM media WHERE id LIKE 'f-%'"`))[0].results;
+for (const sec of d.seccions)
+  if (sec.tipo === 'tarxetas' && sec.id !== 'fl-laboratorio')
+    for (const it of sec.items ?? [])
+      if (!it.imaxe && fotos[it.titulo]) {
+        it.imaxe = fotos[it.titulo];
+        it.imaxeAlt = alts.find((a) => a.id === it.imaxe)?.alt ?? '';
+      }
+
 d.descricion = 'A Feira da Sostibilidade como laboratorio: investigación, acción e cidadanía crítica para avanzar fronte aos retos ecosociais.';
 
 const fsql = path.join(RAIZ, 'semente', 'parche-feiralab.sql');
