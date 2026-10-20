@@ -13,7 +13,7 @@ const { s, h1 = true } = Astro.props;
 const Titulo = h1 ? 'h1' : 'h2';
 ---
 
-<section class:list={['heroe-sec', { 'con-foto': s.imaxe }]} id={s.ancla}>
+<section class:list={['heroe-sec', { 'con-foto': s.imaxe }]} id={s.ancla} data-sec={s.id}>
   {
     s.imaxe && (
       <img

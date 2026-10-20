@@ -1,9 +1,12 @@
 // Arranque do panel: comproba o acceso, debuxa a estrutura e xestiona a navegación (#/sección/elemento).
-import { api, aviso, el, estado } from './nucleo.js';
+import { api, aviso, coleccion, el, estado } from './nucleo.js';
 import { pantallaActivar2fa, pantallaCodigo, pantallaConfiguracion, pantallaConvite, pantallaEntrar } from './acceso.js';
 import { sucio, vistaEditor, vistaLista } from './coleccions.js';
 import * as contidos from './contidos.js';
 import * as outras from './outras.js';
+import { paxinas } from './paxinas.js';
+import { editorVista } from './editor-vista.js';
+
 
 // O panel úsase só no dominio principal (as sesións son por dominio)
 if (/\.workers\.dev$|^www\./.test(location.hostname)) {
@@ -15,9 +18,8 @@ const app = document.getElementById('app');
 const menu = [
   { zona: null, items: [{ ruta: '', texto: 'Resumo', icona: '◔' }] },
   { zona: 'Contido', items: [
-    { ruta: 'paxinas', texto: 'Portada e Participa', icona: '⌂' },
+    { ruta: 'paxinas', texto: 'Páxinas', icona: '⊞' },
     { ruta: 'edicions', texto: 'Edicións', icona: '★' },
-    { ruta: 'paxinas_libres', texto: 'Páxinas e FeiraLab', icona: '⊞' },
     { ruta: 'noticias', texto: 'Noticias', icona: '✎' },
     { ruta: 'recursos', texto: 'Recursos', icona: '◫' },
     { ruta: 'proxectos', texto: 'Proxectos', icona: '◎' },
@@ -70,19 +72,41 @@ async function actualizarContador() {
 
 const rutas = {
   '': () => outras.inicio(main),
-  edicions: (id) => (id ? vistaEditor(main, contidos.edicions, id) : vistaLista(main, contidos.edicions)),
+  edicions: (id) => (id ? editarEdicion(id) : vistaLista(main, contidos.edicions)),
   noticias: (id) => (id ? vistaEditor(main, contidos.noticias, id) : vistaLista(main, contidos.noticias)),
   recursos: (id) => (id ? vistaEditor(main, contidos.recursos, id) : vistaLista(main, contidos.recursos)),
   proxectos: (id) => (id ? vistaEditor(main, contidos.proxectos, id) : vistaLista(main, contidos.proxectos)),
-  paxinas_libres: (id) => (id ? vistaEditor(main, contidos.paxinas_libres, id) : vistaLista(main, contidos.paxinas_libres)),
+  paxinas_libres: (id) => { location.replace(`#/paxinas${id && id !== 'novo' ? `/${id}` : ''}`); },
   entidades: (id) => (id ? vistaEditor(main, contidos.entidades, id) : vistaLista(main, contidos.entidades)),
-  paxinas: (id) => (id ? outras.editarPaxina(main, id) : outras.listaPaxinas(main)),
+  paxinas: (id) => paxinas(main, id),
   biblioteca: () => outras.biblioteca(main),
   inscricions: async () => { await outras.inscricions(main); await actualizarContador(); },
   admins: () => outras.admins(main),
   axustes: () => outras.axustes(main),
   conta: () => outras.conta(main, { aoRestablecer2fa: () => pantallaActivar2fa(aoAcceder) }),
 };
+
+/** Edición: o mesmo editor con vista previa que as páxinas */
+async function editarEdicion(id) {
+  const cfg = contidos.edicions;
+  let d, item;
+  if (id === 'novo') d = cfg.novo();
+  else {
+    item = (await coleccion('edicions', { forzar: true })).find((x) => x.id === id);
+    if (!item) { main.replaceChildren(el('a', { class: 'volver', href: '#/edicions' }, '← Edicións'), el('div', { class: 'baleiro' }, 'Non se atopou esta edición.')); return; }
+    d = structuredClone(item.datos);
+  }
+  editorVista(main, {
+    coleccion: 'edicions', id, d, item,
+    titulo: (x) => x.titulo,
+    volver: ['#/edicions', 'Edicións'],
+    verNaWeb: cfg.verNaWeb,
+    axustes: (x, o) => cfg.axustes(x, o),
+    axustesAbertos: id === 'novo',
+    etiquetaAxustes: 'Datos da edición (título, datas, portada, cifras)',
+    aoCrear: (nid) => `#/edicions/${nid}`,
+  });
+}
 
 let rutaActual = null;
 async function navegar() {
@@ -96,6 +120,7 @@ async function navegar() {
   rutaActual = ruta;
   const [seccion, id] = ruta.split('/');
   pintarMenu(ruta);
+  main.className = 'main';
   main.replaceChildren(el('p', { class: 'muted' }, 'Cargando…'));
   try {
     await (rutas[seccion] ?? rutas[''])(id);

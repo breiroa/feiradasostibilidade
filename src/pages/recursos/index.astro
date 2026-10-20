@@ -1,55 +1,8 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Hero from '../../components/Hero.astro';
-import ResourceCard from '../../components/ResourceCard.astro';
-import { recursos } from '../../lib/datos';
-import { tiposRecurso } from '../../data/site';
+import PaxinaLibre from '../../components/PaxinaLibre.astro';
+import { paxinaSistema, conListado } from '../../lib/datos';
 
-const lista = await recursos();
-const tipos = [...new Set(lista.map((r) => r.tipo))];
+const p = conListado(await paxinaSistema('recursos'), 'recursos');
 ---
 
-<Base titulo="Recursos" descricion="Xogos, podcasts, estudos e materiais creados polo alumnado e o profesorado da Feira da Sostibilidade, en aberto.">
-  <Hero etiqueta="Recursos e produción" compacto>
-    <h1>O alumnado crea <em>para compartir.</em></h1>
-    <p class="entrada">Xogos educativos, podcasts, investigacións de ciencia cidadá e materiais didácticos dispoñibles para outros centros e docentes.</p>
-  </Hero>
-
-  <section class="seccion">
-    <div class="contedor">
-      {
-        tipos.length > 1 && (
-          <div class="filtros" role="group" aria-label="Filtrar por tipo">
-            <button type="button" data-filtro="todos" aria-pressed="true">Todos</button>
-            {tipos.map((t) => <button type="button" data-filtro={t} aria-pressed="false">{tiposRecurso[t]}</button>)}
-          </div>
-        )
-      }
-      <div class="grella-rec" id="lista">
-        {
-          lista.map((r) => (
-            <div data-tipo={r.tipo}>
-              <ResourceCard recurso={r} />
-            </div>
-          ))
-        }
-      </div>
-    </div>
-  </section>
-</Base>
-
-<script>
-  const botons = document.querySelectorAll<HTMLButtonElement>('[data-filtro]');
-  const items = document.querySelectorAll<HTMLElement>('#lista > [data-tipo]');
-  botons.forEach((b) =>
-    b.addEventListener('click', () => {
-      const f = b.dataset.filtro;
-      botons.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-      items.forEach((i) => (i.hidden = f !== 'todos' && i.dataset.tipo !== f));
-    }),
-  );
-</script>
-
-<style>
-  .grella-rec { display: grid; gap: clamp(1.1rem, 2.6vw, 1.9rem); grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
-</style>
+<PaxinaLibre p={p} />

@@ -156,6 +156,14 @@ export function dataCurta(s) {
   return `${d} ${meses[m - 1]} ${a}`;
 }
 
+/** Data e hora local dunha marca de tempo do servidor (UTC, "2026-10-20 19:09:12") → "20 out 2026 · 21:09" */
+export function dataHora(s) {
+  if (!s) return '';
+  const d = new Date(`${s.replace(' ', 'T')}Z`);
+  if (Number.isNaN(d.getTime())) return dataCurta(s);
+  return `${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()} · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 export const mediaUrl = (id, v = 'g') => `/media/${id}/${v}`;
 
 /** Copia texto ao portapapeis */

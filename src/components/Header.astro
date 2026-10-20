@@ -1,15 +1,17 @@
 ---
 import type { Edicion } from '../lib/esquemas';
-import { nav } from '../data/site';
+import type { ItemNav } from '../lib/navegacion';
 import { url } from '../lib/url';
 
 interface Props {
   edicions: Edicion[];
+  menu: ItemNav[];
 }
 
-const { edicions } = Astro.props;
+const { edicions, menu } = Astro.props;
 const ruta = Astro.url.pathname.replace(/\/?$/, '/');
-const activa = (href: string) => (href === '' ? ruta === url() : ruta.startsWith(url(href)));
+const interna = (href: string) => href.startsWith('/') && !href.startsWith('//');
+const activa = (href: string) => interna(href) && (href === '/' ? ruta === '/' : ruta.startsWith(href.split(/[?#]/)[0]));
 ---
 
 <header class="cabeceira">
@@ -27,8 +29,8 @@ const activa = (href: string) => (href === '' ? ruta === url() : ruta.startsWith
     <nav id="menu-principal" class="menu" aria-label="Principal">
       <ul class="nivel1">
         {
-          nav.map((item) =>
-            item.despregable ? (
+          menu.map((item, n) =>
+            item.edicions ? (
               <li class="con-submenu">
                 <button type="button" class="submenu-boton" aria-expanded="false" aria-controls="submenu-edicions" aria-current={activa(item.href) ? 'page' : undefined}>
                   {item.texto}
@@ -47,9 +49,26 @@ const activa = (href: string) => (href === '' ? ruta === url() : ruta.startsWith
                   </li>
                 </ul>
               </li>
+            ) : item.fillos.length ? (
+              <li class="con-submenu">
+                <button type="button" class="submenu-boton" aria-expanded="false" aria-controls={`submenu-${n}`} aria-current={activa(item.href) || item.fillos.some((f) => activa(f.href)) ? 'page' : undefined}>
+                  {item.texto}
+                  <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10"><path d="M1 3l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+                </button>
+                <ul id={`submenu-${n}`} class="submenu submenu--texto">
+                  {item.fillos.map((f) => (
+                    <li>
+                      <a href={f.href} aria-current={activa(f.href) ? 'page' : undefined}>{f.texto}</a>
+                    </li>
+                  ))}
+                  <li class="todas">
+                    <a href={item.href}>{item.texto} →</a>
+                  </li>
+                </ul>
+              </li>
             ) : (
               <li>
-                <a href={url(item.href)} aria-current={activa(item.href) ? 'page' : undefined}>
+                <a href={item.href} aria-current={activa(item.href) ? 'page' : undefined}>
                   {item.texto}
                 </a>
               </li>
@@ -70,26 +89,30 @@ const activa = (href: string) => (href === '' ? ruta === url() : ruta.startsWith
     menu?.classList.toggle('aberto', !aberto);
   });
 
-  // Despregable de Edicións: clic/teclado (Escape pecha), e pechar ao premer fóra
-  const sub = document.querySelector<HTMLButtonElement>('.submenu-boton');
-  const li = sub?.closest('li');
-  const pechar = () => {
-    sub?.setAttribute('aria-expanded', 'false');
-    li?.classList.remove('aberto');
+  // Despregables (Edicións e páxinas con subpáxinas): clic/teclado (Escape pecha), e pechar ao premer fóra
+  const subs = [...document.querySelectorAll<HTMLButtonElement>('.submenu-boton')];
+  const pechar = (sub: HTMLButtonElement) => {
+    sub.setAttribute('aria-expanded', 'false');
+    sub.closest('li')?.classList.remove('aberto');
   };
-  sub?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const aberto = sub.getAttribute('aria-expanded') === 'true';
-    sub.setAttribute('aria-expanded', String(!aberto));
-    li?.classList.toggle('aberto', !aberto);
-  });
+  subs.forEach((sub) =>
+    sub.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const aberto = sub.getAttribute('aria-expanded') === 'true';
+      subs.filter((x) => x !== sub).forEach(pechar);
+      sub.setAttribute('aria-expanded', String(!aberto));
+      sub.closest('li')?.classList.toggle('aberto', !aberto);
+    }),
+  );
   document.addEventListener('click', (e) => {
-    if (li && !li.contains(e.target as Node)) pechar();
+    subs.forEach((sub) => { if (!sub.closest('li')?.contains(e.target as Node)) pechar(sub); });
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && li?.classList.contains('aberto')) {
-      pechar();
-      sub?.focus();
+    if (e.key !== 'Escape') return;
+    const aberto = subs.find((s) => s.getAttribute('aria-expanded') === 'true');
+    if (aberto) {
+      pechar(aberto);
+      aberto.focus();
     }
   });
 </script>
@@ -132,6 +155,8 @@ const activa = (href: string) => (href === '' ? ruta === url() : ruta.startsWith
   .submenu a:hover, .submenu a[aria-current='page'] { background: var(--verde-pale); color: var(--verde-escuro); }
   .submenu .todas { border-top: 1px solid var(--linha); margin-top: 0.35rem; padding-top: 0.35rem; }
   .submenu .todas a { font-family: var(--sans); font-weight: 600; font-size: 0.9rem; color: var(--verde); }
+  .submenu--texto { min-width: 230px; }
+  .submenu--texto a { font-size: 1rem; }
 
   .menu-boton { display: none; }
 

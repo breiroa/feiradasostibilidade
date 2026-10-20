@@ -1,0 +1,150 @@
+{
+  "inicio": {
+    "titulo": "Inicio",
+    "nai": "",
+    "borrador": false,
+    "seccions": []
+  },
+  "feiralab": {
+    "titulo": "FeiraLab",
+    "nai": "",
+    "borrador": false,
+    "seccions": []
+  },
+  "participa": {
+    "titulo": "Participa",
+    "descricion": "Como participar na Feira da Sostibilidade: centros educativos, entidades, empresas, administracións e medios.",
+    "nai": "",
+    "borrador": false,
+    "cabeceira": {
+      "etiqueta": "Participa",
+      "titulo": "Non veñas só mirar.",
+      "destaque": "Participa.",
+      "texto": "A Feira constrúese entre moitas mans. Se queres participar, colaborar ou só saber máis, escríbenos.",
+      "datas": [
+        {
+          "data": "Xa",
+          "texto": "Inscricións abertas para centros e entidades"
+        },
+        {
+          "data": "28–30 abril 2027",
+          "texto": "V Feira da Sostibilidade no IES Luís Seoane (Pontevedra)"
+        }
+      ]
+    },
+    "seccions": [
+      {
+        "id": "perfis",
+        "tipo": "tarxetas",
+        "oculta": false,
+        "fondo": "claro",
+        "columnas": 4,
+        "numerar": false,
+        "items": [
+          {
+            "titulo": "Centros educativos",
+            "texto": "Trae á Feira o que investigou e creou o teu alumnado.",
+            "url": "/participa/?tipo=centro#formulario",
+            "boton": "Inscribir o centro"
+          },
+          {
+            "titulo": "Entidades e colectivos",
+            "texto": "Comparte as túas propostas cun stand, un obradoiro ou unha charla.",
+            "url": "/participa/?tipo=entidade#formulario",
+            "boton": "Propoñer participación"
+          },
+          {
+            "titulo": "Empresas e administracións",
+            "texto": "Colabora con experiencias, recursos ou espazos de diálogo.",
+            "url": "/participa/?tipo=entidade#formulario",
+            "boton": "Ofrecer colaboración"
+          },
+          {
+            "titulo": "Prensa e medios",
+            "texto": "Información, imaxes e entrevistas sobre a Feira.",
+            "url": "/participa/?tipo=prensa#formulario",
+            "boton": "Contactar"
+          }
+        ]
+      },
+      {
+        "id": "formulario",
+        "tipo": "formulario",
+        "oculta": false,
+        "fondo": "branco",
+        "ancla": "formulario",
+        "etiqueta": "Escríbenos",
+        "titulo": "Cóntanos que tes en mente.",
+        "texto": "Para participar ou simplemente preguntar: enche estes poucos campos e respondémosche axiña.",
+        "graciasTitulo": "Grazas! Recibimos a túa mensaxe.",
+        "graciasTexto": "Porémonos en contacto contigo nos próximos días."
+      }
+    ]
+  },
+  "actualidade": {
+    "titulo": "Actualidade",
+    "descricion": "Noticias e crónicas da Feira da Sostibilidade e dos proxectos que a acompañan.",
+    "nai": "",
+    "borrador": false,
+    "cabeceira": {
+      "etiqueta": "Actualidade",
+      "titulo": "O proceso",
+      "destaque": "en directo.",
+      "texto": "Noticias, crónicas e reflexións do que acontece arredor da Feira ao longo do curso.",
+      "datas": []
+    },
+    "seccions": [
+      {
+        "id": "listado",
+        "tipo": "listado",
+        "oculta": false,
+        "fondo": "claro",
+        "de": "noticias"
+      }
+    ]
+  },
+  "recursos": {
+    "titulo": "Recursos",
+    "descricion": "Xogos, podcasts, estudos e materiais creados polo alumnado e o profesorado da Feira da Sostibilidade, en aberto.",
+    "nai": "",
+    "borrador": false,
+    "cabeceira": {
+      "etiqueta": "Recursos e produción",
+      "titulo": "O alumnado crea",
+      "destaque": "para compartir.",
+      "texto": "Xogos educativos, podcasts, investigacións de ciencia cidadá e materiais didácticos dispoñibles para outros centros e docentes.",
+      "datas": []
+    },
+    "seccions": [
+      {
+        "id": "listado",
+        "tipo": "listado",
+        "oculta": false,
+        "fondo": "claro",
+        "de": "recursos"
+      }
+    ]
+  },
+  "edicions": {
+    "titulo": "Edicións",
+    "descricion": "Todas as edicións da Feira da Sostibilidade do IES Luís Seoane.",
+    "nai": "",
+    "borrador": false,
+    "cabeceira": {
+      "etiqueta": "As edicións",
+      "titulo": "Unha Feira cada abril.",
+      "destaque": "Un laboratorio que medra.",
+      "texto": "Cada edición suma coñecemento, amplía a rede e deixa materiais, memorias e aprendizaxes para a seguinte.",
+      "datas": []
+    },
+    "seccions": [
+      {
+        "id": "listado",
+        "tipo": "listado",
+        "oculta": false,
+        "fondo": "claro",
+        "de": "edicions"
+      }
+    ]
+  }
+}

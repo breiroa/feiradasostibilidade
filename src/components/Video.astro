@@ -1,0 +1,50 @@
+---
+// Vídeo de YouTube ou Vimeo. Non se carga nada de terceiros (nin cookies) ata premer en «Ver vídeo».
+interface Props { url: string }
+const { url } = Astro.props;
+
+function incrustar(u: string): string | null {
+  const yt = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/);
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}?autoplay=1&rel=0`;
+  const vi = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vi) return `https://player.vimeo.com/video/${vi[1]}?autoplay=1&dnt=1`;
+  return null;
+}
+const src = incrustar(url);
+---
+
+{
+  src ? (
+    <div class="video" data-src={src}>
+      <button type="button" class="video-play">
+        <span class="video-icona" aria-hidden="true">▶</span>
+        <span>Ver vídeo</span>
+        <small>Ao premer cárgase o reprodutor de {src.includes('vimeo') ? 'Vimeo' : 'YouTube'}</small>
+      </button>
+    </div>
+  ) : (
+    <p><a class="ligazon-frecha" href={url} rel="noopener">Ver o vídeo</a></p>
+  )
+}
+
+<script>
+  document.querySelectorAll<HTMLElement>('.video[data-src]').forEach((v) => {
+    v.querySelector('button')?.addEventListener('click', () => {
+      const f = document.createElement('iframe');
+      f.src = v.dataset.src!;
+      f.title = 'Vídeo';
+      f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      f.allowFullscreen = true;
+      v.replaceChildren(f);
+    });
+  });
+</script>
+
+<style>
+  .video { position: relative; aspect-ratio: 16 / 9; border-radius: 18px; overflow: hidden; background: linear-gradient(135deg, var(--negro), #2c2147); }
+  .video :global(iframe) { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .video-play { position: absolute; inset: 0; width: 100%; border: 0; background: none; color: var(--branco); cursor: pointer; display: grid; place-content: center; justify-items: center; gap: 0.6rem; font: inherit; font-weight: 600; }
+  .video-icona { width: 76px; height: 76px; border-radius: 50%; background: var(--verde); display: grid; place-items: center; font-size: 1.6rem; padding-left: 6px; transition: transform 0.2s; }
+  .video-play:hover .video-icona { transform: scale(1.08); }
+  .video-play small { font-weight: 400; opacity: 0.6; font-size: 0.8rem; }
+</style>

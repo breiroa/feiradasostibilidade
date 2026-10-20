@@ -19,6 +19,12 @@ import NewsCard from '../NewsCard.astro';
 import EditionCard from '../EditionCard.astro';
 import ResourceCard from '../ResourceCard.astro';
 import Botons from './Botons.astro';
+import SFormulario from './SFormulario.astro';
+import SListado from './SListado.astro';
+import SColumnas from './SColumnas.astro';
+import SAcordeon from './SAcordeon.astro';
+import SImaxe from './SImaxe.astro';
+import { clasesDeseno, escuroDe, estiloDeseno, fondoDe } from '../../lib/deseno';
 
 interface Props {
   seccions: Seccion[];
@@ -40,7 +46,7 @@ const [mapa, eds, nots, recs, proxs, libres, ax] = await Promise.all([
 ]);
 const actual = eds?.find((e) => e.id === ax?.edicionActual);
 let h1Usado = !primeiraH1;
-const escuro = (s: Seccion) => s.fondo === 'escuro' || s.fondo === 'morado';
+const escuro = escuroDe;
 ---
 
 {
@@ -123,7 +129,7 @@ const escuro = (s: Seccion) => s.fondo === 'escuro' || s.fondo === 'morado';
       }
       case 'cita':
         return (
-          <section class:list={['sec', 'sec-cita', `fondo-${s.fondo}`]} id={s.ancla}>
+          <section class:list={['sec', 'sec-cita', `fondo-${fondoDe(s)}`, ...clasesDeseno(s)]} id={s.ancla} data-sec={s.id} style={estiloDeseno(s)}>
             <div class="contedor">
               <blockquote>
                 <p>
@@ -136,7 +142,7 @@ const escuro = (s: Seccion) => s.fondo === 'escuro' || s.fondo === 'morado';
         );
       case 'chamada':
         return (
-          <section class:list={['sec', 'sec-chamada', `fondo-${s.fondo}`]} id={s.ancla}>
+          <section class:list={['sec', 'sec-chamada', `fondo-${fondoDe(s)}`, ...clasesDeseno(s)]} id={s.ancla} data-sec={s.id} style={estiloDeseno(s)}>
             <div class="contedor chamada">
               <div>
                 {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
@@ -196,6 +202,16 @@ const escuro = (s: Seccion) => s.fondo === 'escuro' || s.fondo === 'morado';
           </Envoltorio>
         ) : null;
       }
+      case 'formulario':
+        return <SFormulario s={s} />;
+      case 'listado':
+        return <SListado s={s} />;
+      case 'columnas':
+        return <SColumnas s={s} />;
+      case 'acordeon':
+        return <SAcordeon s={s} />;
+      case 'imaxe':
+        return <SImaxe s={s} />;
       default:
         return null;
     }

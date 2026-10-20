@@ -1,10 +1,13 @@
 ---
-// Páxinas libres soltas (/enderezo/): aviso legal, privacidade, cookies, outras creadas no panel.
+// Páxinas soltas (/enderezo/): FeiraLab, legais e as creadas no panel.
 import PaxinaLibre from '../components/PaxinaLibre.astro';
 import { paxinaLibre } from '../lib/datos';
+import { PAXINAS_SISTEMA } from '../lib/esquemas';
 
 const id = Astro.params.slug ?? '';
-const p = id === 'feiralab' ? null : await paxinaLibre(id);
+// As páxinas fixas teñen a súa propia ruta (/, /participa/…); feiralab sérvese aquí
+const fixa = (PAXINAS_SISTEMA as readonly string[]).includes(id) && id !== 'feiralab';
+const p = fixa ? null : await paxinaLibre(id);
 if (!p || p.nai !== '') return new Response(null, { status: 404 });
 ---
 

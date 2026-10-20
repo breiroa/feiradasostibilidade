@@ -8,6 +8,7 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { axustes, edicions, mapaEntidades } from '../lib/datos';
+import { navegacion } from '../lib/navegacion';
 import { url, mediaUrl } from '../lib/url';
 
 interface Props {
@@ -16,7 +17,7 @@ interface Props {
   imaxe?: string; // id de media para compartir en redes
 }
 
-const [ax, eds, mapa] = await Promise.all([axustes(), edicions(), mapaEntidades()]);
+const [ax, eds, mapa, nv] = await Promise.all([axustes(), edicions(), mapaEntidades(), navegacion()]);
 const { titulo, descricion = ax.descricion, imaxe } = Astro.props;
 const tituloCompleto = titulo ? `${titulo} · ${ax.nome}` : `${ax.nome} · ${ax.lema}`;
 const canonica = new URL(Astro.url.pathname, Astro.url.origin);
@@ -42,10 +43,10 @@ const imaxeSocial = imaxe ? new URL(mediaUrl(imaxe, 'g'), Astro.url.origin).href
   </head>
   <body>
     <a class="saltar" href="#contido">Saltar ao contido</a>
-    <Header edicions={eds} />
+    <Header edicions={eds} menu={nv.menu} />
     <main id="contido">
       <slot />
     </main>
-    <Footer axustes={ax} mapa={mapa} />
+    <Footer axustes={ax} mapa={mapa} navegacion={nv.pe} legais={nv.legais} />
   </body>
 </html>

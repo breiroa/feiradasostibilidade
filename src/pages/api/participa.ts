@@ -10,13 +10,18 @@ const LIMITE = 5; // envíos por IP
 const VENTA = 10 * 60; // en 10 minutos
 
 export const POST: APIRoute = async ({ request, redirect, clientAddress }) => {
-  const volver = (q: string) => redirect(`/participa/?${q}#formulario`, 303);
-  let entrada: Record<string, string>;
+  let entrada: Record<string, string> = {};
   try {
     entrada = Object.fromEntries([...(await request.formData()).entries()].map(([k, v]) => [k, String(v)]));
   } catch {
-    return volver('erro=datos');
+    entrada = {};
   }
+  // Volve á páxina onde estaba o formulario (só rutas internas)
+  const destino = /^\/[a-z0-9/-]*(#[a-z0-9-]+)?$/.test(entrada.volver ?? '') ? entrada.volver : '/participa/#formulario';
+  const [ruta, ancla = 'formulario'] = destino.split('#');
+  delete entrada.volver;
+  const volver = (q: string) => redirect(`${ruta}?${q}#${ancla}`, 303);
+  if (!Object.keys(entrada).length) return volver('erro=datos');
 
   // Campo trampa: as persoas non o ven; os robots enchérono
   if (entrada.web_alternativa) return volver('enviado=1');

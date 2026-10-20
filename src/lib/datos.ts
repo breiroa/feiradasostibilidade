@@ -1,6 +1,7 @@
 // Acceso á base de datos (Cloudflare D1). Toda a web pública le os contidos desde aquí.
 // Se algún día se cambia de base de datos, só hai que tocar este ficheiro.
 import { env } from 'cloudflare:workers';
+import { paxinasPorDefecto } from './paxinas-sistema';
 import { esquemas, seccion, type Seccion, type Axustes, type Coleccion, type Edicion, type Entidade, type Noticia, type PaxinaLibre, type Proxecto, type Recurso } from './esquemas';
 
 export const db = (): D1Database => (env as unknown as { DB: D1Database }).DB;
@@ -13,7 +14,10 @@ interface Fila {
 
 /** Le e valida un documento. Se non é válido devolve null (e avisa no rexistro) para non romper a páxina. */
 function parse<C extends Coleccion>(coleccion: C, fila: Fila) {
-  const res = esquemas[coleccion].safeParse(JSON.parse(fila.datos));
+  const datos = JSON.parse(fila.datos);
+  // Unha sección mal formada omítese, pero non tumba a páxina enteira
+  if (datos && Array.isArray(datos.seccions)) datos.seccions = seccionsValidas(datos.seccions);
+  const res = esquemas[coleccion].safeParse(datos);
   if (!res.success) {
     console.warn(`Documento non válido ${coleccion}/${fila.id}`, res.error.issues);
     return null;
@@ -113,6 +117,18 @@ export const paxinasLibres = async () =>
 export async function paxinaLibre(id: string) {
   const p = (await obter('paxinas_libres', id)) as unknown as PaxinaLibre | null;
   return p && !p.borrador ? p : null;
+}
+
+/** Páxina fixa (inicio, participa, actualidade…): o documento do panel ou, se aínda non existe, o contido por defecto */
+export async function paxinaSistema(id: keyof typeof paxinasPorDefecto) {
+  const p = (await obter('paxinas_libres', id)) as unknown as PaxinaLibre | null;
+  return p ?? { ...paxinasPorDefecto[id], id };
+}
+
+/** As páxinas de listado (Actualidade, Recursos, Edicións) sempre levan o seu listado: se se borrou, engádese ao final */
+export function conListado(p: PaxinaLibre, de: 'noticias' | 'recursos' | 'edicions'): PaxinaLibre {
+  if (p.seccions.some((s) => s.tipo === 'listado' && s.de === de)) return p;
+  return { ...p, seccions: [...p.seccions, { id: 'listado', tipo: 'listado', oculta: false, fondo: 'claro', de }] };
 }
 
 /** Valida unha lista de seccións unha a unha; as non válidas omítense (e avísase no rexistro) */

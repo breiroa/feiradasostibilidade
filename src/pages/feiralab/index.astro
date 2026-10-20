@@ -1,9 +1,0 @@
----
-import PaxinaLibre from '../../components/PaxinaLibre.astro';
-import { paxinaLibre } from '../../lib/datos';
-
-const p = await paxinaLibre('feiralab');
-if (!p) return new Response(null, { status: 404 });
----
-
-<PaxinaLibre p={p} />

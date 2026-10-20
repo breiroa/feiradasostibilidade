@@ -49,6 +49,9 @@ export function marca(d, clave, etiqueta, { axuda } = {}) {
 /** Fieldset con título e axuda opcional */
 export const bloque = (titulo, axuda, ...fillos) => el('fieldset', {}, el('legend', {}, titulo), axuda ? el('p', { class: 'axuda-bloque' }, axuda) : null, ...fillos);
 
+/** Avisa ao formulario dun cambio feito con botóns (para marcar «sen gardar» e actualizar a vista previa) */
+const avisar = (nodo) => nodo.dispatchEvent(new Event('input', { bubbles: true }));
+
 // ── Chips arrastrables (para listas de textos e de entidades) ──
 function chipsOrdenables(cont, lista, pintar) {
   let orixe = null;
@@ -63,6 +66,7 @@ function chipsOrdenables(cont, lista, pintar) {
       const [x] = lista.splice(orixe, 1);
       lista.splice(i, 0, x);
       pintar();
+      avisar(cont);
     });
   });
 }
@@ -75,15 +79,15 @@ export function listaTextos(d, clave, etiqueta, { axuda, placeholder = 'Escribe 
   const entrada = el('input', { type: 'text', placeholder });
   const engadir = () => {
     const v = entrada.value.trim();
-    if (v) { lista.push(v); entrada.value = ''; pintar(); entrada.focus(); }
+    if (v) { lista.push(v); entrada.value = ''; pintar(); avisar(cont); entrada.focus(); }
   };
   entrada.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); engadir(); }
-    if (e.key === 'Backspace' && !entrada.value && lista.length) { lista.pop(); pintar(); entrada.focus(); }
+    if (e.key === 'Backspace' && !entrada.value && lista.length) { lista.pop(); pintar(); avisar(cont); entrada.focus(); }
   });
   entrada.addEventListener('blur', engadir);
   function pintar() {
-    cont.replaceChildren(...lista.map((t, i) => el('span', { class: 'chip' }, t, el('button', { type: 'button', title: 'Quitar', onclick: () => { lista.splice(i, 1); pintar(); } }, '×'))), entrada);
+    cont.replaceChildren(...lista.map((t, i) => el('span', { class: 'chip' }, t, el('button', { type: 'button', title: 'Quitar', onclick: () => { lista.splice(i, 1); pintar(); avisar(cont); } }, '×'))), entrada);
     chipsOrdenables(cont, lista, pintar);
   }
   pintar();
@@ -101,7 +105,7 @@ export function refs(d, clave, etiqueta, { colec, nomeDe = (x) => x.datos.nome ?
   function pintar() {
     sel.replaceChildren(el('option', { value: '' }, engadir),
       todas.filter((e) => !lista.includes(e.id)).sort((a, b) => nomeDe(a).localeCompare(nomeDe(b), 'gl')).map((e) => el('option', { value: e.id }, nomeDe(e))));
-    cont.replaceChildren(...lista.map((id, i) => el('span', { class: 'chip' }, nome(id), el('button', { type: 'button', title: 'Quitar', onclick: () => { lista.splice(i, 1); pintar(); } }, '×'))), sel);
+    cont.replaceChildren(...lista.map((id, i) => el('span', { class: 'chip' }, nome(id), el('button', { type: 'button', title: 'Quitar', onclick: () => { lista.splice(i, 1); pintar(); avisar(cont); } }, '×'))), sel);
     chipsOrdenables(cont, lista, pintar);
   }
   sel.addEventListener('change', () => { if (sel.value) { lista.push(sel.value); pintar(); } });
@@ -138,16 +142,16 @@ export function repetidor(d, clave, etiqueta, { novo, pintarItem, engadirTexto =
       el('div', { class: 'rep-item' },
         el('div', { class: 'grow' }, pintarItem(item, i)),
         el('div', { class: 'rep-ctrl' },
-          el('button', { type: 'button', class: 'icobtn', title: 'Subir', disabled: i === 0, onclick: () => { [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]]; pintar(); } }, '↑'),
-          el('button', { type: 'button', class: 'icobtn', title: 'Baixar', disabled: i === lista.length - 1, onclick: () => { [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]]; pintar(); } }, '↓'),
-          el('button', { type: 'button', class: 'icobtn perigo', title: 'Quitar', onclick: () => { lista.splice(i, 1); pintar(); } }, '×')))));
+          el('button', { type: 'button', class: 'icobtn', title: 'Subir', disabled: i === 0, onclick: () => { [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]]; pintar(); avisar(cont); } }, '↑'),
+          el('button', { type: 'button', class: 'icobtn', title: 'Baixar', disabled: i === lista.length - 1, onclick: () => { [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]]; pintar(); avisar(cont); } }, '↓'),
+          el('button', { type: 'button', class: 'icobtn perigo', title: 'Quitar', onclick: () => { lista.splice(i, 1); pintar(); avisar(cont); } }, '×')))));
   }
   pintar();
   return el('div', { class: 'campo' },
     etiqueta ? el('div', { class: 'etiqueta' }, etiqueta) : null,
     axuda ? el('div', { class: 'axuda', style: { marginBottom: '8px' } }, axuda) : null,
     cont,
-    el('button', { type: 'button', class: 'btn-mini', onclick: () => { lista.push(novo()); pintar(); } }, engadirTexto));
+    el('button', { type: 'button', class: 'btn-mini', onclick: () => { lista.push(novo()); pintar(); avisar(cont); } }, engadirTexto));
 }
 
 /** Imaxe única: subir (arrastrar), escoller da biblioteca ou quitar. claveAlt opcional. */
@@ -155,15 +159,15 @@ export function imaxe(d, clave, etiqueta, { claveAlt, etiquetaBib = 'xeral', log
   const prev = el('img', { class: `imaxe-prev${logo ? ' logo' : ''}`, alt: '' });
   const ctrl = el('div', { class: 'imaxe-ctrl' });
   const altCampo = claveAlt ? texto(d, claveAlt, 'Descrición da imaxe', { axuda: 'Que se ve na foto, en poucas palabras (para persoas que usan lectores de pantalla).' }) : null;
-  const quitar = el('button', { type: 'button', class: 'btn-mini', onclick: () => { d[clave] = undefined; pintar(); } }, 'Quitar');
+  const quitar = el('button', { type: 'button', class: 'btn-mini', onclick: () => { d[clave] = undefined; pintar(); avisar(ctrl); } }, 'Quitar');
   const zona = zonaSoltar({
     texto: 'Arrastra unha imaxe ou',
     aoSoltar: async ([f]) => {
       const item = await conProgreso(ctrl, 'Optimizando e subindo…', () => subirImaxe(f, { etiqueta: etiquetaBib, logo, alt: claveAlt ? d[claveAlt] ?? '' : '' }));
-      if (item) { d[clave] = item.id; pintar(); aviso('Imaxe subida'); }
+      if (item) { d[clave] = item.id; pintar(); avisar(ctrl); aviso('Imaxe subida'); }
     },
   });
-  const bib = el('button', { type: 'button', class: 'btn-mini', onclick: async () => { const m = await escollerDaBiblioteca({ etiqueta: etiquetaBib }); if (m) { d[clave] = m.id; if (claveAlt && !d[claveAlt] && m.alt) d[claveAlt] = m.alt; pintar(); } } }, 'Escoller da biblioteca');
+  const bib = el('button', { type: 'button', class: 'btn-mini', onclick: async () => { const m = await escollerDaBiblioteca({ etiqueta: etiquetaBib }); if (m) { d[clave] = m.id; if (claveAlt && !d[claveAlt] && m.alt) d[claveAlt] = m.alt; pintar(); avisar(ctrl); } } }, 'Escoller da biblioteca');
   function pintar() {
     prev.hidden = !d[clave];
     if (d[clave]) prev.src = mediaUrl(d[clave], logo ? 'g' : 'm');
@@ -189,9 +193,9 @@ export function galeria(d, clave, etiqueta, { etiquetaBib = 'edicions' } = {}) {
         el('img', { src: mediaUrl(it.imaxe, 'm'), alt: '' }),
         alt,
         el('div', { class: 'ctrl' },
-          el('button', { type: 'button', class: 'icobtn', title: 'Mover á esquerda', disabled: i === 0, onclick: () => { [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]]; pintar(); } }, '←'),
-          el('button', { type: 'button', class: 'icobtn perigo', title: 'Quitar da galería', onclick: () => { lista.splice(i, 1); pintar(); } }, '×'),
-          el('button', { type: 'button', class: 'icobtn', title: 'Mover á dereita', disabled: i === lista.length - 1, onclick: () => { [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]]; pintar(); } }, '→')));
+          el('button', { type: 'button', class: 'icobtn', title: 'Mover á esquerda', disabled: i === 0, onclick: () => { [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]]; pintar(); avisar(grella); } }, '←'),
+          el('button', { type: 'button', class: 'icobtn perigo', title: 'Quitar da galería', onclick: () => { lista.splice(i, 1); pintar(); avisar(grella); } }, '×'),
+          el('button', { type: 'button', class: 'icobtn', title: 'Mover á dereita', disabled: i === lista.length - 1, onclick: () => { [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]]; pintar(); avisar(grella); } }, '→')));
     }));
   }
   const zona = zonaSoltar({
@@ -200,11 +204,11 @@ export function galeria(d, clave, etiqueta, { etiquetaBib = 'edicions' } = {}) {
     aoSoltar: async (fs) => {
       for (const [n, f] of fs.entries()) {
         const item = await conProgreso(estadoSubida, `Subindo ${n + 1} de ${fs.length}…`, () => subirImaxe(f, { etiqueta: etiquetaBib }));
-        if (item) { lista.push({ imaxe: item.id, alt: '' }); pintar(); }
+        if (item) { lista.push({ imaxe: item.id, alt: '' }); pintar(); avisar(grella); }
       }
     },
   });
-  const bib = el('button', { type: 'button', class: 'btn-mini', onclick: async () => { const m = await escollerDaBiblioteca({ etiqueta: etiquetaBib }); if (m) { lista.push({ imaxe: m.id, alt: m.alt || '' }); pintar(); } } }, 'Engadir da biblioteca');
+  const bib = el('button', { type: 'button', class: 'btn-mini', onclick: async () => { const m = await escollerDaBiblioteca({ etiqueta: etiquetaBib }); if (m) { lista.push({ imaxe: m.id, alt: m.alt || '' }); pintar(); avisar(grella); } } }, 'Engadir da biblioteca');
   pintar();
   return el('div', { class: 'campo' }, el('div', { class: 'etiqueta' }, etiqueta), grella, zona, el('div', { style: { marginTop: '8px' } }, bib), estadoSubida);
 }
@@ -213,7 +217,7 @@ export function galeria(d, clave, etiqueta, { etiquetaBib = 'edicions' } = {}) {
 export function ficheiro(d, clave, etiqueta, { axuda, portada } = {}) {
   const info = el('span', { class: 'muted' });
   const cont = el('div', { class: 'imaxe-ctrl' });
-  const quitar = el('button', { type: 'button', class: 'btn-mini', onclick: () => { d[clave] = undefined; pintar(); } }, 'Quitar');
+  const quitar = el('button', { type: 'button', class: 'btn-mini', onclick: () => { d[clave] = undefined; pintar(); avisar(cont); } }, 'Quitar');
   function pintar() {
     info.replaceChildren(d[clave] ? el('a', { href: mediaUrl(d[clave], 'f'), target: '_blank' }, 'Ver o PDF subido ↗') : 'Sen ficheiro');
     quitar.hidden = !d[clave];
@@ -224,16 +228,16 @@ export function ficheiro(d, clave, etiqueta, { axuda, portada } = {}) {
       aceptar: 'application/pdf',
       aoSoltar: async ([f]) => {
         const item = await conProgreso(cont, 'Subindo…', () => subirFicheiro(f));
-        if (item) { d[clave] = item.id; pintar(); aviso('Ficheiro subido'); }
+        if (item) { d[clave] = item.id; pintar(); avisar(cont); aviso('Ficheiro subido'); }
         // Xerar a portada automaticamente a partir da primeira páxina
         if (item && portada) {
           const capa = await conProgreso(cont, 'Xerando a portada…', async () => subirImaxe(await portadaPdf(f), { etiqueta: 'recursos' }));
-          if (capa) { portada.d[portada.clave] = capa.id; portada.campo?.actualizar?.(); aviso('Portada xerada desde o PDF'); }
+          if (capa) { portada.d[portada.clave] = capa.id; portada.campo?.actualizar?.(); avisar(cont); aviso('Portada xerada desde o PDF'); }
         }
       },
     }),
     el('div', { class: 'imaxe-btns' }, info,
-      el('button', { type: 'button', class: 'btn-mini', onclick: async () => { const m = await escollerDaBiblioteca({ tipo: 'ficheiro' }); if (m) { d[clave] = m.id; pintar(); } } }, 'Escoller da biblioteca'),
+      el('button', { type: 'button', class: 'btn-mini', onclick: async () => { const m = await escollerDaBiblioteca({ tipo: 'ficheiro' }); if (m) { d[clave] = m.id; pintar(); avisar(cont); } } }, 'Escoller da biblioteca'),
       quitar));
   pintar();
   return campoBase(etiqueta, cont, { axuda });

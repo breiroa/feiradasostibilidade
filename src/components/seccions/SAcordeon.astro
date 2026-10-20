@@ -1,0 +1,36 @@
+---
+// Preguntas frecuentes: cada pregunta ábrese e péchase (sen JavaScript, con <details>).
+import type { Seccion } from '../../lib/esquemas';
+import Envoltorio from './Envoltorio.astro';
+
+type T = Extract<Seccion, { tipo: 'acordeon' }>;
+interface Props { s: T }
+const { s } = Astro.props;
+---
+
+<Envoltorio s={s} texto={s.texto} ancho="estreito">
+  <div class="acordeon">
+    {
+      s.items.map((it) => (
+        <details>
+          <summary>{it.pregunta}</summary>
+          <div class="texto-longo resposta"><Fragment set:html={it.corpo} /></div>
+        </details>
+      ))
+    }
+  </div>
+</Envoltorio>
+
+<style>
+  .acordeon { display: grid; gap: 0.7rem; }
+  details { background: var(--branco); border: 1px solid var(--linha); border-radius: 14px; }
+  :global(.fondo-branco) details { background: var(--crema); border-color: transparent; }
+  summary { cursor: pointer; list-style: none; padding: 1.1rem 3rem 1.1rem 1.3rem; position: relative; font-weight: 700; color: var(--texto); font-size: 1.05rem; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '+'; position: absolute; right: 1.2rem; top: 50%; transform: translateY(-50%); font-size: 1.5rem; font-weight: 400; color: var(--verde); transition: transform 0.2s; }
+  details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
+  summary:hover { color: var(--verde); }
+  .resposta { padding: 0 1.3rem 1.2rem; max-width: none; }
+  :global(.fondo-escuro) details, :global(.fondo-morado) details { background: rgb(255 255 255 / 0.06); border-color: rgb(255 255 255 / 0.12); }
+  :global(.fondo-escuro) summary, :global(.fondo-morado) summary { color: var(--branco); }
+</style>

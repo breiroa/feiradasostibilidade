@@ -1,0 +1,115 @@
+---
+// Vista previa do panel: renderiza unha páxina (ou edición) co contido aínda SEN GARDAR.
+// Só para persoas con sesión no panel; o panel envíao por POST a un iframe.
+import PaxinaLibre from '../components/PaxinaLibre.astro';
+import EdicionPaxina from '../components/EdicionPaxina.astro';
+import { conListado } from '../lib/datos';
+import { esquemas, seccion, type Edicion, type PaxinaLibre as TPaxina } from '../lib/esquemas';
+import { iguais, lerSesion } from '../lib/panel/seguridade';
+import { limparHtml } from '../lib/panel/saneado';
+
+export const prerender = false;
+
+Astro.response.headers.set('Cache-Control', 'no-store');
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+Astro.response.headers.set('Content-Security-Policy', "frame-ancestors 'self'");
+
+if (Astro.request.method !== 'POST') return new Response('A vista previa ábrese desde o panel.', { status: 405 });
+const s = await lerSesion(Astro.cookies);
+if (!s || s.sesion.pendente_2fa) return new Response('A sesión do panel caducou. Volve entrar.', { status: 401 });
+const orixe = Astro.request.headers.get('Origin');
+if (orixe && orixe !== Astro.url.origin) return new Response('Orixe non permitida.', { status: 403 });
+const f = await Astro.request.formData();
+if (!iguais(String(f.get('csrf') ?? ''), s.sesion.csrf)) return new Response('Token non válido. Recarga o panel.', { status: 403 });
+
+const coleccion = String(f.get('coleccion'));
+const id = String(f.get('id') ?? '');
+const y = Math.max(0, Number(f.get('y')) || 0);
+const naiTitulo = String(f.get('naiTitulo') ?? '');
+let bruto: Record<string, unknown> = {};
+try {
+  // O HTML limpase igual que ao gardar, así a vista previa mostra o mesmo que verá a web
+  bruto = (await limparHtml(JSON.parse(String(f.get('datos') ?? '{}')))) as Record<string, unknown>;
+} catch {
+  return new Response('Datos non válidos.', { status: 400 });
+}
+
+// As seccións con erros substitúense por un aviso (só aquí, na vista previa)
+const escapar = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+const seccions = (Array.isArray(bruto.seccions) ? bruto.seccions : []).map((x: Record<string, unknown>) => {
+  const r = seccion.safeParse(x);
+  if (r.success) return r.data;
+  const erros = r.error.issues.map((i) => `${i.path.join(' › ') || 'Sección'}: ${i.message}`);
+  return {
+    id: String(x?.id ?? 'erro'), tipo: 'texto' as const, oculta: Boolean(x?.oculta), fondo: 'branco' as const, estreito: true,
+    corpo: `<blockquote><p><strong>⚠ Esta sección ten datos por completar e non se verá así na web:</strong></p><ul>${erros.map((e) => `<li>${escapar(e)}</li>`).join('')}</ul></blockquote>`,
+  };
+});
+
+let paxina: TPaxina | null = null;
+let ed: Edicion | null = null;
+if (coleccion === 'edicions') {
+  const r = esquemas.edicions.safeParse({ ...bruto, seccions: [] });
+  if (r.success) ed = { ...r.data, seccions, id: id || String(r.data.ano) } as Edicion;
+} else {
+  const r = esquemas.paxinas_libres.safeParse({ ...bruto, titulo: String(bruto.titulo ?? '').trim() || 'Páxina sen título', seccions: [] });
+  if (r.success) {
+    paxina = { ...r.data, seccions, id } as TPaxina;
+    const listado = { actualidade: 'noticias', recursos: 'recursos', edicions: 'edicions' } as const;
+    if (id in listado) paxina = conListado(paxina, listado[id as keyof typeof listado]);
+  }
+}
+const erroXeral = !paxina && !ed;
+---
+
+{
+  erroXeral ? (
+    <html lang="gl"><body style="font-family: sans-serif; padding: 2rem; color: #333">
+      <p><strong>Aínda non se pode amosar a vista previa.</strong></p>
+      <p>Completa os datos obrigatorios da cabeceira (título, datas…) e a vista actualizarase soa.</p>
+    </body></html>
+  ) : ed ? (
+    <EdicionPaxina d={ed} />
+  ) : (
+    <PaxinaLibre p={paxina!} portada={id === 'inicio'} volver={paxina!.nai ? { href: `${paxina!.nai}/`, texto: naiTitulo || paxina!.nai } : undefined} />
+  )
+}
+
+<script is:inline define:vars={{ y }}>
+  // Modo vista previa: premer unha sección selecciónaa no editor; as ligazóns non navegan.
+  (() => {
+    const st = document.createElement('style');
+    st.textContent = '[data-sec]{cursor:pointer}.previa-sobre{outline:2px dashed #7b4bb7;outline-offset:-2px}.previa-activa{outline:3px solid #3a8f4f;outline-offset:-3px}';
+    document.head.append(st);
+    const caixa = (e) => (e && e.style.display === 'contents' ? e.firstElementChild : e);
+    const aviso = (datos) => parent.postMessage({ feira: 'vista', ...datos }, location.origin);
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a');
+      if (a) e.preventDefault();
+      const s = e.target.closest('[data-sec]');
+      if (s) aviso({ seccion: s.dataset.sec });
+    }, true);
+    document.addEventListener('submit', (e) => e.preventDefault(), true);
+    let sobre = null;
+    document.addEventListener('mouseover', (e) => {
+      const s = caixa(e.target.closest('[data-sec]'));
+      if (s === sobre) return;
+      sobre?.classList.remove('previa-sobre');
+      sobre = s;
+      s?.classList.add('previa-sobre');
+    });
+    window.addEventListener('message', (e) => {
+      if (e.origin !== location.origin || e.data?.feira !== 'ir') return;
+      document.querySelectorAll('.previa-activa').forEach((x) => x.classList.remove('previa-activa'));
+      const s = caixa(document.querySelector(`[data-sec="${CSS.escape(e.data.seccion)}"]`));
+      if (!s) return;
+      s.classList.add('previa-activa');
+      if (e.data.desprazar) s.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    const restaurar = () => window.scrollTo(0, y);
+    restaurar();
+    addEventListener('load', restaurar);
+    let t;
+    addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(() => aviso({ y: Math.round(scrollY) }), 120); }, { passive: true });
+  })();
+</script>

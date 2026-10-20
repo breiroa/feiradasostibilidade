@@ -45,7 +45,8 @@ export const edicions = {
   ],
   novo: () => ({ numero: undefined, ano: new Date().getFullYear() + 1, titulo: '', datas: '', lugar: 'IES Luís Seoane · Monte Porreiro, Pontevedra', estado: 'proxima', resumo: '', cifras: [], fitos: [],
     seccions: [{ id: 'logos1', tipo: 'logos', oculta: false, fondo: 'verde', etiqueta: 'Quen participa', titulo: 'Centros e entidades.', grupos: [{ titulo: 'Organiza', entidades: ['ies-luis-seoane'] }, { titulo: 'Impulsan', entidades: ['cidel-galicia', 'universidade-de-vigo'] }] }] }),
-  editor: (d, { novo }) => [
+  editor: (d, o) => [...edicions.axustes(d, o), construtor(d, 'seccions', { titulo: 'Seccións da páxina da edición' })],
+  axustes: (d, { novo }) => [
     c.bloque('Datos básicos', 'Saen na portada da edición, nas tarxetas e no menú.',
       el('div', { class: 'fila3' },
         c.texto(d, 'numero', 'Número de edición', { tipo: 'number', obrig: true, axuda: '1, 2, 3… (sae en números romanos)' }),
@@ -58,7 +59,6 @@ export const edicions = {
     c.bloque('Foto de portada', null, c.imaxe(d, 'portada', '', { claveAlt: 'portadaAlt', etiquetaBib: 'edicions' })),
     c.bloque('Datos destacados', 'Aparecen na presentación da edición e na portada da web.', cifras(d), c.listaTextos(d, 'fitos', 'Fitos destacados', { axuda: 'Etiquetas curtas: «II Foro de Desenvolvemento Local»… Arrastra para ordenar.' })),
     c.bloque('Proxecto vinculado', 'Se a edición forma parte dun proxecto (como SENDA 2030). As súas actividades móstranse coa sección «Actividades dun proxecto».', proxectoVinculado(d)),
-    construtor(d, 'seccions', { titulo: 'Seccións da páxina da edición' }),
   ],
 };
 

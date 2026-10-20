@@ -2,23 +2,19 @@
 import type { Axustes, Entidade } from '../lib/esquemas';
 import LogoGrid from './LogoGrid.astro';
 import { resolverEntidades } from '../lib/datos';
-import { nav } from '../data/site';
+import type { LigazonNav } from '../lib/navegacion';
 import { url } from '../lib/url';
 
 interface Props {
   axustes: Axustes;
   mapa: Map<string, Entidade>;
+  navegacion: LigazonNav[];
+  legais: LigazonNav[];
 }
 
-const { axustes: ax, mapa } = Astro.props;
+const { axustes: ax, mapa, navegacion, legais } = Astro.props;
 const grupos = ax.pe.grupos.map((g) => ({ ...g, items: resolverEntidades(g.entidades, mapa) })).filter((g) => g.items.length > 0);
 const premios = ax.pe.premios ?? [];
-const legais = [
-  { href: 'aviso-legal/', texto: 'Aviso legal' },
-  { href: 'privacidade/', texto: 'Privacidade' },
-  { href: 'cookies/', texto: 'Cookies' },
-  { href: 'accesibilidade/', texto: 'Accesibilidade' },
-];
 ---
 
 <footer class="rodape">
@@ -78,7 +74,7 @@ const legais = [
       <nav aria-label="Pé de páxina">
         <p class="etiqueta">Navegación</p>
         <ul>
-          {nav.map((i) => <li><a href={url(i.href)}>{i.texto}</a></li>)}
+          {navegacion.map((i) => <li><a href={i.href}>{i.texto}</a></li>)}
         </ul>
       </nav>
       <div>
@@ -93,7 +89,7 @@ const legais = [
     <div class="contedor legal">
       <p>Contidos baixo licenza <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.gl" rel="license noopener">CC BY-SA 4.0</a>, salvo indicación.</p>
       <ul>
-        {legais.map((l) => <li><a href={url(l.href)}>{l.texto}</a></li>)}
+        {legais.map((l) => <li><a href={l.href}>{l.texto}</a></li>)}
       </ul>
     </div>
   </div>

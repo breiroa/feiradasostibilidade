@@ -44,3 +44,15 @@ export async function sanearHtml(html: string): Promise<string> {
     .replace(/<p>(\s|&nbsp;|<br>)*<\/p>/g, '')
     .trim();
 }
+
+/** Limpa recursivamente os campos de texto enriquecido (os que se chaman corpo ou rematan en Corpo) */
+export async function limparHtml(v: unknown, clave = ''): Promise<unknown> {
+  if (typeof v === 'string') return clave === 'corpo' || clave.endsWith('Corpo') ? sanearHtml(v) : v;
+  if (Array.isArray(v)) return Promise.all(v.map((x) => limparHtml(x)));
+  if (v && typeof v === 'object') {
+    const saida: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(v)) saida[k] = await limparHtml(x, k);
+    return saida;
+  }
+  return v;
+}

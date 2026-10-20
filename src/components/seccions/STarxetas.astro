@@ -17,12 +17,13 @@ const conImaxes = s.items.some((i) => i.imaxe);
           {it.imaxe ? (
             <Img id={it.imaxe} alt={it.imaxeAlt ?? ''} sizes="(max-width: 700px) 100vw, 33vw" class="tx-foto" />
           ) : (
-            !conImaxes && <span class="tx-num" aria-hidden="true">{String(n + 1).padStart(2, '0')}</span>
+            !conImaxes && s.numerar && <span class="tx-num" aria-hidden="true">{String(n + 1).padStart(2, '0')}</span>
           )}
           <div class="tx-corpo">
             {it.etiqueta && <p class="tx-etiqueta">{it.etiqueta}</p>}
             <h3>{it.url ? <a href={it.url}>{it.titulo}</a> : it.titulo}</h3>
             {it.texto && <p>{it.texto}</p>}
+            {it.url && it.boton && <span class="tx-boton ligazon-frecha" aria-hidden="true">{it.boton}</span>}
           </div>
         </li>
       ))
@@ -42,7 +43,8 @@ const conImaxes = s.items.some((i) => i.imaxe);
   .con-ligazon:hover { transform: translateY(-4px); box-shadow: 0 2px 4px rgb(26 20 40 / 0.06), 0 22px 44px rgb(26 20 40 / 0.13); }
   .tx-item :global(.tx-foto) { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
   .tx-num { font-family: var(--serif); font-weight: 900; font-size: 2.6rem; line-height: 1; color: var(--verde-suave); padding: 1.6rem 1.6rem 0; }
-  .tx-corpo { padding: 1.3rem 1.6rem 1.7rem; display: grid; gap: 0.55rem; }
+  .tx-corpo { padding: 1.3rem 1.6rem 1.7rem; display: flex; flex-direction: column; gap: 0.55rem; flex: 1; }
+  .tx-boton { margin-top: auto; padding-top: 0.4rem; color: var(--verde); white-space: normal; }
   .tx-etiqueta { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--morado); }
   .tx-corpo p:not(.tx-etiqueta) { font-size: 0.97rem; }
   h3 a { color: inherit; text-decoration: none; }

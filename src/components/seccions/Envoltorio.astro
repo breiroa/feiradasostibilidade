@@ -1,6 +1,8 @@
 ---
-// Envoltorio común das seccións: fondo, ancla e cabeceira (etiqueta + título + texto).
+// Envoltorio común das seccións: fondo, ancla, deseño (espazado, aliñamento, ancho, foto de fondo)
+// e cabeceira (etiqueta + título + texto).
 import type { Seccion } from '../../lib/esquemas';
+import { clasesDeseno, estiloDeseno, fondoDe } from '../../lib/deseno';
 
 interface Props {
   s: Seccion;
@@ -10,11 +12,13 @@ interface Props {
   aparte?: boolean; // sen padding vertical (p. ex. heroe)
 }
 
-const { s, texto, ancho = 'normal', cabeceira = true, aparte = false } = Astro.props;
+const { s, texto, cabeceira = true, aparte = false } = Astro.props;
+// O ancho escollido no panel ten prioridade sobre o propio de cada tipo de sección
+const ancho = s.deseno?.ancho ?? Astro.props.ancho ?? 'normal';
 const conCabeceira = cabeceira && (s.etiqueta || s.titulo || texto);
 ---
 
-<section class:list={['sec', `fondo-${s.fondo}`, `tipo-${s.tipo}`, { aparte }]} id={s.ancla}>
+<section class:list={['sec', `fondo-${fondoDe(s)}`, `tipo-${s.tipo}`, ...clasesDeseno(s), { aparte }]} id={s.ancla} data-sec={s.id} style={estiloDeseno(s)}>
   <div class:list={['contedor', ancho !== 'normal' && `contedor--${ancho}`]}>
     {
       conCabeceira && (

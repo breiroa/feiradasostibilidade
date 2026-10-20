@@ -159,3 +159,15 @@ p { text-wrap: pretty; }
 .sec-intro { font-size: clamp(1.05rem, 1.4vw, 1.2rem); margin-top: 0.9rem; max-width: 62ch; }
 .contedor--estreito { max-width: 900px; }
 .contedor--ancho { max-width: 1400px; }
+
+/* ───── Opcións de deseño das seccións (panel › Aparencia) ───── */
+.sec.espazo-compacto { padding-block: clamp(2rem, 4vw, 3rem); }
+.sec.espazo-amplo { padding-block: clamp(5rem, 11vw, 9rem); }
+.sec.cab-centro .sec-cab { margin-inline: auto; text-align: center; }
+.sec.cab-centro .sec-intro { margin-inline: auto; }
+.sec.con-fondo-imaxe { position: relative; isolation: isolate; background: var(--negro); }
+.sec.con-fondo-imaxe::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(rgb(26 20 40 / 0.72), rgb(26 20 40 / 0.82)), var(--fondo-imaxe) center / cover no-repeat;
+}
+.sec.con-fondo-imaxe + .sec.con-fondo-imaxe { padding-top: clamp(3.8rem, 8vw, 6.5rem); }

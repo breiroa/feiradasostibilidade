@@ -1,0 +1,72 @@
+---
+// Listado completo con filtros: todas as noticias (por edición), todos os recursos (por tipo) ou todas as edicións.
+import type { Seccion } from '../../lib/esquemas';
+import { edicions, noticias, recursos } from '../../lib/datos';
+import { tiposRecurso } from '../../data/site';
+import Envoltorio from './Envoltorio.astro';
+import NewsCard from '../NewsCard.astro';
+import ResourceCard from '../ResourceCard.astro';
+import EditionCard from '../EditionCard.astro';
+
+type T = Extract<Seccion, { tipo: 'listado' }>;
+interface Props { s: T }
+const { s } = Astro.props;
+
+const nots = s.de === 'noticias' ? await noticias() : [];
+const recs = s.de === 'recursos' ? await recursos() : [];
+const eds = s.de === 'edicions' ? await edicions() : [];
+const filtrosNot = [...new Set(nots.map((n) => n.edicion).filter((e): e is string => Boolean(e)))].sort().reverse();
+const filtrosRec = [...new Set(recs.map((r) => r.tipo))];
+---
+
+<Envoltorio s={s} texto={s.texto}>
+  <div data-listado>
+    {
+      s.de === 'noticias' && (
+        <>
+          {filtrosNot.length > 1 && (
+            <div class="filtros" role="group" aria-label="Filtrar por edición">
+              <button type="button" data-filtro="" aria-pressed="true">Todas</button>
+              {filtrosNot.map((e) => <button type="button" data-filtro={e} aria-pressed="false">Feira {e}</button>)}
+            </div>
+          )}
+          {nots.length === 0 && <p>Aínda non hai noticias.</p>}
+          <div class="grella">{nots.map((n) => <div data-valor={n.edicion ?? ''}><NewsCard noticia={n} /></div>)}</div>
+        </>
+      )
+    }
+    {
+      s.de === 'recursos' && (
+        <>
+          {filtrosRec.length > 1 && (
+            <div class="filtros" role="group" aria-label="Filtrar por tipo">
+              <button type="button" data-filtro="" aria-pressed="true">Todos</button>
+              {filtrosRec.map((t) => <button type="button" data-filtro={t} aria-pressed="false">{tiposRecurso[t]}</button>)}
+            </div>
+          )}
+          {recs.length === 0 && <p>Aínda non hai recursos.</p>}
+          <div class="grella-rec">{recs.map((r) => <div data-valor={r.tipo}><ResourceCard recurso={r} /></div>)}</div>
+        </>
+      )
+    }
+    {s.de === 'edicions' && <div class="grella">{eds.map((e) => <EditionCard edicion={e} />)}</div>}
+  </div>
+</Envoltorio>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-listado]').forEach((cont) => {
+    const botons = cont.querySelectorAll<HTMLButtonElement>('[data-filtro]');
+    const items = cont.querySelectorAll<HTMLElement>('[data-valor]');
+    botons.forEach((b) =>
+      b.addEventListener('click', () => {
+        const f = b.dataset.filtro;
+        botons.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        items.forEach((i) => (i.hidden = Boolean(f) && i.dataset.valor !== f));
+      }),
+    );
+  });
+</script>
+
+<style>
+  .grella-rec { display: grid; gap: clamp(1.1rem, 2.6vw, 1.9rem); grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+</style>

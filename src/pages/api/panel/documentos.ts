@@ -5,9 +5,10 @@
 // DELETE {coleccion, id}         → borra (se non se usa noutro sitio)
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/datos';
-import { esquemaInicio, esquemas, type Coleccion } from '../../../lib/esquemas';
+import { esquemaInicio, esquemas, PAXINAS_SISTEMA, SEN_FILLAS, type Coleccion } from '../../../lib/esquemas';
 import { conAdmin, erro, json, lerJson, slug } from '../../../lib/panel/api';
-import { sanearHtml } from '../../../lib/panel/saneado';
+import { limparHtml } from '../../../lib/panel/saneado';
+import { versionSQL } from '../../../lib/panel/versions';
 
 export const prerender = false;
 
@@ -17,27 +18,15 @@ const ID = /^[a-z0-9-]{1,80}$/;
 // Enderezos que xa usan outras páxinas da web
 const RESERVADOS = ['inicio', 'feiralab', 'edicions', 'actualidade', 'recursos', 'participa', 'panel', 'api', 'media', 'vieja', 'a-feira', 'documentos', '404'];
 
-/** Limpa recursivamente os campos de texto enriquecido (os que se chaman corpo ou rematan en Corpo) */
-async function limparHtml(v: unknown, clave = ''): Promise<unknown> {
-  if (typeof v === 'string') return clave === 'corpo' || clave.endsWith('Corpo') ? sanearHtml(v) : v;
-  if (Array.isArray(v)) return Promise.all(v.map((x) => limparHtml(x)));
-  if (v && typeof v === 'object') {
-    const saida: Record<string, unknown> = {};
-    for (const [k, x] of Object.entries(v)) saida[k] = await limparHtml(x, k);
-    return saida;
-  }
-  return v;
-}
-
 export const GET: APIRoute = conAdmin(async ({ url }) => {
   const c = url.searchParams.get('coleccion');
   if (!valida(c)) return erro('Colección descoñecida.');
-  const { results } = await db().prepare('SELECT id, datos, orde, actualizado FROM documentos WHERE coleccion = ? ORDER BY orde, id').bind(c).all<{ id: string; datos: string; orde: number; actualizado: string }>();
-  return json({ ok: true, items: results.map((r) => ({ id: r.id, orde: r.orde, actualizado: r.actualizado, datos: JSON.parse(r.datos) })) });
+  const { results } = await db().prepare('SELECT id, datos, orde, actualizado, editado_por FROM documentos WHERE coleccion = ? ORDER BY orde, id').bind(c).all<{ id: string; datos: string; orde: number; actualizado: string; editado_por: string | null }>();
+  return json({ ok: true, items: results.map((r) => ({ id: r.id, orde: r.orde, actualizado: r.actualizado, editadoPor: r.editado_por, datos: JSON.parse(r.datos) })) });
 });
 
-export const POST: APIRoute = conAdmin(async ({ request }) => {
-  const b = await lerJson<{ coleccion?: string; id?: string; datos?: unknown; novo?: boolean }>(request);
+export const POST: APIRoute = conAdmin(async ({ request }, { admin }) => {
+  const b = await lerJson<{ coleccion?: string; id?: string; datos?: unknown; novo?: boolean; actualizado?: string; forzar?: boolean; accion?: string }>(request);
   if (!valida(b.coleccion)) return erro('Colección descoñecida.');
   const c = b.coleccion;
 
@@ -49,10 +38,21 @@ export const POST: APIRoute = conAdmin(async ({ request }) => {
   }
   const datos = res.data as Record<string, unknown>;
 
+  // Subpáxinas: un só nivel, e só baixo páxinas que o permitan
+  if (c === 'paxinas_libres' && datos.nai) {
+    const nai = String(datos.nai);
+    const mai = await db().prepare("SELECT datos FROM documentos WHERE coleccion = 'paxinas_libres' AND id = ?").bind(nai).first<{ datos: string }>();
+    if (nai === b.id || SEN_FILLAS.includes(nai) || !mai || JSON.parse(mai.datos).nai) return erro('Esa páxina non pode ter subpáxinas. Escolle outra páxina nai.', 422);
+    if (b.id && !b.novo) {
+      const { results } = await db().prepare("SELECT datos FROM documentos WHERE coleccion = 'paxinas_libres'").all<{ datos: string }>();
+      if (results.some((r) => JSON.parse(r.datos).nai === b.id)) return erro('Esta páxina ten subpáxinas, así que non pode ser subpáxina doutra.', 422);
+    }
+  }
+
   // Identificador: as edicións usan o ano; o resto, o texto do título
   let id = (b.id ?? '').trim();
   if (b.novo || !id) {
-    if (c === 'axustes') id = 'xeral';
+    if (c === 'axustes' || c === 'navegacion') id = 'xeral';
     else if (c === 'edicions') id = String(datos.ano);
     else if (!id) id = slug(String(datos.titulo ?? datos.nome ?? datos.nomeCurto ?? 'elemento'));
     if (!ID.test(id)) return erro('O enderezo (identificador) só pode ter letras minúsculas, números e guións.', 422);
@@ -66,20 +66,34 @@ export const POST: APIRoute = conAdmin(async ({ request }) => {
     }
     const max = await db().prepare('SELECT COALESCE(MAX(orde), 0) AS m FROM documentos WHERE coleccion = ?').bind(c).first<{ m: number }>();
     const orde = c === 'edicions' ? 3000 - Number(datos.ano) : (max?.m ?? 0) + 1;
-    await db().prepare('INSERT INTO documentos (coleccion, id, datos, orde) VALUES (?, ?, ?, ?)').bind(c, id, JSON.stringify(datos), orde).run();
+    await db().batch([
+      db().prepare('INSERT INTO documentos (coleccion, id, datos, orde, editado_por) VALUES (?, ?, ?, ?, ?)').bind(c, id, JSON.stringify(datos), orde, admin.nome),
+      ...versionSQL(c, id, JSON.stringify(datos), admin.nome, b.accion === 'restaurado' ? 'restaurado' : 'creado'),
+    ]);
   } else {
     if (!ID.test(id)) return erro('Identificador non válido.');
-    const r = await db()
-      .prepare("UPDATE documentos SET datos = ?, actualizado = datetime('now') WHERE coleccion = ? AND id = ?")
-      .bind(JSON.stringify(datos), c, id)
-      .run();
-    if (!r.meta.changes) {
-      // Páxinas e axustes poden non existir aínda: créanse
-      if (c === 'paxinas' || c === 'axustes') await db().prepare('INSERT INTO documentos (coleccion, id, datos) VALUES (?, ?, ?)').bind(c, id, JSON.stringify(datos)).run();
-      else return erro('Non se atopou o elemento (quizais outra persoa o borrou).', 404);
+    const actual = await db()
+      .prepare('SELECT datos, actualizado, editado_por FROM documentos WHERE coleccion = ? AND id = ?')
+      .bind(c, id)
+      .first<{ datos: string; actualizado: string; editado_por: string | null }>();
+    // Se outra persoa gardou mentres se editaba, avísase en vez de pisar os seus cambios
+    if (actual && b.actualizado && actual.actualizado !== b.actualizado && !b.forzar) {
+      return json({ ok: false, conflito: true, editadoPor: actual.editado_por, actualizado: actual.actualizado, erros: [`${actual.editado_por ?? 'Outra persoa'} gardou esta páxina mentres a editabas.`] }, 409);
     }
+    if (!actual && !['paxinas', 'axustes', 'navegacion'].includes(c)) return erro('Non se atopou o elemento (quizais outra persoa o borrou).', 404);
+    const novo = JSON.stringify(datos);
+    // O primeiro cambio dun documento garda tamén como estaba antes, para poder volver a el
+    const sen = actual && !(await db().prepare('SELECT 1 FROM versions WHERE coleccion = ? AND doc_id = ? LIMIT 1').bind(c, id).first());
+    await db().batch([
+      ...(sen ? [db().prepare('INSERT INTO versions (coleccion, doc_id, datos, autor, accion, creado) VALUES (?, ?, ?, ?, ?, ?)').bind(c, id, actual.datos, actual.editado_por, 'orixinal', actual.actualizado)] : []),
+      actual
+        ? db().prepare("UPDATE documentos SET datos = ?, actualizado = datetime('now'), editado_por = ? WHERE coleccion = ? AND id = ?").bind(novo, admin.nome, c, id)
+        : db().prepare('INSERT INTO documentos (coleccion, id, datos, editado_por) VALUES (?, ?, ?, ?)').bind(c, id, novo, admin.nome),
+      ...versionSQL(c, id, novo, admin.nome, b.accion === 'restaurado' ? 'restaurado' : 'gardado'),
+    ]);
   }
-  return json({ ok: true, id, datos });
+  const fila = await db().prepare('SELECT actualizado FROM documentos WHERE coleccion = ? AND id = ?').bind(c, id).first<{ actualizado: string }>();
+  return json({ ok: true, id, datos, actualizado: fila?.actualizado, editadoPor: admin.nome });
 });
 
 export const PATCH: APIRoute = conAdmin(async ({ request }) => {
@@ -106,25 +120,52 @@ function referencia(v: unknown, c: Coleccion, id: string, clave = ''): boolean {
   return false;
 }
 
+/** Busca ligazóns (campos «url») e seccións de subpáxinas que apunten a unha páxina */
+function apuntaA(v: unknown, rutas: string[], nai: string, clave = ''): boolean {
+  if (Array.isArray(v)) return v.some((x) => apuntaA(x, rutas, nai));
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    if (o.tipo === 'subpaxinas' && o.nai === nai) return true;
+    if (o.tipo === 'paxina' && o.paxina === nai) return true; // elemento do menú
+    return Object.entries(o).some(([k, x]) => apuntaA(x, rutas, nai, k));
+  }
+  return typeof v === 'string' && clave === 'url' && rutas.some((r) => v.split(/[?#]/)[0] === r);
+}
+
 /** Onde se usa un documento (para non deixar referencias rotas) */
 async function usos(c: Coleccion, id: string): Promise<string[]> {
-  if (!['entidades', 'edicions', 'proxectos', 'recursos'].includes(c)) return [];
+  if (!['entidades', 'edicions', 'proxectos', 'recursos', 'paxinas_libres'].includes(c)) return [];
   const { results } = await db().prepare('SELECT coleccion, id, datos FROM documentos').all<{ coleccion: string; id: string; datos: string }>();
+  let rutas: string[] = [];
+  if (c === 'paxinas_libres') {
+    const propia = results.find((r) => r.coleccion === c && r.id === id);
+    const nai = propia ? JSON.parse(propia.datos).nai : '';
+    const ruta = nai ? `/${nai}/${id}/` : `/${id}/`;
+    rutas = [ruta, ruta.slice(0, -1)];
+  }
+  const usa = (d: Record<string, unknown>) =>
+    c === 'paxinas_libres' ? d.nai === id || apuntaA(d, rutas, id) : referencia(d, c, id);
   return results
-    .filter((r) => !(r.coleccion === c && r.id === id) && referencia(JSON.parse(r.datos), c, id))
+    .filter((r) => !(r.coleccion === c && r.id === id) && usa(JSON.parse(r.datos)))
     .map((r) => {
       const d = JSON.parse(r.datos);
       return `${r.coleccion}: ${d.titulo ?? d.nome ?? d.nomeCurto ?? r.id}`;
     });
 }
 
-export const DELETE: APIRoute = conAdmin(async ({ request }) => {
+export const DELETE: APIRoute = conAdmin(async ({ request }, { admin }) => {
   const b = await lerJson<{ coleccion?: string; id?: string }>(request);
   if (!valida(b.coleccion) || !b.id || !ID.test(b.id)) return erro('Datos non válidos.');
-  if (b.coleccion === 'axustes') return erro('Os axustes non se poden borrar.');
-  if (b.coleccion === 'paxinas_libres' && b.id === 'feiralab') return erro('A páxina principal de FeiraLab non se pode borrar (podes ocultar as súas seccións).');
+  if (b.coleccion === 'axustes' || b.coleccion === 'navegacion') return erro('Os axustes non se poden borrar.');
+  if (b.coleccion === 'paxinas_libres' && (PAXINAS_SISTEMA as readonly string[]).includes(b.id)) return erro('Esta páxina é fixa da web e non se pode borrar (podes ocultar ou cambiar as súas seccións).');
   const onde = await usos(b.coleccion, b.id);
   if (onde.length) return erro([`Non se pode borrar porque se usa en:`, ...onde.slice(0, 8)], 409);
-  await db().prepare('DELETE FROM documentos WHERE coleccion = ? AND id = ?').bind(b.coleccion, b.id).run();
+  // Vai á papeleira: o historial garda o documento borrado e pódese recuperar
+  const fila = await db().prepare('SELECT datos FROM documentos WHERE coleccion = ? AND id = ?').bind(b.coleccion, b.id).first<{ datos: string }>();
+  if (!fila) return json({ ok: true });
+  await db().batch([
+    ...versionSQL(b.coleccion, b.id, fila.datos, admin.nome, 'borrado'),
+    db().prepare('DELETE FROM documentos WHERE coleccion = ? AND id = ?').bind(b.coleccion, b.id),
+  ]);
   return json({ ok: true });
 });

@@ -1,21 +1,8 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Hero from '../../components/Hero.astro';
-import EditionCard from '../../components/EditionCard.astro';
-import { edicions } from '../../lib/datos';
+import PaxinaLibre from '../../components/PaxinaLibre.astro';
+import { paxinaSistema, conListado } from '../../lib/datos';
 
-const eds = await edicions();
-const anos = eds.map((e) => e.ano);
+const p = conListado(await paxinaSistema('edicions'), 'edicions');
 ---
 
-<Base titulo="Edicións" descricion="Todas as edicións da Feira da Sostibilidade do IES Luís Seoane.">
-  <Hero etiqueta={anos.length ? `As edicións · ${Math.min(...anos)} — ${Math.max(...anos)}` : 'As edicións'} compacto>
-    <h1>Unha Feira cada abril. <em>Un laboratorio que medra.</em></h1>
-    <p class="entrada">Cada edición suma coñecemento, amplía a rede e deixa materiais, memorias e aprendizaxes para a seguinte.</p>
-  </Hero>
-  <section class="seccion">
-    <div class="contedor grella">
-      {eds.map((e) => <EditionCard edicion={e} />)}
-    </div>
-  </section>
-</Base>
+<PaxinaLibre p={p} />

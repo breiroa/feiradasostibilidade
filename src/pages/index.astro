@@ -1,12 +1,10 @@
 ---
-import Base from '../layouts/Base.astro';
-import Seccions from '../components/seccions/Seccions.astro';
-import { paxina, seccionsValidas } from '../lib/datos';
+import PaxinaLibre from '../components/PaxinaLibre.astro';
+import { paxina, paxinaSistema, seccionsValidas } from '../lib/datos';
 
-const seccions = seccionsValidas((await paxina<{ seccions?: unknown }>('inicio')).seccions);
-const heroe = seccions.find((s) => s.tipo === 'heroe');
+const p = await paxinaSistema('inicio');
+// Mentres non se migre, a portada segue lendo o documento antigo (paxinas/inicio)
+if (!p.seccions.length) p.seccions = seccionsValidas((await paxina<{ seccions?: unknown }>('inicio')).seccions);
 ---
 
-<Base imaxe={heroe && 'imaxe' in heroe ? heroe.imaxe : undefined}>
-  <Seccions seccions={seccions} />
-</Base>
+<PaxinaLibre p={p} portada />

@@ -1,0 +1,124 @@
+---
+// Formulario de participación e contacto. Envía a /api/participa, que volve a esta mesma páxina.
+import type { Seccion } from '../../lib/esquemas';
+import { axustes } from '../../lib/datos';
+import { campos } from '../../lib/formularios';
+import { url } from '../../lib/url';
+import { clasesDeseno, estiloDeseno, fondoDe } from '../../lib/deseno';
+
+type T = Extract<Seccion, { tipo: 'formulario' }>;
+interface Props { s: T }
+const { s } = Astro.props;
+const ax = await axustes();
+const q = Astro.url.searchParams;
+const enviado = q.get('enviado');
+const erro = q.get('erro');
+const mensaxeErro = erro === 'privacidade' ? 'Para enviar o formulario tes que aceptar a política de privacidade.' : erro === 'datos' ? 'Non puidemos ler o formulario. Proba de novo.' : erro;
+const ancla = s.ancla ?? 'formulario';
+// A vista previa do panel non ten un enderezo público ao que volver
+const volver = Astro.url.pathname.startsWith('/vista-previa') ? '/participa/' : Astro.url.pathname;
+---
+
+<section class:list={['sec', `fondo-${fondoDe(s)}`, 'tipo-formulario', ...clasesDeseno(s)]} id={ancla} data-sec={s.id} style={estiloDeseno(s)}>
+  <div class="contedor formulario-grella">
+    <div class="intro">
+      {s.etiqueta && <p class="etiqueta">{s.etiqueta}</p>}
+      {s.titulo && <h2>{s.titulo}</h2>}
+      {s.texto && <p>{s.texto}</p>}
+      <p class="outras">
+        Tamén nos atopas en {ax.instagram ? <a href={ax.instagram} rel="noopener">Instagram</a> : 'Instagram'}{ax.correo && <> ou en <a href={`mailto:${ax.correo}`}>{ax.correo}</a></>}.
+      </p>
+    </div>
+
+    <div class="caixa">
+      {
+        enviado ? (
+          <div class="aviso aviso--ok" role="status">
+            <h3>{s.graciasTitulo ?? 'Grazas! Recibimos a túa mensaxe.'}</h3>
+            {s.graciasTexto && <p>{s.graciasTexto}</p>}
+            <a href={`${volver}#${ancla}`}>Enviar outra mensaxe</a>
+          </div>
+        ) : (
+          <form method="post" action={url('api/participa')} class="formulario">
+            {mensaxeErro && <div class="aviso aviso--erro" role="alert">{mensaxeErro}</div>}
+            <input type="hidden" name="volver" value={`${volver}#${ancla}`} />
+            <div class="trampa" aria-hidden="true">
+              <label>Non encher<input type="text" name="web_alternativa" tabindex="-1" autocomplete="off" /></label>
+            </div>
+            <div class="campos">
+              {campos.map((c) => (
+                <div class:list={['campo', { ancho: c.ancho }]}>
+                  <label for={`f-${c.nome}`}>
+                    {c.etiqueta}
+                    {c.obrigatorio ? <span class="obrig" aria-hidden="true"> *</span> : <span class="opcional"> (opcional)</span>}
+                  </label>
+                  {c.tipo === 'area' ? (
+                    <textarea id={`f-${c.nome}`} name={c.nome} rows="5" maxlength={c.max} required={c.obrigatorio} placeholder={c.axuda} />
+                  ) : c.tipo === 'opcion' ? (
+                    <select id={`f-${c.nome}`} name={c.nome} required={c.obrigatorio}>
+                      <option value="">Escolle…</option>
+                      {c.opcions?.map((o) => <option value={o.valor} selected={q.get('tipo') === o.valor}>{o.texto}</option>)}
+                    </select>
+                  ) : (
+                    <input id={`f-${c.nome}`} name={c.nome} type={c.tipo === 'texto' ? 'text' : c.tipo} maxlength={c.max} required={c.obrigatorio} autocomplete={c.tipo === 'email' ? 'email' : c.tipo === 'tel' ? 'tel' : c.nome === 'nome' ? 'name' : c.nome === 'organizacion' ? 'organization' : undefined} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <label class="privacidade">
+              <input type="checkbox" name="privacidade" value="si" required />
+              <span>Acepto que os meus datos se usen só para responder e organizar a participación na Feira (<a href={url('privacidade/')}>política de privacidade</a>).</span>
+            </label>
+            <button class="boton" type="submit">Enviar</button>
+          </form>
+        )
+      }
+    </div>
+  </div>
+</section>
+
+<script>
+  // As ligazóns «?tipo=…» desta mesma páxina escollen o tipo no formulario e baixan ata el, sen recargar
+  const sel = document.querySelector<HTMLSelectElement>('#f-tipo');
+  document.querySelectorAll<HTMLAnchorElement>('a[href*="?tipo="]').forEach((a) => {
+    const destino = new URL(a.href, location.href);
+    if (destino.pathname !== location.pathname || !sel) return;
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      sel.value = destino.searchParams.get('tipo') ?? '';
+      document.querySelector(destino.hash || '#formulario')?.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => document.querySelector<HTMLInputElement>('#f-nome')?.focus({ preventScroll: true }), 500);
+    });
+  });
+</script>
+
+<style>
+  .formulario-grella { display: grid; grid-template-columns: 0.8fr 1.4fr; gap: clamp(2rem, 5vw, 4.5rem); align-items: start; }
+  .intro h2 { margin-bottom: 1rem; }
+  .outras { margin-top: 1.2rem; font-size: 0.95rem; }
+  .caixa { background: var(--crema); border-radius: 18px; padding: clamp(1.25rem, 3vw, 2rem); }
+  .fondo-claro .caixa { background: var(--branco); }
+  .campos { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.2rem; }
+  .campo { display: grid; gap: 0.35rem; }
+  .campo.ancho { grid-column: 1 / -1; }
+  .campo label { font-size: 0.88rem; font-weight: 600; color: var(--texto); }
+  .obrig { color: var(--morado); }
+  .opcional { font-weight: 400; color: var(--texto-suave); }
+  .campo :is(input, select, textarea) {
+    font: inherit; font-size: 0.97rem; padding: 0.7rem 0.85rem; border: 1px solid #d9d3e3; border-radius: 10px;
+    background: var(--branco); color: var(--texto); width: 100%;
+  }
+  .campo :is(input, select, textarea):focus { outline: 3px solid var(--morado-suave); border-color: var(--morado); }
+  .privacidade { display: flex; gap: 0.6rem; align-items: flex-start; margin-block: 1.4rem 1.2rem; font-size: 0.9rem; }
+  .privacidade input { margin-top: 0.3rem; width: 1.05rem; height: 1.05rem; accent-color: var(--verde); }
+  .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .aviso { padding: 1rem 1.2rem; border-radius: 12px; margin-bottom: 1.2rem; }
+  .aviso--erro { background: #fdecea; border: 1px solid #f3b8b0; color: #8a2a1d; }
+  .aviso--ok { background: var(--verde-pale); border: 1px solid var(--verde-suave); color: var(--texto); display: grid; gap: 0.6rem; }
+  .aviso--ok h3 { color: var(--verde-escuro); }
+  .fondo-escuro .intro :is(h2, p), .fondo-morado .intro :is(h2, p) { color: var(--branco); }
+  @media (max-width: 860px) {
+    .formulario-grella { grid-template-columns: 1fr; }
+    .campos { grid-template-columns: 1fr; }
+  }
+</style>

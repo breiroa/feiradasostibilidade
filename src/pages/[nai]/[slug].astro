@@ -1,0 +1,11 @@
+---
+// Subpáxinas (/nai/enderezo/), p. ex. /feiralab/metodoloxias/
+import PaxinaLibre from '../../components/PaxinaLibre.astro';
+import { paxinaLibre } from '../../lib/datos';
+
+const { nai = '', slug = '' } = Astro.params;
+const [p, mai] = await Promise.all([paxinaLibre(slug), paxinaLibre(nai)]);
+if (!p || !mai || p.nai !== nai || mai.nai !== '') return new Response(null, { status: 404 });
+---
+
+<PaxinaLibre p={p} volver={{ href: `${nai}/`, texto: mai.titulo }} />
