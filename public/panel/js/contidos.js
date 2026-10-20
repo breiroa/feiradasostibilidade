@@ -115,7 +115,7 @@ export const recursos = {
   titular: (d) => d.titulo,
   verNaWeb: (id) => `/recursos/${id}/`,
   columnas: [
-    { titulo: '', valor: (it) => miniatura(it.datos.imaxe) },
+    { titulo: '', valor: (it) => miniatura(it.datos.portada ?? it.datos.imaxe) },
     { titulo: 'Título', valor: (it) => el('b', {}, it.datos.titulo) },
     { titulo: 'Tipo', valor: (it) => el('span', { class: 'pill morado' }, tipos.find((t) => t.valor === it.datos.tipo)?.texto ?? it.datos.tipo) },
     { titulo: 'Material', valor: (it) => (it.datos.ficheiro || it.datos.ligazon ? el('span', { class: 'pill verde' }, 'Dispoñible') : el('span', { class: 'pill' }, 'En breve')) },
@@ -135,8 +135,14 @@ export const recursos = {
         el('div', { class: 'fila2' },
           c.texto(ods, 'texto', 'ODS (números separados por comas)', { placeholder: '12, 13', aoCambiar: (v) => { d.ods = v.split(/[,\s]+/).map(Number).filter((n) => n >= 1 && n <= 17); } }),
           c.texto(d, 'licenza', 'Licenza'))),
-      c.bloque('Material', 'Sube o PDF ou pon unha ligazón (por exemplo a Drive, Zenodo ou YouTube).', c.ficheiro(d, 'ficheiro', 'PDF'), c.texto(d, 'ligazon', 'Ligazón externa', { tipo: 'url' })),
-      c.bloque('Imaxe', null, c.imaxe(d, 'imaxe', '', { claveAlt: 'imaxeAlt', etiquetaBib: 'recursos' })),
+      ...(() => {
+        const campoPortada = c.imaxe(d, 'portada', 'Portada (vertical, como a dun documento)', { etiquetaBib: 'recursos', axuda: 'Xérase soa ao subir un PDF (a súa primeira páxina). Podes cambiala por outra imaxe.' });
+        return [
+          c.bloque('Material', 'Arrastra o PDF (xérase a portada automaticamente) ou pon unha ligazón (Drive, Zenodo, YouTube…).',
+            c.ficheiro(d, 'ficheiro', 'PDF', { portada: { d, clave: 'portada', campo: campoPortada } }), c.texto(d, 'ligazon', 'Ligazón externa', { tipo: 'url' })),
+          c.bloque('Imaxes', 'A portada sae nas tarxetas de Recursos; a imaxe horizontal é opcional.', campoPortada, c.imaxe(d, 'imaxe', 'Imaxe horizontal (opcional)', { claveAlt: 'imaxeAlt', etiquetaBib: 'recursos' })),
+        ];
+      })(),
       c.bloque('Descrición completa', 'Opcional: como usalo, conclusións, materiais necesarios…', c.rico(d, 'corpo', '')),
     ];
   },

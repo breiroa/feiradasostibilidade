@@ -1,6 +1,6 @@
 // Campos de formulario reutilizables. Todos len e escriben directamente no obxecto `d` (os datos que se editan).
 import { aviso, coleccion, el, mediaUrl, modal } from './nucleo.js';
-import { conProgreso, escollerDaBiblioteca, subirFicheiro, subirImaxe, zonaSoltar } from './imaxes.js';
+import { conProgreso, escollerDaBiblioteca, portadaPdf, subirFicheiro, subirImaxe, zonaSoltar } from './imaxes.js';
 
 const campoBase = (etiqueta, control, { axuda, obrig, id } = {}) =>
   el('div', { class: 'campo' },
@@ -171,7 +171,9 @@ export function imaxe(d, clave, etiqueta, { claveAlt, etiquetaBib = 'xeral', log
   }
   ctrl.append(zona, el('div', { class: 'imaxe-btns' }, bib, quitar));
   pintar();
-  return el('div', {}, campoBase(etiqueta, el('div', { class: 'imaxe-campo' }, prev, ctrl), { axuda }), altCampo);
+  const envoltorio = el('div', {}, campoBase(etiqueta, el('div', { class: 'imaxe-campo' }, prev, ctrl), { axuda }), altCampo);
+  envoltorio.actualizar = pintar;
+  return envoltorio;
 }
 
 /** Galería: varias imaxes con descrición, ordenables */
@@ -208,7 +210,7 @@ export function galeria(d, clave, etiqueta, { etiquetaBib = 'edicions' } = {}) {
 }
 
 /** Ficheiro (PDF) ou ligazón: para documentos e recursos */
-export function ficheiro(d, clave, etiqueta, { axuda } = {}) {
+export function ficheiro(d, clave, etiqueta, { axuda, portada } = {}) {
   const info = el('span', { class: 'muted' });
   const cont = el('div', { class: 'imaxe-ctrl' });
   const quitar = el('button', { type: 'button', class: 'btn-mini', onclick: () => { d[clave] = undefined; pintar(); } }, 'Quitar');
@@ -223,6 +225,11 @@ export function ficheiro(d, clave, etiqueta, { axuda } = {}) {
       aoSoltar: async ([f]) => {
         const item = await conProgreso(cont, 'Subindo…', () => subirFicheiro(f));
         if (item) { d[clave] = item.id; pintar(); aviso('Ficheiro subido'); }
+        // Xerar a portada automaticamente a partir da primeira páxina
+        if (item && portada) {
+          const capa = await conProgreso(cont, 'Xerando a portada…', async () => subirImaxe(await portadaPdf(f), { etiqueta: 'recursos' }));
+          if (capa) { portada.d[portada.clave] = capa.id; portada.campo?.actualizar?.(); aviso('Portada xerada desde o PDF'); }
+        }
       },
     }),
     el('div', { class: 'imaxe-btns' }, info,

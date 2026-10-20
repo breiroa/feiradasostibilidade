@@ -25,7 +25,7 @@ const tipos = [...new Set(lista.map((r) => r.tipo))];
           </div>
         )
       }
-      <div class="grella" id="lista">
+      <div class="grella-rec" id="lista">
         {
           lista.map((r) => (
             <div data-tipo={r.tipo}>
@@ -49,3 +49,7 @@ const tipos = [...new Set(lista.map((r) => r.tipo))];
     }),
   );
 </script>
+
+<style>
+  .grella-rec { display: grid; gap: clamp(1.1rem, 2.6vw, 1.9rem); grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+</style>

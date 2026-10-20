@@ -14,7 +14,7 @@ const proxima = d.estado === 'proxima';
 <article class:list={['tarxeta', 'edicion', { proxima }]}>
   <a href={url(`edicions/${d.id}/`)} class="ligazon-tarxeta">
     <div class="cuberta">
-      {d.portada ? <Img id={d.portada} alt={d.portadaAlt ?? ''} sizes="(max-width: 700px) 100vw, 360px" /> : <div class="sen-foto" aria-hidden="true"></div>}
+      {d.portada ? <Img id={d.portada} alt={d.portadaAlt ?? ''} sizes="(max-width: 700px) 100vw, 360px" /> : <div class="sen-foto" aria-hidden="true"><span>{d.ano}</span></div>}
       <span class="numero">{romano(d.numero)}</span>
       {proxima && <span class="estado">Próxima edición</span>}
     </div>
@@ -28,17 +28,18 @@ const proxima = d.estado === 'proxima';
 
 <style>
   .edicion { height: 100%; transition: transform 0.2s, box-shadow 0.2s; }
-  .edicion:hover { transform: translateY(-3px); box-shadow: var(--sombra); }
+  .edicion:hover { transform: translateY(-4px); box-shadow: 0 2px 4px rgb(26 20 40 / 0.06), 0 24px 48px rgb(26 20 40 / 0.14); }
   .ligazon-tarxeta { display: flex; flex-direction: column; height: 100%; text-decoration: none; color: inherit; }
   .cuberta { position: relative; aspect-ratio: 16 / 10; background: var(--negro); overflow: hidden; }
   .cuberta :global(img) { width: 100%; height: 100%; object-fit: cover; }
   .sen-foto {
-    height: 100%;
+    height: 100%; display: flex; align-items: flex-start; justify-content: flex-end; padding: 1rem 1.2rem;
     background:
       radial-gradient(ellipse 80% 70% at 80% 20%, rgb(60 120 60 / 0.45), transparent 60%),
       radial-gradient(ellipse 70% 80% at 10% 90%, rgb(100 80 140 / 0.45), transparent 60%),
       var(--negro);
   }
+  .sen-foto span { font-family: var(--serif); font-weight: 900; font-size: clamp(3rem, 7vw, 4.6rem); line-height: 1; color: rgb(255 255 255 / 0.14); }
   .numero {
     position: absolute; left: 1rem; bottom: 0.8rem;
     font-family: var(--serif); font-size: 2.6rem; font-weight: 900; line-height: 1; color: var(--branco);
@@ -52,5 +53,5 @@ const proxima = d.estado === 'proxima';
   .corpo { padding: 1.3rem 1.4rem 1.6rem; display: grid; gap: 0.5rem; }
   .ano { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--verde); }
   .corpo p:last-child { font-size: 0.95rem; }
-  .proxima { border-color: var(--verde); box-shadow: 0 0 0 1px var(--verde); }
+  .proxima { box-shadow: 0 0 0 2px var(--verde), 0 14px 34px rgb(60 120 60 / 0.18); }
 </style>

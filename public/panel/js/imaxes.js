@@ -117,3 +117,41 @@ export async function conProgreso(destino, texto, fn) {
     s.remove();
   }
 }
+
+// ── Portadas de PDF: primeira páxina → imaxe WebP (no navegador, con pdf.js) ──
+let pdfjsCargado = null;
+function cargarPdfjs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  pdfjsCargado ??= new Promise((ok, falla) => {
+    const s = document.createElement('script');
+    s.src = '/panel/vendor/pdf.min.js';
+    s.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/panel/vendor/pdf.worker.min.js';
+      ok(window.pdfjsLib);
+    };
+    s.onerror = () => falla(new Error('Non se puido cargar o lector de PDF.'));
+    document.head.append(s);
+  });
+  return pdfjsCargado;
+}
+
+/** Xera a portada (primeira páxina) dun PDF como ficheiro WebP */
+export async function portadaPdf(ficheiro) {
+  const pdfjs = await cargarPdfjs();
+  // isEvalSupported:false pecha a vía de ataque de CVE-2024-4367
+  const doc = await pdfjs.getDocument({ data: await ficheiro.arrayBuffer(), isEvalSupported: false }).promise;
+  const paxina = await doc.getPage(1);
+  const base = paxina.getViewport({ scale: 1 });
+  const vista = paxina.getViewport({ scale: 1200 / base.width });
+  const lenzo = document.createElement('canvas');
+  lenzo.width = Math.round(vista.width);
+  lenzo.height = Math.round(vista.height);
+  const ctx = lenzo.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, lenzo.width, lenzo.height);
+  // intent 'print': non depende de requestAnimationFrame (funciona aínda que a pestana non estea visible)
+  await paxina.render({ canvasContext: ctx, viewport: vista, intent: 'print' }).promise;
+  doc.destroy();
+  const blob = await new Promise((ok) => lenzo.toBlob(ok, 'image/webp', 0.85));
+  return new File([blob], ficheiro.name.replace(/\.pdf$/i, '') + '-portada.webp', { type: 'image/webp' });
+}
