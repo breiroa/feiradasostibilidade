@@ -1,7 +1,7 @@
 // FeiraLab: a Feira (e todo o proceso que leva a ela) como laboratorio para estudar como avanzar nos retos ecosociais.
 // Engade, despois da portada, unha sección de presentación e outra coas investigacións (2025–2026 e SENDA 2030).
 // Fontes: solicitude SENDA 2030 (estudo de patróns de consumo de alimentos; actividade de investigación transversal)
-// e a ficha da acción en TIAS lab. Idempotente: non engade nada se as seccións xa existen.
+// e a ficha da acción en TIAS lab. Idempotente: se as seccións xa existen, substitúeas no seu sitio.
 // Uso: node scripts/parche-feiralab.mjs --local | --remote
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -18,10 +18,6 @@ if (!fila) {
   process.exit(0);
 }
 const d = JSON.parse(fila.datos);
-if (d.seccions.some((s) => s.id === 'fl-laboratorio')) {
-  console.log('FeiraLab xa ten as seccións do laboratorio.');
-  process.exit(0);
-}
 
 const novas = [
   {
@@ -41,32 +37,33 @@ const novas = [
   },
   {
     id: 'fl-investigacions',
-    tipo: 'cronoloxia',
+    tipo: 'tarxetas',
     oculta: false,
     fondo: 'claro',
     etiqueta: 'Que investigamos',
-    titulo: 'Do consumo de alimentos á cidadanía global.',
-    fitos: [
+    titulo: 'Unha pregunta por curso.',
+    columnas: 2,
+    items: [
       {
-        data: '2025 – 2026',
-        titulo: 'Que comemos nos fogares de Pontevedra e que pegada climática deixa?',
+        etiqueta: '2025 – 2026 · Feito',
+        titulo: 'Consumo de alimentos e clima',
         texto:
-          'Un estudo de ciencia cidadá sobre os patróns de consumo de alimentos, feito polo alumnado do IES Luís Seoane coa Universidade de Vigo e CIDEL Galicia. O alumnado recolleu enquisas en distintas zonas do concello para estimar as emisións asociadas e presentou os resultados no I Foro de Desenvolvemento Local, onde traballou con persoas do comité cidadán do clima en propostas de acción para Pontevedra. O aprendido serviu de base para deseñar SENDA 2030.',
-        estado: 'feito',
+          'Que comemos nos fogares de Pontevedra e que pegada climática deixa? O alumnado do IES Luís Seoane fixo enquisas por todo o concello, coa Universidade de Vigo e CIDEL Galicia, e presentou os resultados no I Foro de Desenvolvemento Local.',
       },
       {
-        data: '2026 – 2027 · SENDA 2030',
-        titulo: 'Como pode a ciencia cidadá contribuír á educación para o desenvolvemento e a cidadanía global?',
+        etiqueta: '2026 – 2027 · SENDA 2030 · En marcha',
+        titulo: 'Ciencia cidadá e cidadanía global',
         texto:
-          'Unha investigación acompaña todo o camiño cara á V Feira: cuestionarios ao alumnado ao comezo e ao final do curso, rexistro das actividades e valoracións do alumnado e do profesorado. O resultado será un informe aberto, con aprendizaxes e recomendacións prácticas para os centros educativos.',
-        estado: 'agora',
+          'Pode a ciencia cidadá axudar a educar para unha cidadanía global? Estudámolo durante todo o curso, con cuestionarios ao alumnado ao comezo e ao final e valoracións do profesorado. O resultado será un informe aberto con recomendacións para os centros.',
       },
     ],
   },
 ];
 
-const i = d.seccions.findIndex((s) => s.tipo === 'heroe');
-d.seccions.splice(i + 1, 0, ...novas);
+// Se xa existen, substitúense no seu sitio; se non, van despois da portada
+const ids = new Set(novas.map((s) => s.id));
+if (d.seccions.some((s) => ids.has(s.id))) d.seccions = d.seccions.flatMap((s) => (s.id === novas[0].id ? novas : ids.has(s.id) ? [] : [s]));
+else d.seccions.splice(d.seccions.findIndex((s) => s.tipo === 'heroe') + 1, 0, ...novas);
 d.descricion = 'A Feira da Sostibilidade como laboratorio: investigación, acción e cidadanía crítica para avanzar fronte aos retos ecosociais.';
 
 const fsql = path.join(RAIZ, 'semente', 'parche-feiralab.sql');
