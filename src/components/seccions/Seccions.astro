@@ -43,7 +43,7 @@ const hai = (...t: Seccion['tipo'][]) => visibles.some((s) => t.includes(s.tipo)
 
 const [mapa, eds, nots, recs, tiposRec, libres, ax] = await Promise.all([
   hai('logos') ? mapaEntidades() : null,
-  hai('edicions', 'edicion_actual') ? edicions() : null,
+  hai('edicions', 'edicion_actual', 'noticias') ? edicions() : null,
   hai('noticias') ? noticias() : null,
   hai('recursos') ? recursos() : null,
   hai('recursos') ? tiposRecurso() : null,
@@ -165,7 +165,7 @@ const escuro = escuroDe;
         const lista = nots!.filter((n) => !s.edicion || n.edicion === s.edicion).slice(0, s.numero);
         return lista.length ? (
           <Envoltorio s={s}>
-            <div class="grella">{lista.map((n) => <NewsCard noticia={n} />)}</div>
+            <div class="grella">{lista.map((n) => <NewsCard noticia={n} edicions={eds ?? []} />)}</div>
             {!s.edicion && <p class="ver-mais"><a class="ligazon-frecha" href={url('actualidade/')}>Todas as noticias</a></p>}
           </Envoltorio>
         ) : null;

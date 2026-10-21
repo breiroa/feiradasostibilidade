@@ -1,13 +1,15 @@
 ---
-import type { Noticia } from '../lib/esquemas';
+import type { Edicion, Noticia } from '../lib/esquemas';
 import Img from './Img.astro';
-import { dataTexto, url } from '../lib/url';
+import { dataTexto, romano, url } from '../lib/url';
 
 interface Props {
   noticia: Noticia;
+  edicions?: Edicion[]; // para nomear a edición coma na navegación: «2027 · V Feira»
 }
 
-const { noticia: d } = Astro.props;
+const { noticia: d, edicions = [] } = Astro.props;
+const ed = edicions.find((e) => e.id === d.edicion);
 ---
 
 <article class="tarxeta noticia">
@@ -15,7 +17,7 @@ const { noticia: d } = Astro.props;
   <div class="corpo">
     <p class="meta">
       <time datetime={d.data}>{dataTexto(d.data)}</time>
-      {d.edicion && <span> · Feira {d.edicion}</span>}
+      {d.edicion && <span> · {ed ? `${romano(ed.numero)} Feira` : `Feira ${d.edicion}`}</span>}
     </p>
     <h3><a href={url(`actualidade/${d.id}/`)}>{d.titulo}</a></h3>
     <p>{d.resumo}</p>

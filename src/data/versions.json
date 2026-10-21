@@ -1,6 +1,6 @@
 {
-  "compilado": "2026-10-21T09:35:45.133Z",
-  "commit": "5ffbd03",
+  "compilado": "2026-10-21T09:53:21.474Z",
+  "commit": "f5f4abe",
   "compatibilidade": "2026-10-12",
   "paquetes": {
     "@astrojs/cloudflare": "14.4.1",
