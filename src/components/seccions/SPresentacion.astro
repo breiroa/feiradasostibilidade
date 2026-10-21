@@ -1,0 +1,44 @@
+---
+// Presentación: etiqueta, lema en cursiva, texto grande, etiquetas (chips) e cifras ao carón.
+import type { Seccion } from '../../lib/esquemas';
+import Envoltorio from './Envoltorio.astro';
+import StatsBar from '../StatsBar.astro';
+import { escuroDe } from '../../lib/deseno';
+import { ed, edItem, editando } from '../../lib/editable';
+
+type T = Extract<Seccion, { tipo: 'presentacion' }>;
+interface Props { s: T }
+const { s } = Astro.props;
+const editar = editando(Astro.locals);
+const E = (r: string, t: 'texto' | 'area' = 'texto', ph?: string) => ed(Astro.locals, r, t, ph);
+---
+
+<Envoltorio s={s} cabeceira={false}>
+  <div class:list={['presentacion', { 'sen-cifras': !s.cifras.length }]}>
+    <div>
+      {(s.etiqueta || editar) && <p class="etiqueta" {...E('etiqueta', 'texto', 'Etiqueta (opcional)')}>{s.etiqueta}</p>}
+      {(s.titulo || editar) && <h2 {...E('titulo', 'texto', 'Título (opcional)')}>{s.titulo}</h2>}
+      {(s.lema || editar) && <p class="lema" {...E('lema', 'texto', 'Lema (opcional)')}>{s.lema}</p>}
+      {(s.texto || editar) && <p class="resumo" {...E('texto', 'area', 'Texto de presentación')}>{s.texto}</p>}
+      {
+        s.chips.length > 0 && (
+          <ul class="chips">
+            {s.chips.map((f, i) => <li class="chip" {...E(`chips.${i}`)} {...edItem(Astro.locals, `chips.${i}`)}>{f}</li>)}
+          </ul>
+        )
+      }
+    </div>
+    {s.cifras.length > 0 && <StatsBar cifras={s.cifras} escuro={escuroDe(s)} ruta="cifras" />}
+  </div>
+</Envoltorio>
+
+<style>
+  .presentacion { display: grid; grid-template-columns: 1.3fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+  .presentacion.sen-cifras { grid-template-columns: minmax(0, 52rem); }
+  .presentacion h2 { margin-bottom: 0.8rem; }
+  .lema { font-family: var(--serif); font-style: italic; font-size: 1.35rem; color: var(--morado); margin-bottom: 0.8rem; }
+  .resumo { font-family: var(--serif); font-size: clamp(1.3rem, 2.1vw, 1.7rem); line-height: 1.38; color: var(--texto); }
+  .chips { margin-top: 1.6rem; }
+  :global(.fondo-escuro) .resumo, :global(.fondo-morado) .resumo { color: var(--branco); }
+  @media (max-width: 860px) { .presentacion { grid-template-columns: 1fr; } }
+</style>

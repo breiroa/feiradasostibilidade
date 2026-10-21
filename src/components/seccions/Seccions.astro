@@ -1,7 +1,8 @@
 ---
 // Pinta unha lista de seccións. Carga só os datos que necesitan as seccións presentes.
 import type { Seccion } from '../../lib/esquemas';
-import { axustes, edicions, mapaEntidades, noticias, paxinasLibres, proxectos, recursos, resolverEntidades } from '../../lib/datos';
+import { axustes, edicions, mapaEntidades, noticias, paxinasLibres, recursos, resolverEntidades, tiposRecurso } from '../../lib/datos';
+import SPresentacion from './SPresentacion.astro';
 import { romano, url } from '../../lib/url';
 import Envoltorio from './Envoltorio.astro';
 import SHeroe from './SHeroe.astro';
@@ -40,12 +41,12 @@ const E = (r: string, t: 'texto' | 'area' | 'rico' = 'texto', ph?: string) => ed
 const visibles = seccions.filter((s) => editar || !s.oculta);
 const hai = (...t: Seccion['tipo'][]) => visibles.some((s) => t.includes(s.tipo));
 
-const [mapa, eds, nots, recs, proxs, libres, ax] = await Promise.all([
+const [mapa, eds, nots, recs, tiposRec, libres, ax] = await Promise.all([
   hai('logos') ? mapaEntidades() : null,
   hai('edicions', 'edicion_actual') ? edicions() : null,
   hai('noticias') ? noticias() : null,
   hai('recursos') ? recursos() : null,
-  hai('actividades') ? proxectos() : null,
+  hai('recursos') ? tiposRecurso() : null,
   hai('subpaxinas') ? paxinasLibres() : null,
   hai('edicion_actual') ? axustes() : null,
 ]);
@@ -109,7 +110,9 @@ const escuro = escuroDe;
           </Envoltorio>
         );
       case 'actividades':
-        return <SActividades s={s} proxecto={proxs?.find((p) => p.id === s.proxecto)} />;
+        return <SActividades s={s} />;
+      case 'presentacion':
+        return <SPresentacion s={s} />;
       case 'cronoloxia':
         return <SCronoloxia s={s} />;
       case 'documentos':
@@ -128,7 +131,7 @@ const escuro = escuroDe;
         const lista = s.recursos.length ? s.recursos.map((id) => recs!.find((r) => r.id === id)).filter(Boolean) : recs!.filter((r) => !s.edicion || r.edicion === s.edicion);
         return lista.length ? (
           <Envoltorio s={s} texto={s.texto}>
-            <div class="grella-recursos">{lista.map((r) => <ResourceCard recurso={r!} />)}</div>
+            <div class="grella-recursos">{lista.map((r) => <ResourceCard recurso={r!} tipos={tiposRec ?? undefined} />)}</div>
           </Envoltorio>
         ) : null;
       }

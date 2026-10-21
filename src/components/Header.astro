@@ -6,9 +6,14 @@ import { url } from '../lib/url';
 interface Props {
   edicions: Edicion[];
   menu: ItemNav[];
+  boton?: { href: string; texto: string };
 }
 
-const { edicions, menu } = Astro.props;
+const { edicions, menu, boton } = Astro.props;
+// No despregable, a próxima edición leva un punto verde
+const proxima = (href: string) => edicions.some((e) => e.estado === 'proxima' && href.replace(/\/?$/, '/') === `/edicions/${e.id}/`);
+// Despregables con textos curtos (p. ex. anos) usan letra grande
+const curtos = (i: ItemNav) => i.fillos.every((f) => f.texto.length <= 8);
 const ruta = Astro.url.pathname.replace(/\/?$/, '/');
 const interna = (href: string) => href.startsWith('/') && !href.startsWith('//');
 const activa = (href: string) => interna(href) && (href === '/' ? ruta === '/' : ruta.startsWith(href.split(/[?#]/)[0]));
@@ -30,35 +35,16 @@ const activa = (href: string) => interna(href) && (href === '/' ? ruta === '/' :
       <ul class="nivel1">
         {
           menu.map((item, n) =>
-            item.edicions ? (
-              <li class="con-submenu">
-                <button type="button" class="submenu-boton" aria-expanded="false" aria-controls="submenu-edicions" aria-current={activa(item.href) ? 'page' : undefined}>
-                  {item.texto}
-                  <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10"><path d="M1 3l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
-                </button>
-                <ul id="submenu-edicions" class="submenu">
-                  {edicions.map((e) => (
-                    <li>
-                      <a href={url(`edicions/${e.id}/`)} class:list={{ proxima: e.estado === 'proxima' }} aria-current={ruta.startsWith(url(`edicions/${e.id}/`)) ? 'page' : undefined}>
-                        {e.ano}
-                      </a>
-                    </li>
-                  ))}
-                  <li class="todas">
-                    <a href={url('edicions/')}>Todas as edicións →</a>
-                  </li>
-                </ul>
-              </li>
-            ) : item.fillos.length ? (
+            item.fillos.length ? (
               <li class="con-submenu">
                 <button type="button" class="submenu-boton" aria-expanded="false" aria-controls={`submenu-${n}`} aria-current={activa(item.href) || item.fillos.some((f) => activa(f.href)) ? 'page' : undefined}>
                   {item.texto}
                   <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10"><path d="M1 3l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
                 </button>
-                <ul id={`submenu-${n}`} class="submenu submenu--texto">
+                <ul id={`submenu-${n}`} class:list={['submenu', { 'submenu--texto': !curtos(item) }]}>
                   {item.fillos.map((f) => (
                     <li>
-                      <a href={f.href} aria-current={activa(f.href) ? 'page' : undefined}>{f.texto}</a>
+                      <a href={f.href} class:list={{ proxima: proxima(f.href) }} aria-current={activa(f.href) ? 'page' : undefined}>{f.texto}</a>
                     </li>
                   ))}
                   <li class="todas">
@@ -76,6 +62,7 @@ const activa = (href: string) => interna(href) && (href === '/' ? ruta === '/' :
           )
         }
       </ul>
+      {boton && <a class="boton boton-cabeceira" href={boton.href}>{boton.texto}</a>}
     </nav>
   </div>
 </header>
@@ -156,6 +143,7 @@ const activa = (href: string) => interna(href) && (href === '/' ? ruta === '/' :
   .submenu .todas { border-top: 1px solid var(--linha); margin-top: 0.35rem; padding-top: 0.35rem; }
   .submenu .todas a { font-family: var(--sans); font-weight: 600; font-size: 0.9rem; color: var(--verde); }
   .submenu--texto { min-width: 230px; }
+  .boton-cabeceira { padding: 0.55rem 1.1rem; font-size: 0.8rem; }
   .submenu--texto a { font-size: 1rem; }
 
   .menu-boton { display: none; }

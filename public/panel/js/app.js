@@ -5,7 +5,11 @@ import { sucio, vistaEditor, vistaLista } from './coleccions.js';
 import * as contidos from './contidos.js';
 import * as outras from './outras.js';
 import { paxinas } from './paxinas.js';
-import { editorVista } from './editor-vista.js';
+import { menus } from './menu.js';
+import { cabeceiraPe } from './estrutura.js';
+import { modelos } from './modelos.js';
+import { recursos } from './recursos.js';
+import { diagnostico } from './diagnostico.js';
 
 
 // O panel úsase só no dominio principal (as sesións son por dominio)
@@ -18,24 +22,23 @@ const app = document.getElementById('app');
 const menu = [
   { zona: null, items: [{ ruta: '', texto: 'Resumo', icona: '◔' }] },
   { zona: 'Contido', items: [
-    { ruta: 'paxinas', texto: 'Páxinas e edicións', icona: '⊞' },
+    { ruta: 'estrutura', texto: 'Cabeceira e pé', icona: '▤' },
+    { ruta: 'paxinas', texto: 'Páxinas', icona: '⊞' },
+    { ruta: 'menus', texto: 'Menús', icona: '☰' },
+    { ruta: 'modelos', texto: 'Modelos', icona: '☆' },
     { ruta: 'noticias', texto: 'Noticias', icona: '✎' },
     { ruta: 'recursos', texto: 'Recursos', icona: '◫' },
-    { ruta: 'proxectos', texto: 'Proxectos', icona: '◎' },
-    { ruta: 'entidades', texto: 'Entidades e logos', icona: '◇' },
+    { ruta: 'entidades', texto: 'Ecosistema', icona: '◇' },
     { ruta: 'biblioteca', texto: 'Biblioteca', icona: '▦' },
   ] },
-  { zona: 'Comunidade', items: [
-    { ruta: 'inscricions', texto: 'Inscricións', icona: '✉', contador: true },
-    { ruta: 'admins', texto: 'Persoas administradoras', icona: '👤', superadmin: true },
-  ] },
   { zona: 'Sistema', items: [
-    { ruta: 'axustes', texto: 'Axustes e pé', icona: '⚙' },
-    { ruta: 'conta', texto: 'A miña conta', icona: '🔑' },
+    { ruta: 'admins', texto: 'Administración', icona: '👤', superadmin: true },
+    { ruta: 'axustes', texto: 'Axustes', icona: '⚙' },
+    { ruta: 'diagnostico', texto: 'Diagnóstico', icona: '✚' },
   ] },
 ];
 
-let main, nav, contadorInsc = 0;
+let main, nav;
 
 function estrutura() {
   nav = el('nav', { class: 'nav', 'aria-label': 'Seccións do panel' });
@@ -46,6 +49,7 @@ function estrutura() {
       el('div', { class: 'top-accions' },
         el('span', { class: 'estado-gardado', 'aria-live': 'polite' }),
         el('a', { class: 'btn-ghost', href: '/', target: '_blank' }, 'Ver a web ↗'),
+        el('a', { class: 'btn-ghost top-conta', href: '#/conta', title: 'A miña conta: contrasinal e verificación en dous pasos' }, `👤 ${estado.admin.nome.split(' ')[0]}`),
         el('button', { class: 'btn-ghost', type: 'button', onclick: sair }, 'Saír'))),
     el('div', { class: 'corpo-panel' }, nav, main),
   );
@@ -53,60 +57,38 @@ function estrutura() {
 
 function pintarMenu(ruta) {
   // As edicións editanse dentro de «Páxinas e edicións»
-  const seccion = ruta.split('/')[0] === 'edicions' ? 'paxinas' : ruta.split('/')[0];
+  const s0 = ruta.split('/')[0];
+  const seccion = { edicions: 'paxinas', mensaxes: 'diagnostico' }[s0] ?? s0;
   nav.replaceChildren(...menu.flatMap((z) => [
     z.zona ? el('div', { class: 'nav-zona' }, z.zona) : null,
     ...z.items.filter((i) => !i.superadmin || estado.admin.rol === 'superadmin').map((i) =>
       el('a', { href: `#/${i.ruta}`, class: seccion === i.ruta ? 'activo' : '' },
         el('span', { 'aria-hidden': 'true' }, i.icona), i.texto,
-        i.contador && contadorInsc ? el('span', { class: 'contador', title: 'Novas' }, String(contadorInsc)) : null)),
+      )),
   ]).filter(Boolean));
-}
-
-async function actualizarContador() {
-  try {
-    const { items } = await api('inscricions');
-    contadorInsc = items.filter((i) => i.estado === 'nova').length;
-  } catch { /* sen importancia */ }
 }
 
 const rutas = {
   '': () => outras.inicio(main),
-  edicions: (id) => (id ? editarEdicion(id) : location.replace('#/paxinas')),
-  noticias: (id) => (id ? vistaEditor(main, contidos.noticias, id) : vistaLista(main, contidos.noticias)),
-  recursos: (id) => (id ? vistaEditor(main, contidos.recursos, id) : vistaLista(main, contidos.recursos)),
-  proxectos: (id) => (id ? vistaEditor(main, contidos.proxectos, id) : vistaLista(main, contidos.proxectos)),
-  paxinas_libres: (id) => { location.replace(`#/paxinas${id && id !== 'novo' ? `/${id}` : ''}`); },
-  entidades: (id) => (id ? vistaEditor(main, contidos.entidades, id) : vistaLista(main, contidos.entidades)),
+  estrutura: () => cabeceiraPe(main),
   paxinas: (id) => paxinas(main, id),
+  menus: (id) => menus(main, id),
+  modelos: (id) => modelos(main, id),
+  noticias: (id) => (id ? vistaEditor(main, contidos.noticias, id) : vistaLista(main, contidos.noticias)),
+  recursos: (id) => recursos(main, id),
+  entidades: (id) => (id ? vistaEditor(main, contidos.entidades, id) : vistaLista(main, contidos.entidades)),
   biblioteca: () => outras.biblioteca(main),
-  inscricions: async () => { await outras.inscricions(main); await actualizarContador(); },
   admins: () => outras.admins(main),
   axustes: () => outras.axustes(main),
+  diagnostico: () => diagnostico(main),
   conta: () => outras.conta(main, { aoRestablecer2fa: () => pantallaActivar2fa(aoAcceder) }),
+  // Enderezos vellos
+  edicions: (id) => location.replace(`#/paxinas${id && id !== 'novo' ? `/${id}` : ''}`),
+  paxinas_libres: (id) => location.replace(`#/paxinas${id && id !== 'novo' ? `/${id}` : ''}`),
+  mensaxes: () => outras.inscricions(main),
+  inscricions: () => location.replace('#/mensaxes'),
+  proxectos: () => location.replace('#/paxinas'),
 };
-
-/** Edición: o mesmo editor con vista previa que as páxinas */
-async function editarEdicion(id) {
-  const cfg = contidos.edicions;
-  let d, item;
-  if (id === 'novo') d = cfg.novo();
-  else {
-    item = (await coleccion('edicions', { forzar: true })).find((x) => x.id === id);
-    if (!item) { main.replaceChildren(el('a', { class: 'volver', href: '#/edicions' }, '← Edicións'), el('div', { class: 'baleiro' }, 'Non se atopou esta edición.')); return; }
-    d = structuredClone(item.datos);
-  }
-  editorVista(main, {
-    coleccion: 'edicions', id, d, item,
-    titulo: (x) => x.titulo,
-    volver: ['#/paxinas', 'Páxinas'],
-    verNaWeb: cfg.verNaWeb,
-    axustes: (x, o) => cfg.axustes(x, o),
-    axustesAbertos: id === 'novo',
-    pestanaAxustes: 'Datos da edición',
-    aoCrear: (nid) => `#/edicions/${nid}`,
-  });
-}
 
 let rutaActual = null;
 async function navegar() {
@@ -151,7 +133,6 @@ async function aoAcceder(r) {
       estado.csrf = s.csrf;
       estado.admin = s.admin;
       estrutura();
-      await actualizarContador();
       rutaActual = null;
       return navegar();
     }

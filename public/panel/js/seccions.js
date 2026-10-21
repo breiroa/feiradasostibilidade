@@ -44,8 +44,14 @@ export const tipos = {
     campos: (d) => [textoIntro(d), c.repetidor(d, 'dias', 'Días', { novo: () => ({ dia: '', actividades: [] }), engadirTexto: '+ Engadir día',
       pintarItem: (dia) => [c.texto(dia, 'dia', 'Día'), c.repetidor(dia, 'actividades', 'Actividades', { novo: () => ({ titulo: '' }), engadirTexto: '+ Engadir actividade',
         pintarItem: (a) => [el('div', { class: 'fila3' }, c.texto(a, 'hora', 'Hora'), el('div', { style: { gridColumn: 'span 2' } }, c.texto(a, 'titulo', 'Título'))), c.area(a, 'descricion', 'Descrición', { filas: 2 })] })] })] },
-  actividades: { nome: 'Actividades dun proxecto', icona: '✓', desc: 'As actividades dun proxecto co seu estado e barra de progreso.', novo: () => ({ fondo: 'branco', proxecto: '' }),
-    campos: (d) => [textoIntro(d), c.refUnica(d, 'proxecto', 'Proxecto', { colec: 'proxectos', obrig: true, nomeDe: (x) => x.datos.nomeCurto })] },
+  actividades: { nome: 'Actividades', icona: '✓', desc: 'Actividades (dun proxecto, dun plan…) co seu estado e barra de progreso.', novo: () => ({ fondo: 'branco', progreso: true, items: [{ titulo: 'Primeira actividade', estado: 'feita' }, { titulo: 'Segunda actividade', estado: 'en-curso' }, { titulo: 'Terceira actividade', estado: 'prevista' }] }),
+    campos: (d) => [textoIntro(d), c.marca(d, 'progreso', 'Mostrar a barra de progreso'),
+      c.repetidor(d, 'items', 'Actividades', { novo: () => ({ titulo: 'Nova actividade', estado: 'prevista' }), engadirTexto: '+ Engadir actividade',
+        pintarItem: (a) => [el('div', { class: 'fila3' }, c.texto(a, 'codigo', 'Código (opcional)'), el('div', { style: { gridColumn: 'span 2' } }, c.texto(a, 'titulo', 'Título'))),
+          el('div', { class: 'fila2' }, c.escolla(a, 'estado', 'Estado', [{ valor: 'prevista', texto: 'Prevista' }, { valor: 'en-curso', texto: 'En curso' }, { valor: 'feita', texto: 'Feita' }]), el('div')),
+          c.area(a, 'descricion', 'Descrición (opcional)', { filas: 2 })] })] },
+  presentacion: { nome: 'Presentación', icona: '❖', desc: 'Lema, texto grande, etiquetas e cifras ao carón (p. ex. o resumo dunha edición).', novo: () => ({ fondo: 'branco', etiqueta: 'Presentación', texto: 'Un texto grande que presenta a páxina.', chips: [], cifras: [] }),
+    campos: (d) => [c.texto(d, 'lema', 'Lema (opcional)'), c.area(d, 'texto', 'Texto grande', { filas: 3 }), c.listaTextos(d, 'chips', 'Etiquetas'), cifras(d)] },
   cronoloxia: { nome: 'Cronoloxía', icona: '⋮', desc: 'Fitos con data (feito, agora, próximo).', novo: () => ({ fitos: [] }),
     campos: (d) => [textoIntro(d), c.repetidor(d, 'fitos', 'Fitos', { novo: () => ({ data: '', titulo: '', estado: 'proximo' }), engadirTexto: '+ Engadir fito',
       pintarItem: (f) => [el('div', { class: 'fila3' }, c.texto(f, 'data', 'Data'), c.texto(f, 'titulo', 'Título'), c.escolla(f, 'estado', 'Estado', [{ valor: 'feito', texto: 'Feito' }, { valor: 'agora', texto: 'Agora' }, { valor: 'proximo', texto: 'Próximo' }])), c.area(f, 'texto', 'Texto', { filas: 2 })] })] },
@@ -65,8 +71,9 @@ export const tipos = {
     campos: (d) => [textoIntro(d), escollaNai(d)] },
   formulario: { nome: 'Formulario', icona: '✉', desc: 'O formulario de participación e contacto (as mensaxes chegan a Inscricións).', novo: () => ({ fondo: 'branco', ancla: 'formulario', etiqueta: 'Escríbenos', titulo: 'Cóntanos que tes en mente.' }),
     campos: (d) => [textoIntro(d), el('div', { class: 'fila2' }, c.texto(d, 'graciasTitulo', 'Mensaxe ao enviar: título', { placeholder: 'Grazas! Recibimos a túa mensaxe.' }), c.texto(d, 'graciasTexto', 'Mensaxe ao enviar: texto'))] },
-  listado: { nome: 'Listado completo', icona: '☷', desc: 'Todas as noticias, recursos ou edicións, con filtros.', novo: () => ({ de: 'noticias' }),
-    campos: (d) => [textoIntro(d), c.escolla(d, 'de', 'Que se lista', [{ valor: 'noticias', texto: 'Todas as noticias (filtro por edición)' }, { valor: 'recursos', texto: 'Todos os recursos (filtro por tipo)' }, { valor: 'edicions', texto: 'Todas as edicións' }])] },
+  listado: { nome: 'Listado completo', icona: '☷', desc: 'Todas as noticias, recursos (ou só uns tipos) ou edicións, con filtro despregable.', novo: () => ({ de: 'noticias', filtro: true, tipos: [] }),
+    campos: (d) => [textoIntro(d), c.escolla(d, 'de', 'Que se lista', [{ valor: 'noticias', texto: 'Todas as noticias (filtro por edición)' }, { valor: 'recursos', texto: 'Recursos (filtro por tipo)' }, { valor: 'edicions', texto: 'Todas as edicións' }]),
+      c.marca(d, 'filtro', 'Mostrar o filtro despregable'), tiposRecursoLista(d)] },
 };
 
 // Tipos novos: columnas con bloques libres, preguntas frecuentes e foto grande
@@ -133,11 +140,29 @@ function editorColumnas(d) {
   return cont;
 }
 
+/** Tipos de recurso que mostra un listado (baleiro = todos) */
+function tiposRecursoLista(d) {
+  const cont = el('div');
+  if (!Array.isArray(d.tipos)) d.tipos = [];
+  coleccion('axustes').then((ax) => {
+    const tipos = ax.find((x) => x.id === 'xeral')?.datos.tiposRecurso ?? [];
+    cont.replaceChildren(el('div', { class: 'campo' },
+      el('label', {}, 'Só estes tipos de recurso (se o listado é de recursos)'),
+      el('div', { class: 'chips' }, tipos.map((t) => el('label', { class: 'chip seleccionable' },
+        el('input', { type: 'checkbox', checked: d.tipos.includes(t.id), onchange: (e) => {
+          if (e.target.checked) d.tipos.push(t.id);
+          else d.tipos.splice(d.tipos.indexOf(t.id), 1);
+        } }), ` ${t.nome}`))),
+      el('div', { class: 'axuda' }, 'Sen marcar ningún, lístanse todos. Así podes facer páxinas só de xogos, só de podcasts…')));
+  });
+  return cont;
+}
+
 /** Escolla da páxina nai para a sección de subpáxinas (só páxinas que poden ter subpáxinas) */
 function escollaNai(d) {
   const cont = el('div');
   coleccion('paxinas_libres').then((ps) => cont.replaceChildren(c.escolla(d, 'nai', 'Subpáxinas de', ps
-    .filter((p) => !p.datos.nai && !['inicio', 'participa', 'actualidade', 'recursos', 'edicions'].includes(p.id))
+    .filter((p) => !p.datos.nai && !['inicio', 'participa', 'actualidade', 'recursos'].includes(p.id))
     .map((p) => ({ valor: p.id, texto: p.datos.titulo })))));
   return cont;
 }
@@ -188,7 +213,7 @@ const CATEGORIAS = [
   ['Básicas', ['heroe', 'texto', 'texto_imaxe', 'columnas', 'imaxe', 'html']],
   ['Visuais', ['tarxetas', 'galeria', 'video', 'cifras', 'cita']],
   ['Información', ['cronoloxia', 'programa', 'acordeon', 'lista', 'documentos']],
-  ['Contidos da web', ['noticias', 'recursos', 'listado', 'edicions', 'edicion_actual', 'actividades', 'subpaxinas', 'logos']],
+  ['Contidos da web', ['noticias', 'recursos', 'listado', 'edicions', 'edicion_actual', 'presentacion', 'actividades', 'subpaxinas', 'logos']],
   ['Participación', ['chamada', 'formulario']],
 ];
 const C = { fondo: '#f4f2f8', escuro: '#2b2340', verde: '#3c783c', morado: '#8f7cb8', liña: '#cdc6da', branco: '#fff', foto: '#9fb7a0' };
@@ -218,6 +243,7 @@ const DEBUXOS = {
   listado: [8, 26, 44].map((x) => R(x, 8, 16, 7, x === 8 ? C.escuro : '#fff', 4)).join('') + [8, 44, 80].map((x) => R(x, 22, 32, 40, '#fff', 4) + F(x, 22, 32, 18) + L(x + 4, 44, 22, 2)).join(''),
   edicions: [8, 62].map((x) => R(x, 10, 50, 52, '#fff', 4) + F(x, 10, 50, 26) + T(x + 4, 41, 34) + L(x + 4, 50, 40, 1)).join(''),
   edicion_actual: L(8, 12, 24, 1, C.verde) + T(8, 20, 50) + L(8, 32, 50, 3) + R(8, 52, 30, 9, C.verde, 4) + [70, 94].map((x) => `<text x="${x}" y="30" font-family="Georgia" font-weight="700" font-size="14" fill="${C.verde}">30</text>` + L(x, 36, 18, 1)).join(''),
+  presentacion: L(8, 12, 24, 1, C.verde) + `<text x="8" y="28" font-family="Georgia" font-style="italic" font-size="9" fill="${C.morado}">Lema</text>` + T(8, 34, 60) + T(8, 42, 52) + R(8, 54, 18, 6, '#e3dcef', 3) + R(30, 54, 22, 6, '#e3dcef', 3) + [76, 96].map((x) => `<text x="${x}" y="34" font-family="Georgia" font-weight="700" font-size="13" fill="${C.verde}">9</text>` + L(x, 40, 16, 1)).join(''),
   actividades: R(8, 10, 104, 6, '#e3dcef', 3) + R(8, 10, 60, 6, C.verde, 3) + [24, 38, 52].map((y, i) => `<circle cx="13" cy="${y + 2}" r="4" fill="${i ? C.liña : C.verde}"/>` + T(22, y, 60) + L(22, y + 8, 80, 1)).join(''),
   subpaxinas: [[8, 10], [62, 10], [8, 40], [62, 40]].map(([x, y]) => R(x, y, 50, 24, '#fff', 4) + T(x + 5, y + 6, 30) + L(x + 5, y + 15, 38, 1)).join(''),
   logos: [10, 40, 70, 96].map((x, i) => `<circle cx="${x + 10}" cy="26" r="9" fill="${[C.verde, C.morado, '#c9a24a', '#6a9fc4'][i]}"/>` + L(x + 2, 40, 16, 1)).join('') + L(10, 54, 100, 1),
@@ -257,6 +283,8 @@ export function novoElemento(s) {
   const boton = { texto: 'Novo botón', url: '/participa/', estilo: 'principal' };
   switch (s.tipo) {
     case 'tarxetas': return ['items', { titulo: 'Novo título', texto: 'Texto da tarxeta.' }];
+    case 'actividades': return ['items', { titulo: 'Nova actividade', estado: 'prevista' }];
+    case 'presentacion': return ['chips', 'Nova etiqueta'];
     case 'cronoloxia': return ['fitos', { data: 'Data', titulo: 'Novo fito', estado: 'proximo' }];
     case 'acordeon': return ['items', { pregunta: 'Nova pregunta?', corpo: '<p>Resposta.</p>' }];
     case 'documentos': return ['items', { titulo: 'Novo documento' }];
@@ -296,8 +324,11 @@ export function construtor(d, clave = 'seccions', { titulo = 'Seccións da páxi
   let arrastrando = null;
 
   function engadir(posicion) {
-    const escoller = (s) => {
-      lista().splice(posicion, 0, s);
+    // Pode recibir unha sección ou varias (un modelo de seccións)
+    const escoller = (sOuVarias) => {
+      const varias = Array.isArray(sOuVarias) ? sOuVarias : [sOuVarias];
+      const s = varias[0];
+      lista().splice(posicion, 0, ...varias);
       abertas.clear();
       abertas.add(s.id);
       m.pechar();
@@ -307,7 +338,7 @@ export function construtor(d, clave = 'seccions', { titulo = 'Seccións da páxi
       setTimeout(() => cont.querySelector(`[data-sec="${s.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     };
     const grella = grellaTipos((tipo) => escoller({ id: novoId(), tipo, oculta: false, fondo: 'claro', ...tipos[tipo].novo() }));
-    const m = modal('Engadir sección', modelos ? modelos.engadir(grella, (s) => escoller({ ...structuredClone(s), id: novoId() })) : grella, { ancho: true });
+    const m = modal('Engadir sección', modelos ? modelos.engadir(grella, (ss) => escoller((Array.isArray(ss) ? ss : [ss]).map((x) => ({ ...structuredClone(x), id: novoId() })))) : grella, { ancho: true });
     m.dialog.classList.add('modal-tipos');
   }
 

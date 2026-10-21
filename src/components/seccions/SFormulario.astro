@@ -4,6 +4,7 @@ import type { Seccion } from '../../lib/esquemas';
 import { axustes } from '../../lib/datos';
 import { campos } from '../../lib/formularios';
 import { url } from '../../lib/url';
+import { ligazonContacto } from '../../lib/contactos';
 import { clasesDeseno, estiloDeseno, fondoDe } from '../../lib/deseno';
 import { ed, editando } from '../../lib/editable';
 
@@ -11,6 +12,8 @@ type T = Extract<Seccion, { tipo: 'formulario' }>;
 interface Props { s: T }
 const { s } = Astro.props;
 const ax = await axustes();
+// Os primeiros contactos (redes e correo) de Axustes
+const contactos = (ax.contactos ?? []).map(ligazonContacto).filter((x): x is NonNullable<typeof x> => Boolean(x)).slice(0, 3);
 const q = Astro.url.searchParams;
 const enviado = q.get('enviado');
 const erro = q.get('erro');
@@ -28,9 +31,20 @@ const volver = Astro.url.pathname.startsWith('/vista-previa') ? '/participa/' : 
       {(s.etiqueta || editar) && <p class="etiqueta" {...E('etiqueta', 'texto', 'Etiqueta (opcional)')}>{s.etiqueta}</p>}
       {(s.titulo || editar) && <h2 {...E('titulo', 'texto', 'Título')}>{s.titulo}</h2>}
       {(s.texto || editar) && <p {...E('texto', 'area', 'Texto (opcional)')}>{s.texto}</p>}
-      <p class="outras">
-        Tamén nos atopas en {ax.instagram ? <a href={ax.instagram} rel="noopener">Instagram</a> : 'Instagram'}{ax.correo && <> ou en <a href={`mailto:${ax.correo}`}>{ax.correo}</a></>}.
-      </p>
+      {
+        contactos.length > 0 && (
+          <p class="outras">
+            Tamén nos atopas en{' '}
+            {contactos.map((k, i) => (
+              <>
+                {i > 0 && (i === contactos.length - 1 ? ' ou ' : ', ')}
+                <a href={k.href} rel={/^https?:/.test(k.href) ? 'noopener' : undefined}>{k.texto}</a>
+              </>
+            ))}
+            .
+          </p>
+        )
+      }
     </div>
 
     <div class="caixa">

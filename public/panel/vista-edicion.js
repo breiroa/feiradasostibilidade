@@ -13,10 +13,10 @@
     logos: 'Logos', programa: 'Programa', actividades: 'Actividades', cronoloxia: 'Cronoloxía', documentos: 'Documentos', lista: 'Lista',
     recursos: 'Recursos', cita: 'Cita', chamada: 'Chamada á acción', noticias: 'Noticias', edicions: 'Edicións', edicion_actual: 'Edición destacada',
     subpaxinas: 'Subpáxinas', formulario: 'Formulario', listado: 'Listado', columnas: 'Columnas', acordeon: 'Preguntas frecuentes', imaxe: 'Foto grande',
-    html: 'HTML', _cabeceira: 'Cabeceira da páxina', _edicion: 'Presentación da edición',
+    html: 'HTML', presentacion: 'Presentación', _cabeceira: 'Cabeceira da páxina', _edicion: 'Presentación da edición', _recurso: 'Ficha do recurso',
   };
   // Que se engade co botón «+» de cada tipo de sección
-  const ENGADIR = { tarxetas: 'Tarxeta', cronoloxia: 'Fito', acordeon: 'Pregunta', documentos: 'Documento', lista: 'Elemento', cifras: 'Cifra', programa: 'Día', columnas: 'Bloque', heroe: 'Botón', chamada: 'Botón', texto_imaxe: 'Botón' };
+  const ENGADIR = { actividades: 'Actividade', presentacion: 'Etiqueta', tarxetas: 'Tarxeta', cronoloxia: 'Fito', acordeon: 'Pregunta', documentos: 'Documento', lista: 'Elemento', cifras: 'Cifra', programa: 'Día', columnas: 'Bloque', heroe: 'Botón', chamada: 'Botón', texto_imaxe: 'Botón' };
 
   // ── Estilos do modo edición ──
   const css = document.createElement('style');

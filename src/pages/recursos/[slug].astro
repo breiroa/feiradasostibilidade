@@ -1,73 +1,9 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Img from '../../components/Img.astro';
-import { edicion, recurso } from '../../lib/datos';
-import { tiposRecurso } from '../../data/site';
-import { mediaUrl, url } from '../../lib/url';
+import RecursoPaxina from '../../components/RecursoPaxina.astro';
+import { recurso } from '../../lib/datos';
 
 const d = await recurso(Astro.params.slug ?? '');
 if (!d) return new Response(null, { status: 404 });
-const ed = d.edicion ? await edicion(d.edicion) : null;
-const destino = d.ficheiro ? mediaUrl(d.ficheiro, 'f') : d.ligazon;
-const capa = d.portada ?? d.imaxe;
 ---
 
-<Base titulo={d.titulo} descricion={d.resumo} imaxe={capa}>
-  <article class="sec fondo-branco">
-    <div class="contedor ficha-grella">
-      <div class="principal">
-        <p class="volver"><a href={url('recursos/')}>← Recursos</a></p>
-        <p class="tipo">{tiposRecurso[d.tipo]}{ed && <> · <a href={url(`edicions/${ed.id}/`)}>{ed.titulo}</a></>}</p>
-        <h1>{d.titulo}</h1>
-        <p class="resumo">{d.resumo}</p>
-        {d.imaxe && d.portada && <Img id={d.imaxe} alt={d.imaxeAlt ?? ''} sizes="(max-width: 900px) 100vw, 640px" class="foto" />}
-        <div class="texto-longo"><Fragment set:html={d.corpo} /></div>
-      </div>
-
-      <aside class="lateral">
-        {
-          capa && (
-            <a class="capa" href={destino ?? '#'} rel="noopener" aria-label={destino ? `Abrir ${d.titulo}` : d.titulo}>
-              <img src={mediaUrl(capa, 'g')} alt="" decoding="async" class:list={{ portada: Boolean(d.portada) }} />
-            </a>
-          )
-        }
-        {destino ? (
-          <a class="boton descargar" href={destino} rel="noopener" download={d.ficheiro ? '' : undefined}>{d.ficheiro ? 'Descargar PDF' : 'Ver o recurso'}</a>
-        ) : (
-          <p class="pronto">O material estará dispoñible en breve.</p>
-        )}
-        <dl class="ficha">
-          {d.autoria && <div><dt>Autoría</dt><dd>{d.autoria}</dd></div>}
-          {d.temas.length > 0 && <div><dt>Temas</dt><dd>{d.temas.join(' · ')}</dd></div>}
-          {d.ods.length > 0 && <div><dt>ODS</dt><dd>{d.ods.map((o) => `ODS ${o}`).join(' · ')}</dd></div>}
-          <div><dt>Licenza</dt><dd>{d.licenza}</dd></div>
-        </dl>
-      </aside>
-    </div>
-  </article>
-</Base>
-
-<style>
-  .ficha-grella { display: grid; grid-template-columns: 1fr 340px; gap: clamp(2rem, 5vw, 4.5rem); align-items: start; }
-  .volver { margin-bottom: 1.5rem; font-size: 0.9rem; }
-  .volver a { text-decoration: none; }
-  .tipo { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--verde); margin-bottom: 1rem; }
-  h1 { font-size: clamp(2rem, 4.5vw, 3.2rem); margin-bottom: 1.2rem; }
-  .resumo { font-family: var(--serif); font-size: clamp(1.15rem, 1.8vw, 1.4rem); line-height: 1.45; color: var(--texto); margin-bottom: 2rem; }
-  .principal :global(.foto) { width: 100%; border-radius: 16px; margin-bottom: 2rem; max-height: 480px; object-fit: cover; }
-  .lateral { position: sticky; top: 96px; display: grid; gap: 1.1rem; }
-  .capa { display: block; border-radius: 16px; overflow: hidden; background: var(--crema); box-shadow: 0 1px 2px rgb(26 20 40 / 0.06), 0 18px 40px rgb(26 20 40 / 0.14); }
-  .capa img { width: 100%; aspect-ratio: 1 / 1.3; object-fit: cover; }
-  .capa img.portada { object-position: top center; }
-  .descargar { justify-content: center; }
-  .ficha { display: grid; gap: 0.7rem; padding: 1.2rem 1.3rem; background: var(--crema); border-radius: 14px; margin: 0; }
-  .ficha div { display: grid; grid-template-columns: 5.5rem 1fr; gap: 0.8rem; }
-  dt { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--texto-suave); padding-top: 0.2rem; }
-  dd { margin: 0; color: var(--texto); font-size: 0.95rem; }
-  .pronto { color: var(--texto-suave); font-style: italic; }
-  @media (max-width: 860px) {
-    .ficha-grella { grid-template-columns: 1fr; }
-    .lateral { position: static; max-width: 420px; }
-  }
-</style>
+<RecursoPaxina d={d} />

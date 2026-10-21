@@ -2,7 +2,7 @@
 // Se algún día se cambia de base de datos, só hai que tocar este ficheiro.
 import { env } from 'cloudflare:workers';
 import { paxinasPorDefecto } from './paxinas-sistema';
-import { esquemas, seccion, type Seccion, type Axustes, type Coleccion, type Edicion, type Entidade, type Noticia, type PaxinaLibre, type Proxecto, type Recurso } from './esquemas';
+import { esquemas, seccion, type Seccion, type Axustes, type Coleccion, type Edicion, type Entidade, type Estrutura, type Menu, type Noticia, type PaxinaLibre, type Recurso } from './esquemas';
 
 export const db = (): D1Database => (env as unknown as { DB: D1Database }).DB;
 
@@ -43,10 +43,24 @@ export async function obter<C extends Coleccion>(coleccion: C, id: string) {
 
 // ── Accesos tipados para as páxinas ──
 
-export const edicions = async () =>
-  ((await listar('edicions')) as unknown as Edicion[]).sort((a, b) => b.ano - a.ano);
+/** Unha páxina de edición (subpáxina de «Edicións» con datos de edición) vista como edición, para tarxetas e listados */
+export const comoEdicion = (p: PaxinaLibre): Edicion => ({
+  ...p.edicion!,
+  id: p.id,
+  titulo: p.titulo,
+  resumo: p.descricion ?? '',
+  portada: p.imaxe,
+  portadaAlt: p.imaxeAlt,
+});
 
-export const edicion = async (id: string) => (await obter('edicions', id)) as unknown as Edicion | null;
+/** Todas as edicións publicadas (as máis novas primeiro) */
+export const edicions = async () =>
+  (await paxinasLibres()).filter((p) => p.edicion).map(comoEdicion).sort((a, b) => b.ano - a.ano);
+
+export const edicion = async (id: string) => {
+  const p = await paxinaLibre(id);
+  return p?.edicion ? comoEdicion(p) : null;
+};
 
 export const noticias = async () =>
   ((await listar('noticias')) as unknown as Noticia[])
@@ -59,13 +73,31 @@ export const noticia = async (id: string) => {
 };
 
 export const recursos = async () =>
-  ((await listar('recursos')) as unknown as Recurso[]).sort((a, b) => a.titulo.localeCompare(b.titulo, 'gl'));
+  ((await listar('recursos')) as unknown as Recurso[]).filter((r) => !r.borrador).sort((a, b) => a.titulo.localeCompare(b.titulo, 'gl'));
 
-export const recurso = async (id: string) => (await obter('recursos', id)) as unknown as Recurso | null;
+export const recurso = async (id: string) => {
+  const r = (await obter('recursos', id)) as unknown as Recurso | null;
+  return r && !r.borrador ? r : null;
+};
 
-export const proxecto = async (id: string) => (await obter('proxectos', id)) as unknown as Proxecto | null;
+/** Tipos de recurso (de Axustes); se aínda non se definiron, os de sempre */
+export const TIPOS_RECURSO_BASE = [
+  { id: 'xogo', nome: 'Xogo educativo' }, { id: 'podcast', nome: 'Podcast' }, { id: 'estudo', nome: 'Estudo e investigación' },
+  { id: 'guia', nome: 'Guía' }, { id: 'audiovisual', nome: 'Audiovisual' }, { id: 'obradoiro', nome: 'Obradoiro' }, { id: 'outro', nome: 'Outro' },
+];
+export async function tiposRecurso(): Promise<Record<string, string>> {
+  const ax = await axustes();
+  const lista = ax.tiposRecurso?.length ? ax.tiposRecurso : TIPOS_RECURSO_BASE;
+  return Object.fromEntries(lista.map((t) => [t.id, t.nome]));
+}
 
-export const proxectos = async () => (await listar('proxectos')) as unknown as Proxecto[];
+// ── Menús, cabeceira e pé ──
+export const menus = async () => (await listar('menus')) as unknown as Menu[];
+export const menu = async (id: string) => (await obter('menus', id)) as unknown as Menu | null;
+export async function estrutura(): Promise<Estrutura> {
+  const e = (await obter('estrutura', 'xeral')) as unknown as Estrutura | null;
+  return e ?? (esquemas.estrutura.parse({ cabeceira: { menu: 'principal' }, pe: { menu: 'principal', menuLegal: 'legais' } }) as Estrutura);
+}
 
 /** Todas as entidades nun mapa id → entidade (para resolver grupos de logos) */
 export async function mapaEntidades(): Promise<Map<string, Entidade>> {
@@ -96,7 +128,9 @@ const axustesBase: Axustes = {
   lema: 'Pensa, consume e actúa',
   descricion: 'A Feira da Sostibilidade do IES Luís Seoane (Pontevedra).',
   edicionActual: '2027',
-  pe: { texto: '', grupos: [] },
+  contactos: [],
+  seo: { indexar: true, idioma: 'gl' },
+  tiposRecurso: [],
 };
 
 export async function axustes(): Promise<Axustes> {

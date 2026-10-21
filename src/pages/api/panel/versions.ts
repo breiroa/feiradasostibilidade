@@ -16,6 +16,19 @@ export const GET: APIRoute = conAdmin(async ({ url }) => {
     if (!v) return erro('Non se atopou esa versión.', 404);
     return json({ ok: true, version: { ...v, datos: JSON.parse(v.datos) } });
   }
+  // Últimos cambios (para o Resumo): quen cambiou que e cando
+  if (p.get('recentes')) {
+    const { results } = await db()
+      .prepare("SELECT id, coleccion, doc_id, datos, autor, accion, creado FROM versions WHERE accion != 'orixinal' ORDER BY id DESC LIMIT 12")
+      .all<{ id: number; coleccion: string; doc_id: string; datos: string; autor: string | null; accion: string; creado: string }>();
+    return json({
+      ok: true,
+      items: results.map((r) => {
+        const d = JSON.parse(r.datos);
+        return { id: r.id, coleccion: r.coleccion, docId: r.doc_id, titulo: d.titulo ?? d.nome ?? r.doc_id, autor: r.autor, accion: r.accion, creado: r.creado };
+      }),
+    });
+  }
   if (p.get('papeleira')) {
     const c = p.get('coleccion');
     const { results } = await db()

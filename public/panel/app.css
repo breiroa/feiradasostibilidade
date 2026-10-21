@@ -413,3 +413,33 @@ fieldset > .axuda-bloque { font-size: .85rem; color: var(--soft); margin: -2px 0
 .tipos-cats .tipo-boton b { font-size: .92rem; }
 .modal.modal-tipos { width: min(980px, 96vw); }
 .modal-tipos .modal-corpo { max-height: 76vh; }
+
+/* ───── 3ª volta ───── */
+.top-conta { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tarxetas-lista { display: grid; gap: 8px; }
+.lista-fila { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink); text-decoration: none; margin-bottom: 8px; }
+.lista-fila:hover { border-color: var(--verde); }
+.lista-fila .accions { display: flex; align-items: center; gap: 8px; }
+.lista-cambios { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .9rem; }
+.estrutura-detalles { margin-top: 20px; }
+.estrutura-detalles > summary { cursor: pointer; font-weight: 700; margin-bottom: 10px; }
+.estrutura-vista { width: 100%; height: 520px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+/* Diagnóstico */
+.diag-resumo { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 14px 18px; border-radius: var(--radius); margin-bottom: 18px; font-size: 1.05rem; }
+.diag-resumo span { font-size: .85rem; opacity: .8; }
+.diag-resumo.ok { background: var(--verde-pale); color: var(--verde-escuro); }
+.diag-resumo.aviso { background: #fff6e0; color: #6b4a00; }
+.diag-resumo.erro { background: #fdecea; color: #8a2a1d; }
+.diag-bloque { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px; }
+.diag-bloque h2 { font-size: 1.05rem; margin: 0 0 10px; }
+.diag-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.diag-lista > li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; }
+.diag-lista p { margin: 2px 0 0; font-size: .88rem; }
+.diag-lista details { margin-top: 4px; font-size: .85rem; }
+.diag-lista details ul { margin: 6px 0 0; padding-left: 1.2em; color: var(--soft); }
+.diag-icona { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .8rem; color: #fff; }
+.diag-ok .diag-icona { background: var(--verde); }
+.diag-aviso .diag-icona { background: #d99a00; }
+.diag-erro .diag-icona { background: var(--err); }
+.diag-info .diag-icona { background: var(--morado); }
+.chip.seleccionable { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }

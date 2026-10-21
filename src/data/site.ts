@@ -8,13 +8,3 @@ export const nav = [
   { href: 'recursos/', texto: 'Recursos' },
   { href: 'participa/', texto: 'Participa' },
 ];
-
-export const tiposRecurso = {
-  xogo: 'Xogo educativo',
-  podcast: 'Podcast',
-  estudo: 'Estudo e investigación',
-  guia: 'Guía',
-  audiovisual: 'Audiovisual',
-  obradoiro: 'Obradoiro',
-  outro: 'Outro',
-} as const;

@@ -1,5 +1,6 @@
 ---
-import type { Axustes, Entidade } from '../lib/esquemas';
+import type { Axustes, Entidade, Estrutura } from '../lib/esquemas';
+import { ligazonContacto } from '../lib/contactos';
 import LogoGrid from './LogoGrid.astro';
 import { resolverEntidades } from '../lib/datos';
 import type { LigazonNav } from '../lib/navegacion';
@@ -7,14 +8,18 @@ import { url } from '../lib/url';
 
 interface Props {
   axustes: Axustes;
+  estrutura: Estrutura;
   mapa: Map<string, Entidade>;
   navegacion: LigazonNav[];
   legais: LigazonNav[];
 }
 
-const { axustes: ax, mapa, navegacion, legais } = Astro.props;
-const grupos = ax.pe.grupos.map((g) => ({ ...g, items: resolverEntidades(g.entidades, mapa) })).filter((g) => g.items.length > 0);
-const premios = ax.pe.premios ?? [];
+const { axustes: ax, estrutura: est, mapa, navegacion, legais } = Astro.props;
+const pe = est.pe;
+const grupos = pe.grupos.map((g) => ({ ...g, items: resolverEntidades(g.entidades, mapa) })).filter((g) => g.items.length > 0);
+const premios = pe.premios ?? [];
+const contactos = (ax.contactos ?? []).map(ligazonContacto).filter((x): x is NonNullable<typeof x> => Boolean(x));
+const externa = (h: string) => /^https?:/i.test(h);
 ---
 
 <footer class="rodape">
@@ -69,25 +74,27 @@ const premios = ax.pe.premios ?? [];
     <div class="contedor columnas">
       <div>
         <p class="nome"><img src={url('logo-feira.png')} alt="" width="40" height="36" />Feira da <em>Sostibilidade</em></p>
-        {ax.pe.texto && <p>{ax.pe.texto}</p>}
+        {pe.texto && <p>{pe.texto}</p>}
       </div>
       <nav aria-label="Pé de páxina">
-        <p class="etiqueta">Navegación</p>
+        <p class="etiqueta">{pe.tituloMenu}</p>
         <ul>
           {navegacion.map((i) => <li><a href={i.href}>{i.texto}</a></li>)}
         </ul>
       </nav>
-      <div>
-        <p class="etiqueta">Síguenos</p>
-        <ul>
-          {ax.instagram && <li><a href={ax.instagram} rel="noopener">Instagram {ax.instagramUsuario}</a></li>}
-          {ax.correo && <li><a href={`mailto:${ax.correo}`}>{ax.correo}</a></li>}
-          {ax.webIes && <li><a href={ax.webIes} rel="noopener">Web do IES Luís Seoane</a></li>}
-        </ul>
-      </div>
+      {
+        contactos.length > 0 && (
+          <div>
+            <p class="etiqueta">{pe.tituloContactos}</p>
+            <ul>
+              {contactos.map((k) => <li><a href={k.href} rel={externa(k.href) ? 'noopener' : undefined}>{k.texto}</a></li>)}
+            </ul>
+          </div>
+        )
+      }
     </div>
     <div class="contedor legal">
-      <p>Contidos baixo licenza <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.gl" rel="license noopener">CC BY-SA 4.0</a>, salvo indicación.</p>
+      {pe.licenzaCorpo && <p><Fragment set:html={pe.licenzaCorpo} /></p>}
       <ul>
         {legais.map((l) => <li><a href={l.href}>{l.texto}</a></li>)}
       </ul>

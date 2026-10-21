@@ -20,6 +20,15 @@ const RESERVADOS = ['inicio', 'feiralab', 'edicions', 'actualidade', 'recursos',
 
 export const GET: APIRoute = conAdmin(async ({ url }) => {
   const c = url.searchParams.get('coleccion');
+  // «edicions» xa non é unha colección: son as páxinas con datos de edición (para os selectores do panel)
+  if (c === 'edicions') {
+    const { results } = await db().prepare("SELECT id, datos, orde, actualizado, editado_por FROM documentos WHERE coleccion = 'paxinas_libres' ORDER BY orde, id").all<{ id: string; datos: string; orde: number; actualizado: string; editado_por: string | null }>();
+    const items = results
+      .map((r) => ({ ...r, d: JSON.parse(r.datos) }))
+      .filter((r) => r.d.edicion)
+      .map((r) => ({ id: r.id, orde: r.orde, actualizado: r.actualizado, editadoPor: r.editado_por, datos: { ...r.d.edicion, titulo: r.d.titulo, resumo: r.d.descricion, portada: r.d.imaxe, borrador: r.d.borrador } }));
+    return json({ ok: true, items });
+  }
   if (!valida(c)) return erro('Colección descoñecida.');
   const { results } = await db().prepare('SELECT id, datos, orde, actualizado, editado_por FROM documentos WHERE coleccion = ? ORDER BY orde, id').bind(c).all<{ id: string; datos: string; orde: number; actualizado: string; editado_por: string | null }>();
   return json({ ok: true, items: results.map((r) => ({ id: r.id, orde: r.orde, actualizado: r.actualizado, editadoPor: r.editado_por, datos: JSON.parse(r.datos) })) });
@@ -52,14 +61,14 @@ export const POST: APIRoute = conAdmin(async ({ request }, { admin }) => {
   // Identificador: as edicións usan o ano; o resto, o texto do título
   let id = (b.id ?? '').trim();
   if (b.novo || !id) {
-    if (c === 'axustes' || c === 'navegacion') id = 'xeral';
-    else if (c === 'edicions') id = String(datos.ano);
+    if (c === 'axustes' || c === 'estrutura') id = 'xeral';
+    else if (c === 'paxinas_libres' && !id && datos.edicion) id = String((datos.edicion as { ano: number }).ano);
     else if (!id) id = slug(String(datos.titulo ?? datos.nome ?? datos.nomeCurto ?? 'elemento'));
     if (!ID.test(id)) return erro('O enderezo (identificador) só pode ter letras minúsculas, números e guións.', 422);
     if (c === 'paxinas_libres' && RESERVADOS.includes(id)) return erro(`O enderezo «${id}» está reservado para outra parte da web. Escolle outro.`, 422);
     const existe = await db().prepare('SELECT 1 FROM documentos WHERE coleccion = ? AND id = ?').bind(c, id).first();
     if (existe) {
-      if (c === 'edicions') return erro(`Xa existe unha edición do ano ${id}.`, 409);
+      if (c === 'paxinas_libres' && datos.edicion && id === String((datos.edicion as { ano: number }).ano)) return erro(`Xa existe unha páxina co enderezo ${id}.`, 409);
       let n = 2;
       while (await db().prepare('SELECT 1 FROM documentos WHERE coleccion = ? AND id = ?').bind(c, `${id}-${n}`).first()) n++;
       id = `${id}-${n}`;
@@ -80,7 +89,7 @@ export const POST: APIRoute = conAdmin(async ({ request }, { admin }) => {
     if (actual && b.actualizado && actual.actualizado !== b.actualizado && !b.forzar) {
       return json({ ok: false, conflito: true, editadoPor: actual.editado_por, actualizado: actual.actualizado, erros: [`${actual.editado_por ?? 'Outra persoa'} gardou esta páxina mentres a editabas.`] }, 409);
     }
-    if (!actual && !['paxinas', 'axustes', 'navegacion'].includes(c)) return erro('Non se atopou o elemento (quizais outra persoa o borrou).', 404);
+    if (!actual && !['paxinas', 'axustes', 'estrutura'].includes(c)) return erro('Non se atopou o elemento (quizais outra persoa o borrou).', 404);
     const novo = JSON.stringify(datos);
     // O primeiro cambio dun documento garda tamén como estaba antes, para poder volver a el
     const sen = actual && !(await db().prepare('SELECT 1 FROM versions WHERE coleccion = ? AND doc_id = ? LIMIT 1').bind(c, id).first());
@@ -105,7 +114,7 @@ export const PATCH: APIRoute = conAdmin(async ({ request }) => {
 });
 
 /** Percorre un documento (incluídas as súas seccións) e di se referencia o id */
-function referencia(v: unknown, c: Coleccion, id: string, clave = ''): boolean {
+function referencia(v: unknown, c: Coleccion | 'edicions', id: string, clave = ''): boolean {
   if (Array.isArray(v)) {
     if ((c === 'entidades' && (clave === 'entidades' || clave === 'ecosistemaEntidades')) || (c === 'recursos' && clave === 'recursos')) {
       if (v.includes(id)) return true;
@@ -115,7 +124,6 @@ function referencia(v: unknown, c: Coleccion, id: string, clave = ''): boolean {
   if (v && typeof v === 'object') return Object.entries(v).some(([k, x]) => referencia(x, c, id, k));
   if (typeof v === 'string' && v === id) {
     if (c === 'edicions' && (clave === 'edicion' || clave === 'edicionActual')) return true;
-    if (c === 'proxectos' && clave === 'proxecto') return true;
   }
   return false;
 }
@@ -134,7 +142,7 @@ function apuntaA(v: unknown, rutas: string[], nai: string, clave = ''): boolean 
 
 /** Onde se usa un documento (para non deixar referencias rotas) */
 async function usos(c: Coleccion, id: string): Promise<string[]> {
-  if (!['entidades', 'edicions', 'proxectos', 'recursos', 'paxinas_libres'].includes(c)) return [];
+  if (!['entidades', 'recursos', 'paxinas_libres', 'menus'].includes(c)) return [];
   const { results } = await db().prepare('SELECT coleccion, id, datos FROM documentos').all<{ coleccion: string; id: string; datos: string }>();
   let rutas: string[] = [];
   if (c === 'paxinas_libres') {
@@ -143,8 +151,11 @@ async function usos(c: Coleccion, id: string): Promise<string[]> {
     const ruta = nai ? `/${nai}/${id}/` : `/${id}/`;
     rutas = [ruta, ruta.slice(0, -1)];
   }
+  const eEdicion = c === 'paxinas_libres' && Boolean(JSON.parse(results.find((r) => r.coleccion === c && r.id === id)?.datos ?? '{}').edicion);
   const usa = (d: Record<string, unknown>) =>
-    c === 'paxinas_libres' ? d.nai === id || apuntaA(d, rutas, id) : referencia(d, c, id);
+    c === 'menus' ? (d as { cabeceira?: { menu?: string }; pe?: { menu?: string; menuLegal?: string } }).cabeceira?.menu === id || (d as { pe?: { menu?: string; menuLegal?: string } }).pe?.menu === id || (d as { pe?: { menuLegal?: string } }).pe?.menuLegal === id
+      : c === 'paxinas_libres' ? d.nai === id || apuntaA(d, rutas, id) || (eEdicion && referencia(d, 'edicions', id))
+      : referencia(d, c, id);
   return results
     .filter((r) => !(r.coleccion === c && r.id === id) && usa(JSON.parse(r.datos)))
     .map((r) => {
@@ -156,7 +167,7 @@ async function usos(c: Coleccion, id: string): Promise<string[]> {
 export const DELETE: APIRoute = conAdmin(async ({ request }, { admin }) => {
   const b = await lerJson<{ coleccion?: string; id?: string }>(request);
   if (!valida(b.coleccion) || !b.id || !ID.test(b.id)) return erro('Datos non válidos.');
-  if (b.coleccion === 'axustes' || b.coleccion === 'navegacion') return erro('Os axustes non se poden borrar.');
+  if (b.coleccion === 'axustes' || b.coleccion === 'estrutura') return erro('Os axustes non se poden borrar.');
   if (b.coleccion === 'paxinas_libres' && (PAXINAS_SISTEMA as readonly string[]).includes(b.id)) return erro('Esta páxina é fixa da web e non se pode borrar (podes ocultar ou cambiar as súas seccións).');
   const onde = await usos(b.coleccion, b.id);
   if (onde.length) return erro([`Non se pode borrar porque se usa en:`, ...onde.slice(0, 8)], 409);

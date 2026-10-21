@@ -1,9 +1,30 @@
 ---
-import EdicionPaxina from '../../../components/EdicionPaxina.astro';
-import { edicion } from '../../../lib/datos';
+// Subpáxinas de «Edicións» (cada edición da Feira e as que se creen): son páxinas normais.
+// As que teñen datos de edición levan ao final a navegación á edición anterior e seguinte.
+import PaxinaLibre from '../../../components/PaxinaLibre.astro';
+import { edicions, paxinaLibre } from '../../../lib/datos';
+import { romano, url } from '../../../lib/url';
 
-const d = await edicion(Astro.params.ano ?? '');
-if (!d) return new Response(null, { status: 404 });
+const p = await paxinaLibre(Astro.params.ano ?? '');
+if (!p || p.nai !== 'edicions') return new Response(null, { status: 404 });
+const todas = p.edicion ? (await edicions()).sort((a, b) => a.ano - b.ano) : [];
+const pos = todas.findIndex((e) => e.id === p.id);
+const anterior = pos > 0 ? todas[pos - 1] : undefined;
+const seguinte = pos >= 0 ? todas[pos + 1] : undefined;
 ---
 
-<EdicionPaxina d={d} />
+<PaxinaLibre p={p} volver={{ href: 'edicions/', texto: 'Edicións' }}>
+  {
+    (anterior || seguinte) && (
+      <nav class="contedor navegacion-edicions" aria-label="Outras edicións">
+        {anterior ? <a href={url(`edicions/${anterior.id}/`)}>← {anterior.ano} · {romano(anterior.numero)} Feira</a> : <span />}
+        {seguinte && <a href={url(`edicions/${seguinte.id}/`)}>{seguinte.ano} · {romano(seguinte.numero)} Feira →</a>}
+      </nav>
+    )
+  }
+</PaxinaLibre>
+
+<style>
+  .navegacion-edicions { display: flex; justify-content: space-between; gap: 1rem; padding-block: 2.5rem; font-weight: 600; flex-wrap: wrap; }
+  .navegacion-edicions a { text-decoration: none; }
+</style>

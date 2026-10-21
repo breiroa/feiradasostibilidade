@@ -2,14 +2,16 @@
 // Tarxeta de recurso ao estilo das publicacións de TIAS Lab:
 // portada sempre visible (premer abre a ficha) e botón inferior para descargar ou ver.
 import type { Recurso } from '../lib/esquemas';
-import { tiposRecurso } from '../data/site';
+import { TIPOS_RECURSO_BASE } from '../lib/datos';
 import { mediaUrl, url } from '../lib/url';
 
 interface Props {
   recurso: Recurso;
+  tipos?: Record<string, string>; // nomes dos tipos (de Axustes)
 }
 
-const { recurso: d } = Astro.props;
+const { recurso: d, tipos = Object.fromEntries(TIPOS_RECURSO_BASE.map((t) => [t.id, t.nome])) } = Astro.props;
+const tiposRecurso = new Proxy(tipos, { get: (o, k: string) => o[k] ?? k });
 const ficha = url(`recursos/${d.id}/`);
 const capa = d.portada ?? d.imaxe;
 const destino = d.ficheiro ? mediaUrl(d.ficheiro, 'f') : d.ligazon;

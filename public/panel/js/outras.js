@@ -1,79 +1,50 @@
-// Seccións do panel que non son listas de contido: inicio, páxinas, axustes, biblioteca,
-// inscricións, administración e conta.
-import { api, aviso, caixaErros, coleccion, confirmar, copiar, dataCurta, el, estado, gardar, invalidar, mediaUrl, modal } from './nucleo.js';
+// Seccións do panel que non son listas de contido: resumo, axustes, biblioteca, mensaxes do formulario,
+// administración e conta.
+import { api, aviso, caixaErros, coleccion, confirmar, copiar, dataCurta, dataHora, el, estado, gardar, invalidar, mediaUrl, modal } from './nucleo.js';
 import { conProgreso, subirFicheiro, subirImaxe, zonaSoltar } from './imaxes.js';
 import { sucio } from './coleccions.js';
 import * as c from './campos.js';
-import { construtor } from './seccions.js';
 
 const cab = (titulo, intro, ...extra) => el('div', { class: 'cab' }, el('div', {}, el('h1', {}, titulo), intro ? el('p', { class: 'muted' }, intro) : null), ...extra);
 const tiposInsc = { centro: 'Centro educativo', entidade: 'Entidade', prensa: 'Prensa', contacto: 'Pregunta' };
 const estadosInsc = { nova: ['Nova', 'morado'], vista: ['Vista', ''], aceptada: ['Aceptada', 'verde'], descartada: ['Descartada', 'erro'] };
 
-// ───────────────── INICIO ─────────────────
+// ───────────────── RESUMO ─────────────────
+const accionsHist = { orixinal: 'versión inicial', creado: 'creou', gardado: 'gardou', restaurado: 'restaurou', borrado: 'borrou' };
+const coleccionsHist = { paxinas_libres: ['páxina', 'paxinas'], noticias: ['noticia', 'noticias'], recursos: ['recurso', 'recursos'], entidades: ['entidade', 'entidades'], menus: ['menú', 'menus'], modelos: ['modelo', 'modelos'], estrutura: ['cabeceira e pé', 'estrutura'], axustes: ['axustes', 'axustes'] };
 export async function inicio(main) {
-  const [eds, nots, recs, insc] = await Promise.all([coleccion('edicions', { forzar: true }), coleccion('noticias', { forzar: true }), coleccion('recursos', { forzar: true }), api('inscricions')]);
-  const novas = insc.items.filter((i) => i.estado === 'nova');
-  const tarx = (n, txt, href, destacada) => el('a', { class: `tarxeta${destacada ? ' destacada' : ''}`, href }, el('b', {}, String(n)), el('span', {}, txt));
+  const [paxs, nots, recs, cambios] = await Promise.all([
+    coleccion('paxinas_libres', { forzar: true }), coleccion('noticias', { forzar: true }), coleccion('recursos', { forzar: true }),
+    api('versions?recentes=1').catch(() => ({ items: [] })),
+  ]);
+  const tarx = (n, txt, href) => el('a', { class: 'tarxeta', href }, el('b', {}, String(n)), el('span', {}, txt));
+  const borradores = paxs.filter((p) => p.datos.borrador).length + nots.filter((n) => n.datos.borrador).length + recs.filter((r) => r.datos.borrador).length;
   main.replaceChildren(
-    cab(`Ola, ${estado.admin.nome.split(' ')[0]}`, 'Desde aquí xestionas toda a web da Feira. Os cambios vense ao momento.',
+    cab(`Ola, ${estado.admin.nome.split(' ')[0]}`, 'Desde aquí xestionas toda a web da Feira.',
       el('a', { class: 'btn-ghost', href: '/', target: '_blank' }, 'Ver a web ↗')),
     el('div', { class: 'tarxetas' },
-      tarx(novas.length, novas.length === 1 ? 'inscrición nova' : 'inscricións novas', '#/inscricions', novas.length > 0),
-      tarx(eds.length, 'edicións', '#/paxinas'),
+      tarx(paxs.length, 'páxinas', '#/paxinas'),
       tarx(nots.length, 'noticias', '#/noticias'),
-      tarx(recs.length, 'recursos', '#/recursos')),
+      tarx(recs.length, 'recursos', '#/recursos'),
+      tarx(borradores, borradores === 1 ? 'borrador sen publicar' : 'borradores sen publicar', '#/paxinas')),
     el('div', { class: 'caixa' },
       el('h2', {}, 'Accesos rápidos'),
       el('div', { style: { display: 'flex', gap: '10px', flexWrap: 'wrap' } },
         el('a', { class: 'btn', href: '#/noticias/novo' }, '+ Nova noticia'),
-        el('a', { class: 'btn-ghost', href: '#/paxinas' }, 'Páxinas e edicións'),
-        el('a', { class: 'btn-ghost', href: '#/biblioteca' }, 'Subir fotos'))),
-    novas.length
-      ? el('div', { class: 'caixa' }, el('h2', {}, 'Últimas inscricións'),
-          el('ul', { style: { margin: '0', paddingLeft: '1.2em' } }, novas.slice(0, 5).map((i) => el('li', {}, el('a', { href: '#/inscricions' }, `${tiposInsc[i.tipo]}: ${i.datos.nome ?? i.datos.persoa ?? ''}${i.datos.organizacion ? ' · ' + i.datos.organizacion : ''}`), ' · ', el('span', { class: 'muted' }, dataCurta(i.creado))))))
+        el('a', { class: 'btn-ghost', href: '#/paxinas' }, 'Páxinas'),
+        el('a', { class: 'btn-ghost', href: '#/menus' }, 'Menús'),
+        el('a', { class: 'btn-ghost', href: '#/biblioteca' }, 'Subir fotos'),
+        el('a', { class: 'btn-ghost', href: '#/diagnostico' }, 'Diagnóstico'))),
+    cambios.items?.length
+      ? el('div', { class: 'caixa' }, el('h2', {}, 'Últimos cambios'),
+          el('ul', { class: 'lista-cambios' }, cambios.items.filter((v) => coleccionsHist[v.coleccion]).map((v) => {
+            const [nome, ruta] = coleccionsHist[v.coleccion] ?? [v.coleccion, ''];
+            const destino = v.accion !== 'borrado' && ruta ? `#/${ruta}${['estrutura', 'axustes'].includes(v.coleccion) ? '' : `/${v.docId}`}` : null;
+            return el('li', {}, el('span', { class: 'muted' }, dataHora(v.creado)), ' · ', el('b', {}, v.autor ?? '—'), ` ${accionsHist[v.accion] ?? v.accion} ${nome} `,
+              destino ? el('a', { href: destino }, v.titulo) : el('span', {}, v.titulo));
+          })))
       : null,
   );
-}
-
-// ───────────────── PÁXINAS ─────────────────
-const lista2 = (it, a, b, ea, eb) => el('div', { class: 'fila2' }, c.texto(it, a, ea), c.texto(it, b, eb));
-const paxinas = {
-  inicio: {
-    titulo: 'Portada (Inicio)', ver: '/',
-    editor: (d) => [construtor(d, 'seccions', { titulo: 'Seccións da portada', axuda: 'A primeira sección «Portada» é a cabeceira grande. Preme nunha sección para editala; usa as frechas para ordenar.' })],
-  },
-  participa: {
-    titulo: 'Participa', ver: '/participa/',
-    editor: (d) => [
-      c.bloque('Cabeceira', null, lista2(d, 'heroTitulo', 'heroDestaque', 'Título', 'Título destacado (cor)'), c.area(d, 'heroTexto', 'Texto'),
-        c.repetidor(d, 'datas', 'Datas clave', { novo: () => ({ data: '', texto: '' }), engadirTexto: '+ Engadir data', pintarItem: (x) => lista2(x, 'data', 'texto', 'Data', 'Que pasa') })),
-      c.bloque('Perfís', 'Tarxetas curtas. O botón de cada unha baixa ao formulario co tipo xa escollido.',
-        c.repetidor(d, 'perfis', '', {
-          novo: () => ({ id: 'entidade', titulo: '', texto: '', accions: [], boton: '' }),
-          engadirTexto: '+ Engadir perfil',
-          pintarItem: (p) => [
-            el('div', { class: 'fila2' }, c.texto(p, 'titulo', 'Título'), c.escolla(p, 'id', 'Tipo que escolle no formulario', [{ valor: 'centro', texto: 'Centro educativo' }, { valor: 'entidade', texto: 'Entidade' }, { valor: 'empresa', texto: 'Empresa ou administración' }, { valor: 'prensa', texto: 'Prensa' }, { valor: 'contacto', texto: 'Pregunta' }])),
-            c.area(p, 'texto', 'Texto (unha ou dúas frases)', { filas: 2 }), c.texto(p, 'boton', 'Texto do botón'),
-          ],
-        })),
-      c.bloque('Formulario', null, c.texto(d, 'formularioTitulo', 'Título'), c.area(d, 'formularioTexto', 'Texto', { filas: 2 }), lista2(d, 'graciasTitulo', 'graciasTexto', 'Mensaxe de grazas: título', 'Mensaxe de grazas: texto')),
-    ],
-  },
-};
-
-export async function listaPaxinas(main) {
-  main.replaceChildren(cab('Portada e Participa', 'A portada constrúese con seccións; Participa ten os seus textos e formularios. FeiraLab e as demais páxinas están en «Páxinas».'),
-    el('div', { class: 'tarxetas' }, Object.entries(paxinas).map(([id, p]) => el('a', { class: 'tarxeta', href: `#/paxinas/${id}` }, el('b', { style: { fontSize: '1.15rem' } }, p.titulo), el('span', {}, 'Editar →'))),
-      el('a', { class: 'tarxeta', href: '#/paxinas_libres' }, el('b', { style: { fontSize: '1.15rem' } }, 'FeiraLab e outras páxinas'), el('span', {}, 'Ir a Páxinas →'))));
-}
-
-export async function editarPaxina(main, id) {
-  const p = paxinas[id];
-  if (!p) return listaPaxinas(main);
-  const items = await coleccion('paxinas', { forzar: true });
-  const d = structuredClone(items.find((x) => x.id === id)?.datos ?? {});
-  await editorSimple(main, { titulo: p.titulo, volver: ['#/paxinas', 'Portada e Participa'], ver: p.ver, campos: p.editor(d), gardar: () => api('documentos', { metodo: 'POST', datos: { coleccion: 'paxinas', id, datos: d } }), aoGardar: () => invalidar('paxinas') });
 }
 
 /** Editor dun único documento (páxinas, axustes) */
@@ -93,34 +64,41 @@ async function editorSimple(main, { titulo, intro, volver, ver, campos, gardar: 
 }
 
 // ───────────────── AXUSTES ─────────────────
+const TIPOS_CONTACTO = [
+  ['web', 'Web'], ['correo', 'Correo'], ['telefono', 'Teléfono'], ['instagram', 'Instagram'], ['facebook', 'Facebook'], ['x', 'X (Twitter)'], ['bluesky', 'Bluesky'],
+  ['mastodon', 'Mastodon'], ['youtube', 'YouTube'], ['tiktok', 'TikTok'], ['linkedin', 'LinkedIn'], ['whatsapp', 'WhatsApp'], ['telegram', 'Telegram'], ['spotify', 'Spotify'], ['outro', 'Outro'],
+];
 export async function axustes(main) {
   const [items, eds] = await Promise.all([coleccion('axustes', { forzar: true }), coleccion('edicions', { forzar: true })]);
   const d = structuredClone(items.find((x) => x.id === 'xeral')?.datos ?? {});
-  d.pe ??= { texto: '', grupos: [], premios: [] };
+  d.contactos ??= [];
+  d.seo ??= { indexar: true, idioma: 'gl' };
   await editorSimple(main, {
-    titulo: 'Axustes xerais',
-    intro: 'Nome da web, edición destacada, redes e pé de páxina.',
+    titulo: 'Axustes',
+    intro: 'Os datos xerais da web: como se presenta en buscadores e redes, a icona, os contactos e a edición destacada.',
     campos: [
-      c.bloque('Web', null,
+      c.bloque('A web', null,
         el('div', { class: 'fila2' }, c.texto(d, 'nome', 'Nome', { obrig: true }), c.texto(d, 'lema', 'Lema', { obrig: true })),
-        c.area(d, 'descricion', 'Descrición (para buscadores e redes)', { obrig: true, filas: 2 }),
-        c.escolla(d, 'edicionActual', 'Edición destacada', eds.sort((a, b) => b.datos.ano - a.datos.ano).map((e) => ({ valor: e.id, texto: e.datos.titulo })), { axuda: 'Sae no botón do menú, na portada e no pé.' })),
-      c.bloque('Contacto e redes', null,
-        el('div', { class: 'fila2' }, c.texto(d, 'instagram', 'Instagram (enderezo)', { tipo: 'url' }), c.texto(d, 'instagramUsuario', 'Instagram (@usuario)')),
-        el('div', { class: 'fila2' }, c.texto(d, 'correo', 'Correo de contacto', { tipo: 'email' }), c.texto(d, 'webIes', 'Web do IES', { tipo: 'url' }))),
-      c.bloque('Pé de páxina', 'Grupos de logos que saen en todas as páxinas.',
-        c.area(d.pe, 'texto', 'Texto do pé', { filas: 2 }),
-        c.repetidor(d.pe, 'grupos', 'Grupos de logos', {
-          novo: () => ({ titulo: '', entidades: [] }),
-          engadirTexto: '+ Engadir grupo',
-          pintarItem: (g) => [el('div', { class: 'fila2' }, c.texto(g, 'titulo', 'Título', { placeholder: 'Organiza' }), c.texto(g, 'nota', 'Nota pequena (opcional)')), c.entidades(g, 'entidades', 'Entidades')],
-        }),
-        c.repetidor(d.pe, 'premios', 'Premios e recoñecementos', {
-          novo: () => ({ ano: '', texto: '' }),
-          engadirTexto: '+ Engadir premio',
-          pintarItem: (p) => el('div', { class: 'fila3' }, c.texto(p, 'ano', 'Ano'), el('div', { style: { gridColumn: 'span 2' } }, c.texto(p, 'texto', 'Premio'))),
+        c.area(d, 'descricion', 'Descrición xeral', { obrig: true, filas: 2, axuda: 'Úsase nos buscadores e ao compartir as páxinas que non teñen descrición propia.' }),
+        c.escolla(d, 'edicionActual', 'Edición destacada', eds.sort((a, b) => b.datos.ano - a.datos.ano).map((e) => ({ valor: e.id, texto: e.datos.titulo })), { axuda: 'A que sae na sección «Edición destacada» (p. ex. na portada).' })),
+      c.bloque('Buscadores e redes sociais', 'Como aparece a web en Google e cando alguén comparte unha ligazón (WhatsApp, redes…).',
+        c.texto(d.seo, 'titulo', 'Título da portada nos buscadores', { placeholder: `${d.nome ?? 'Feira da Sostibilidade'} · ${d.lema ?? ''}`, axuda: 'Baleiro = nome e lema.' }),
+        c.imaxe(d.seo, 'imaxe', 'Imaxe para compartir (por defecto)', { axuda: 'Recomendado 1200×630 px. Úsase nas páxinas que non teñen imaxe propia.' }),
+        el('div', { class: 'fila2' },
+          c.marca(d.seo, 'indexar', 'Permitir que os buscadores mostren a web'),
+          c.texto(d.seo, 'googleVerificacion', 'Código de verificación de Google Search Console (opcional)', { placeholder: 'abc123…', axuda: 'Só o código (contido da etiqueta meta «google-site-verification»).' }))),
+      c.bloque('Icona da web (favicon)', 'A iconiña da pestana do navegador e dos marcadores. Mellor cadrada (512×512 px), PNG con fondo transparente.',
+        c.imaxe(d, 'favicon', '', { etiquetaBib: 'logos', logo: true })),
+      c.bloque('Contactos e redes', 'Saen no pé da web e xunto ao formulario. Engade tantos como queiras (varias webs, correos, redes…) e ordénaos coas frechas.',
+        c.repetidor(d, 'contactos', '', {
+          novo: () => ({ tipo: 'web', valor: '' }),
+          engadirTexto: '+ Engadir contacto ou rede',
+          pintarItem: (k) => el('div', { class: 'fila3' },
+            c.escolla(k, 'tipo', 'Tipo', TIPOS_CONTACTO.map(([valor, texto]) => ({ valor, texto }))),
+            c.texto(k, 'valor', 'Enderezo, @usuario, correo ou teléfono', { placeholder: 'https://… ou @usuario' }),
+            c.texto(k, 'etiqueta', 'Texto que se ve (opcional)', { placeholder: 'Web do IES Luís Seoane' })),
         })),
-      c.bloque('Copia de seguridade', 'Descarga todos os textos e inscricións nun ficheiro. A base de datos garda ademais copias automáticas dos últimos 7 días.',
+      c.bloque('Copia de seguridade', 'Descarga todos os contidos nun ficheiro. A base de datos garda ademais copias automáticas dos últimos 7 días, e cada páxina ten o seu historial de versións.',
         el('a', { class: 'btn-ghost', href: '/api/panel/copia', download: '' }, 'Descargar copia (JSON)')),
     ],
     gardar: () => api('documentos', { metodo: 'POST', datos: { coleccion: 'axustes', id: 'xeral', datos: d } }),
@@ -193,7 +171,7 @@ export async function biblioteca(main) {
   pintar();
 }
 
-// ───────────────── INSCRICIÓNS ─────────────────
+// ───────────────── MENSAXES DO FORMULARIO (desde Diagnóstico) ─────────────────
 export async function inscricions(main) {
   const { items } = await api('inscricions');
   const f = { tipo: '', estado: '' };
@@ -244,7 +222,8 @@ export async function inscricions(main) {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
   main.replaceChildren(
-    cab('Inscricións', 'O que envía a xente desde a páxina Participa. Preme nunha fila para ver todo.', el('button', { class: 'btn-ghost', type: 'button', onclick: csv, disabled: !items.length }, 'Exportar CSV')),
+    el('a', { class: 'volver', href: '#/diagnostico' }, '← Diagnóstico'),
+    cab('Mensaxes do formulario', 'Copia de todo o que envía a xente desde o formulario de contacto (por se o correo non chega). Preme nunha fila para ver todo.', el('button', { class: 'btn-ghost', type: 'button', onclick: csv, disabled: !items.length }, 'Exportar CSV')),
     el('div', { class: 'barra-filtros' },
       el('select', { onchange: (e) => { f.tipo = e.target.value; pintar(); } }, el('option', { value: '' }, 'Todos os tipos'), Object.entries(tiposInsc).map(([k, v]) => el('option', { value: k }, v))),
       el('select', { onchange: (e) => { f.estado = e.target.value; pintar(); } }, el('option', { value: '' }, 'Todos os estados'), Object.entries(estadosInsc).map(([k, [t]]) => el('option', { value: k }, t)))),
@@ -282,7 +261,7 @@ export async function admins(main) {
   };
   const accion = async (a, datos, mensaxe) => { const r = await gardar(() => api('admins', { metodo: 'POST', datos: { accion: a, ...datos } }), { mensaxe }); return r; };
   main.replaceChildren(
-    cab('Persoas administradoras', 'Quen pode entrar no panel. Todas teñen verificación en dous pasos obrigatoria.', el('button', { class: 'btn', type: 'button', onclick: convidar }, '+ Convidar')),
+    cab('Administración', 'Quen pode entrar no panel. Todas as persoas teñen verificación en dous pasos obrigatoria.', el('button', { class: 'btn', type: 'button', onclick: convidar }, '+ Convidar')),
     el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' },
       el('thead', {}, el('tr', {}, ['Persoa', 'Permisos', 'Estado', 'Último acceso', ''].map((t) => el('th', {}, t)))),
       el('tbody', {}, items.map((a) => {

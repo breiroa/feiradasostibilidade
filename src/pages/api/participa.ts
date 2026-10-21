@@ -3,6 +3,7 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../lib/datos';
 import { validarFormulario } from '../../lib/formularios';
+import { enviarCorreo } from '../../lib/correo';
 
 export const prerender = false;
 
@@ -43,5 +44,7 @@ export const POST: APIRoute = async ({ request, redirect, clientAddress }) => {
     db().prepare('DELETE FROM intentos WHERE ts < ?').bind(agora - 86400),
     db().prepare('INSERT INTO inscricions (tipo, datos) VALUES (?, ?)').bind(tipo, JSON.stringify(resto)),
   ]);
+  // Se o envío por correo está configurado (Cloudflare Email Routing), chega tamén por correo; a copia queda gardada igual
+  await enviarCorreo(tipo, resto).catch((e) => console.warn('Non se puido enviar o correo do formulario', e));
   return volver('enviado=1');
 };

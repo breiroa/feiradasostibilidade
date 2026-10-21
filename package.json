@@ -5,13 +5,13 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/versions.mjs && astro build",
     "preview": "astro preview",
     "check": "astro check",
     "semente": "node scripts/semente.mjs",
     "bd:local": "wrangler d1 migrations apply feira --local && wrangler d1 execute feira --local --file semente/semente.sql -y && node scripts/migrar-seccions.mjs --local",
     "bd:remota": "wrangler d1 migrations apply feira --remote && wrangler d1 execute feira --remote --file semente/semente.sql -y && node scripts/migrar-seccions.mjs --remote",
-    "deploy": "astro build && wrangler deploy"
+    "deploy": "node scripts/versions.mjs && astro build && wrangler deploy"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.7.0",

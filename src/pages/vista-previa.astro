@@ -2,9 +2,9 @@
 // Vista previa do panel: renderiza unha páxina (ou edición) co contido aínda SEN GARDAR.
 // Só para persoas con sesión no panel; o panel envíao por POST a un iframe.
 import PaxinaLibre from '../components/PaxinaLibre.astro';
-import EdicionPaxina from '../components/EdicionPaxina.astro';
+import RecursoPaxina from '../components/RecursoPaxina.astro';
 import { conListado } from '../lib/datos';
-import { esquemas, seccion, type Edicion, type PaxinaLibre as TPaxina } from '../lib/esquemas';
+import { esquemas, seccion, type PaxinaLibre as TPaxina, type Recurso } from '../lib/esquemas';
 import { iguais, lerSesion } from '../lib/panel/seguridade';
 import { limparHtml } from '../lib/panel/saneado';
 
@@ -51,19 +51,21 @@ const seccions = (Array.isArray(bruto.seccions) ? bruto.seccions : []).map((x: R
 });
 
 let paxina: TPaxina | null = null;
-let ed: Edicion | null = null;
-if (coleccion === 'edicions') {
-  const r = esquemas.edicions.safeParse({ ...bruto, seccions: [] });
-  if (r.success) ed = { ...r.data, seccions, id: id || String(r.data.ano) } as Edicion;
+let rec: Recurso | null = null;
+if (coleccion === 'recursos') {
+  const r = esquemas.recursos.safeParse({ ...bruto, titulo: String(bruto.titulo ?? '').trim() || 'Recurso sen título', resumo: String(bruto.resumo ?? '').trim() || '…', seccions: [] });
+  if (r.success) rec = { ...r.data, seccions, id } as Recurso;
 } else {
-  const r = esquemas.paxinas_libres.safeParse({ ...bruto, titulo: String(bruto.titulo ?? '').trim() || 'Páxina sen título', seccions: [] });
+  // Páxinas (tamén as edicións) e modelos (vense como unha páxina co nome do modelo)
+  const datos = coleccion === 'modelos' ? { titulo: bruto.nome, cabeceira: bruto.cabeceira } : bruto;
+  const r = esquemas.paxinas_libres.safeParse({ ...datos, titulo: String(datos.titulo ?? '').trim() || 'Páxina sen título', seccions: [] });
   if (r.success) {
     paxina = { ...r.data, seccions, id } as TPaxina;
     const listado = { actualidade: 'noticias', recursos: 'recursos', edicions: 'edicions' } as const;
-    if (id in listado) paxina = conListado(paxina, listado[id as keyof typeof listado]);
+    if (coleccion === 'paxinas_libres' && id in listado) paxina = conListado(paxina, listado[id as keyof typeof listado]);
   }
 }
-const erroXeral = !paxina && !ed;
+const erroXeral = !paxina && !rec;
 ---
 
 {
@@ -72,8 +74,8 @@ const erroXeral = !paxina && !ed;
       <p><strong>Aínda non se pode amosar a vista previa.</strong></p>
       <p>Completa os datos obrigatorios da cabeceira (título, datas…) e a vista actualizarase soa.</p>
     </body></html>
-  ) : ed ? (
-    <EdicionPaxina d={ed} />
+  ) : rec ? (
+    <RecursoPaxina d={rec} />
   ) : (
     <PaxinaLibre p={paxina!} portada={id === 'inicio'} volver={paxina!.nai ? { href: `${paxina!.nai}/`, texto: naiTitulo || paxina!.nai } : undefined} />
   )

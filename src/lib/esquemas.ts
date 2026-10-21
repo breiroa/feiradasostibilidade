@@ -67,7 +67,13 @@ export const seccion = z.discriminatedUnion('tipo', [
     tipo: z.literal('programa'), ...base, texto: opc(texto),
     dias: z.array(z.object({ dia: texto.min(1), actividades: z.array(z.object({ hora: opc(texto), titulo: texto.min(1), descricion: opc(texto) })).default([]) })).default([]),
   }),
-  z.object({ tipo: z.literal('actividades'), ...base, texto: opc(texto), proxecto: ref }),
+  // Actividades (dun proxecto, un plan…) co seu estado e barra de progreso
+  z.object({
+    tipo: z.literal('actividades'), ...base, texto: opc(texto), progreso: z.boolean().default(true),
+    items: z.array(z.object({ codigo: opc(texto), titulo: texto.min(1), descricion: opc(texto), estado: z.enum(['prevista', 'en-curso', 'feita']).default('prevista') })).default([]),
+  }),
+  // Presentación: lema, texto grande, etiquetas e cifras (p. ex. o resumo dunha edición)
+  z.object({ tipo: z.literal('presentacion'), ...base, lema: opc(texto), texto: opc(texto), chips: z.array(texto.min(1)).default([]), cifras: z.array(cifra).default([]) }),
   z.object({ tipo: z.literal('cronoloxia'), ...base, texto: opc(texto), fitos: z.array(z.object({ data: texto.min(1), titulo: texto.min(1), texto: opc(texto), estado: z.enum(['feito', 'agora', 'proximo']).default('proximo') })).default([]) }),
   z.object({ tipo: z.literal('documentos'), ...base, items: z.array(z.object({ titulo: texto.min(1), detalle: opc(texto), url: opc(url), ficheiro: opc(mediaId) })).default([]) }),
   z.object({ tipo: z.literal('lista'), ...base, items: z.array(texto.min(1)).default([]) }),
@@ -81,7 +87,7 @@ export const seccion = z.discriminatedUnion('tipo', [
   // Formulario de contacto e participación (o mesmo de Participa); pódese poñer en calquera páxina
   z.object({ tipo: z.literal('formulario'), ...base, texto: opc(texto), graciasTitulo: opc(texto), graciasTexto: opc(texto) }),
   // Listado completo con filtros: todas as noticias, todos os recursos ou todas as edicións
-  z.object({ tipo: z.literal('listado'), ...base, texto: opc(texto), de: z.enum(['noticias', 'recursos', 'edicions']) }),
+  z.object({ tipo: z.literal('listado'), ...base, texto: opc(texto), de: z.enum(['noticias', 'recursos', 'edicions']), tipos: z.array(ref).default([]), filtro: z.boolean().default(true) }),
   // Columnas (2 ou 3) con bloques libres: título, texto, imaxe, botóns, vídeo, cita, cifra, lista, espazo
   z.object({
     tipo: z.literal('columnas'), ...base, texto: opc(texto),
@@ -112,28 +118,28 @@ const cabeceira = z.object({
 
 /** Elemento dun menú: unha páxina da web (co seu título ou outro texto) ou unha ligazón libre */
 const ligazonMenu = z.object({ tipo: z.enum(['paxina', 'ligazon']).default('paxina'), paxina: opc(ref), url: opc(url), texto: opc(texto) });
+/** Elemento de primeiro nivel: pode ter despregable (fillos a man e/ou as subpáxinas da páxina, automáticas) */
+const elementoMenu = ligazonMenu.extend({ fillos: z.array(ligazonMenu).default([]), auto: z.boolean().default(false) });
+const grupoPe = z.object({ titulo: texto.min(1), entidades: z.array(ref).default([]), nota: opc(texto) });
+
+/** Datos dunha edición da Feira (as edicións son páxinas, subpáxinas de «Edicións», con este bloque) */
+const datosEdicion = z.object({
+  numero: z.coerce.number().int().min(1),
+  ano: z.coerce.number().int().min(2000).max(2100),
+  datas: texto.min(1),
+  lugar: texto.min(1),
+  estado: z.enum(['proxima', 'pasada']).default('pasada'),
+  lema: opc(texto),
+  cifras: z.array(cifra).default([]),
+  fitos: z.array(texto.min(1)).default([]),
+});
+
 /** Portada (páxina fixa «inicio»): só seccións */
 export const esquemaInicio = z.object({ seccions });
 
-export const esquemas = {
-  edicions: z.object({
-    numero: z.coerce.number().int().min(1),
-    ano: z.coerce.number().int().min(2000).max(2100),
-    titulo: texto.min(1),
-    lema: opc(texto),
-    datas: texto.min(1),
-    lugar: texto.min(1),
-    estado: z.enum(['proxima', 'pasada']),
-    resumo: texto.min(1),
-    portada: opc(mediaId),
-    portadaAlt: opc(texto),
-    // Datos destacados que saen tamén nas tarxetas e na portada
-    cifras: z.array(cifra).default([]),
-    fitos: z.array(texto.min(1)).default([]),
-    proxecto: opc(ref),
-    seccions,
-  }),
+export const TIPOS_CONTACTO = ['web', 'correo', 'telefono', 'instagram', 'facebook', 'x', 'bluesky', 'mastodon', 'youtube', 'tiktok', 'linkedin', 'whatsapp', 'telegram', 'spotify', 'outro'] as const;
 
+export const esquemas = {
   noticias: z.object({
     titulo: texto.min(1),
     data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data no formato AAAA-MM-DD'),
@@ -154,7 +160,8 @@ export const esquemas = {
 
   recursos: z.object({
     titulo: texto.min(1),
-    tipo: z.enum(['xogo', 'podcast', 'estudo', 'guia', 'audiovisual', 'obradoiro', 'outro']),
+    // Un dos tipos definidos en Axustes › Tipos de recurso
+    tipo: ref,
     resumo: texto.min(1),
     edicion: opc(ref),
     temas: z.array(texto.min(1)).default([]),
@@ -168,61 +175,67 @@ export const esquemas = {
     autoria: opc(texto),
     licenza: texto.default('CC BY-SA 4.0'),
     corpo: z.string().default(''),
+    borrador: z.boolean().default(false),
+    // Contido libre da ficha (editor visual): vídeos, galerías, documentos, texto…
+    seccions,
   }),
 
-  proxectos: z.object({
-    titulo: texto.min(1),
-    nomeCurto: texto.min(1),
-    subtitulo: opc(texto),
-    edicion: ref,
-    resumo: texto.min(1),
-    financiamento: texto.min(1),
-    entidades: z.array(ref).default([]),
-    cifras: z.array(cifra).default([]),
-    corpo: z.string().default(''),
-    actividades: z
-      .array(
-        z.object({
-          codigo: texto.min(1),
-          resultado: texto.min(1),
-          titulo: texto.min(1),
-          descricion: texto.min(1),
-          estado: z.enum(['prevista', 'en-curso', 'feita']).default('prevista'),
-        }),
-      )
-      .default([]),
-  }),
+  // Antigos proxectos (xa non se usan: o seu contido pasou ás páxinas). Mantéñense só para ler copias.
+  proxectos: z.object({ titulo: texto.min(1) }).passthrough(),
 
   // Todas as páxinas da web construídas con seccións: Inicio, Participa, FeiraLab, Actualidade, Recursos,
-  // Edicións (listado), legais e as que se creen no panel
+  // Edicións e as súas subpáxinas (cada edición da Feira), legais e as que se creen no panel
   paxinas_libres: z.object({
     titulo: texto.min(1),
     descricion: opc(texto),
     // '' = páxina solta (/enderezo/); 'outra-paxina' = subpáxina (/outra-paxina/enderezo/)
     nai: z.preprocess((v) => v ?? '', z.union([z.literal(''), ref])),
     imaxe: opc(mediaId),
+    imaxeAlt: opc(texto),
     borrador: z.boolean().default(false),
     // Cabeceira sinxela (úsase cando a páxina non empeza cunha sección de portada)
     cabeceira: cabeceira.optional(),
+    // Se é unha edición da Feira: datos para as tarxetas, a edición destacada e o despregable
+    edicion: datosEdicion.optional(),
     seccions,
   }),
 
-  // Menú superior, navegación do pé e ligazóns legais (documento único «xeral»)
-  navegacion: z.object({
-    // auto: o despregable mostra soas as subpáxinas da páxina (ou as edicións, se é a páxina Edicións)
-    menu: z.array(ligazonMenu.extend({ tipo: z.enum(['paxina', 'ligazon', 'edicions']).default('paxina'), fillos: z.array(ligazonMenu).default([]), auto: z.boolean().default(false) })).default([]),
-    peIgual: z.boolean().default(true),
-    pe: z.array(ligazonMenu).default([]),
-    legais: z.array(ligazonMenu).default([]),
+  // Menús (o principal, o legal, e os que se creen): a cabeceira e o pé escollen cal usar
+  menus: z.object({
+    nome: texto.min(1),
+    items: z.array(elementoMenu).default([]),
   }),
 
-  // Modelos gardados: unha sección ou unha páxina enteira para reutilizar
-  modelos: z.discriminatedUnion('tipo', [
-    z.object({ tipo: z.literal('seccion'), nome: texto.min(1), desc: opc(texto), seccion }),
-    z.object({ tipo: z.literal('paxina'), nome: texto.min(1), desc: opc(texto), cabeceira: cabeceira.optional(), seccions }),
-  ]),
+  // Cabeceira e pé da web (documento único «xeral»)
+  estrutura: z.object({
+    cabeceira: z
+      .object({
+        menu: opc(ref),
+        boton: z.object({ texto: opc(texto), url: opc(url) }).default({}),
+      })
+      .default({}),
+    pe: z
+      .object({
+        texto: z.string().default(''),
+        grupos: z.array(grupoPe).default([]),
+        premios: z.array(z.object({ ano: texto.min(1), texto: texto.min(1) })).default([]),
+        menu: opc(ref),
+        tituloMenu: texto.default('Navegación'),
+        menuLegal: opc(ref),
+        tituloContactos: texto.default('Síguenos'),
+        licenzaCorpo: z.string().default('Contidos baixo licenza <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.gl" rel="license noopener">CC BY-SA 4.0</a>, salvo indicación.'),
+      })
+      .default({}),
+  }),
 
-  // Páxinas fixas con estrutura propia (inicio con seccións; participa cos seus campos)
+  // Modelos: unha páxina enteira ou un conxunto de seccións para reutilizar
+  modelos: z.preprocess(
+    // Formato antigo: {tipo: 'seccion', seccion}
+    (v) => (v && typeof v === 'object' && (v as { tipo?: string }).tipo === 'seccion' ? { ...(v as object), tipo: 'seccions', seccions: [(v as { seccion: unknown }).seccion] } : v),
+    z.object({ tipo: z.enum(['paxina', 'seccions']), nome: texto.min(1), desc: opc(texto), cabeceira: cabeceira.optional(), seccions }),
+  ),
+
+  // Páxinas fixas antigas (xa migradas a paxinas_libres; só se len como respaldo)
   paxinas: z.record(z.string(), z.unknown()),
 
   axustes: z.object({
@@ -230,32 +243,44 @@ export const esquemas = {
     lema: texto.min(1),
     descricion: texto.min(1),
     edicionActual: ref,
-    instagram: opc(url),
-    instagramUsuario: opc(texto),
-    correo: opc(texto),
-    webIes: opc(url),
-    pe: z
+    // Contactos e redes (pé, formulario…): tantos como se queira
+    contactos: z.array(z.object({ tipo: z.enum(TIPOS_CONTACTO).default('web'), etiqueta: opc(texto), valor: texto.min(1) })).default([]),
+    // Buscadores e redes sociais
+    seo: z
       .object({
-        texto: z.string().default(''),
-        grupos: z.array(z.object({ titulo: texto.min(1), entidades: z.array(ref).default([]), nota: opc(texto) })).default([]),
-        premios: z.array(z.object({ ano: texto.min(1), texto: texto.min(1) })).default([]),
+        titulo: opc(texto), // título da portada nos buscadores (por defecto: nome · lema)
+        imaxe: opc(mediaId), // imaxe por defecto ao compartir
+        indexar: z.boolean().default(true),
+        googleVerificacion: opc(z.string().trim().regex(/^[A-Za-z0-9_-]{10,100}$/, 'Código de verificación non válido')),
+        idioma: texto.default('gl'),
       })
-      .default({ texto: '', grupos: [], premios: [] }),
+      .default({}),
+    favicon: opc(mediaId),
+    // Tipos de recurso (xogo, podcast…): editables
+    tiposRecurso: z.array(z.object({ id: ref, nome: texto.min(1) })).default([]),
   }),
 };
 
-/** Páxinas fixas da web: non se poden borrar nin ter outro enderezo (feiralab si pode ter subpáxinas) */
+/** Páxinas fixas da web: non se poden borrar nin ter outro enderezo */
 export const PAXINAS_SISTEMA = ['inicio', 'feiralab', 'participa', 'actualidade', 'recursos', 'edicions'] as const;
-/** Páxinas que non poden ser nai doutras (as súas rutas xa teñen subpáxinas propias ou son especiais) */
-export const SEN_FILLAS = ['inicio', 'participa', 'actualidade', 'recursos', 'edicions'];
+/** Páxinas que non poden ter subpáxinas (as súas rutas teñen subpáxinas propias, p. ex. /recursos/ficha/) */
+export const SEN_FILLAS = ['inicio', 'participa', 'actualidade', 'recursos'];
 
 export type Coleccion = keyof typeof esquemas;
-export type Edicion = z.infer<(typeof esquemas)['edicions']> & { id: string };
+export type DatosEdicion = z.infer<typeof datosEdicion>;
 export type Noticia = z.infer<(typeof esquemas)['noticias']> & { id: string };
 export type Entidade = z.infer<(typeof esquemas)['entidades']> & { id: string; proporcion?: number };
 export type Recurso = z.infer<(typeof esquemas)['recursos']> & { id: string };
-export type Proxecto = z.infer<(typeof esquemas)['proxectos']> & { id: string };
 export type PaxinaLibre = z.infer<(typeof esquemas)['paxinas_libres']> & { id: string };
 export type Axustes = z.infer<(typeof esquemas)['axustes']>;
-export type Navegacion = z.infer<(typeof esquemas)['navegacion']>;
+export type Menu = z.infer<(typeof esquemas)['menus']> & { id: string };
+export type Estrutura = z.infer<(typeof esquemas)['estrutura']>;
+/** Unha edición da Feira tal como a usan as tarxetas e listados (sae da súa páxina) */
+export interface Edicion extends DatosEdicion {
+  id: string;
+  titulo: string;
+  resumo: string;
+  portada?: string;
+  portadaAlt?: string;
+}
 export const colecciones = Object.keys(esquemas) as Coleccion[];

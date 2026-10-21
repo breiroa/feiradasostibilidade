@@ -49,6 +49,7 @@ const E = (r: string, ph: string, t: 'texto' | 'area' = 'texto') => ed(Astro.loc
     )
   }
   <Seccions seccions={p.seccions} primeiraH1={conHeroe} />
+  <slot />
 </Base>
 
 <style>

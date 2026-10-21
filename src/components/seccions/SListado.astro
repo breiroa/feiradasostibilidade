@@ -1,8 +1,8 @@
 ---
-// Listado completo con filtros: todas as noticias (por edición), todos os recursos (por tipo) ou todas as edicións.
+// Listado completo: todas as noticias (filtro por edición), os recursos (filtro por tipo; pódese limitar a uns tipos
+// para facer páxinas de recursos distintas) ou todas as edicións. O filtro é un despregable.
 import type { Seccion } from '../../lib/esquemas';
-import { edicions, noticias, recursos } from '../../lib/datos';
-import { tiposRecurso } from '../../data/site';
+import { edicions, noticias, recursos, tiposRecurso } from '../../lib/datos';
 import Envoltorio from './Envoltorio.astro';
 import NewsCard from '../NewsCard.astro';
 import ResourceCard from '../ResourceCard.astro';
@@ -13,60 +13,79 @@ interface Props { s: T }
 const { s } = Astro.props;
 
 const nots = s.de === 'noticias' ? await noticias() : [];
-const recs = s.de === 'recursos' ? await recursos() : [];
+const recs = s.de === 'recursos' ? (await recursos()).filter((r) => !s.tipos.length || s.tipos.includes(r.tipo)) : [];
+const tipos = s.de === 'recursos' ? await tiposRecurso() : {};
 const eds = s.de === 'edicions' ? await edicions() : [];
-const filtrosNot = [...new Set(nots.map((n) => n.edicion).filter((e): e is string => Boolean(e)))].sort().reverse();
-const filtrosRec = [...new Set(recs.map((r) => r.tipo))];
+const opcions =
+  s.de === 'noticias'
+    ? [...new Set(nots.map((n) => n.edicion).filter((e): e is string => Boolean(e)))].sort().reverse().map((e) => ({ valor: e, texto: `Feira ${e}` }))
+    : s.de === 'recursos'
+      ? [...new Set(recs.map((r) => r.tipo))].map((t) => ({ valor: t, texto: tipos[t] ?? t }))
+      : [];
+const todas = s.de === 'noticias' ? 'Todas as noticias' : 'Todos os recursos';
+const etiqueta = s.de === 'noticias' ? 'Edición' : 'Tipo';
+const id = `filtro-${s.id}`;
 ---
 
 <Envoltorio s={s} texto={s.texto}>
   <div data-listado>
     {
-      s.de === 'noticias' && (
-        <>
-          {filtrosNot.length > 1 && (
-            <div class="filtros" role="group" aria-label="Filtrar por edición">
-              <button type="button" data-filtro="" aria-pressed="true">Todas</button>
-              {filtrosNot.map((e) => <button type="button" data-filtro={e} aria-pressed="false">Feira {e}</button>)}
-            </div>
-          )}
-          {nots.length === 0 && <p>Aínda non hai noticias.</p>}
-          <div class="grella">{nots.map((n) => <div data-valor={n.edicion ?? ''}><NewsCard noticia={n} /></div>)}</div>
-        </>
+      s.filtro && opcions.length > 1 && (
+        <div class="filtro">
+          <label for={id}>{etiqueta}</label>
+          <div class="filtro-caixa">
+            <select id={id} data-filtro>
+              <option value="">{todas}</option>
+              {opcions.map((o) => <option value={o.valor}>{o.texto}</option>)}
+            </select>
+            <svg aria-hidden="true" width="12" height="12" viewBox="0 0 10 10"><path d="M1 3l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+          </div>
+          <span class="filtro-conta" aria-live="polite" data-conta></span>
+        </div>
       )
     }
-    {
-      s.de === 'recursos' && (
-        <>
-          {filtrosRec.length > 1 && (
-            <div class="filtros" role="group" aria-label="Filtrar por tipo">
-              <button type="button" data-filtro="" aria-pressed="true">Todos</button>
-              {filtrosRec.map((t) => <button type="button" data-filtro={t} aria-pressed="false">{tiposRecurso[t]}</button>)}
-            </div>
-          )}
-          {recs.length === 0 && <p>Aínda non hai recursos.</p>}
-          <div class="grella-rec">{recs.map((r) => <div data-valor={r.tipo}><ResourceCard recurso={r} /></div>)}</div>
-        </>
-      )
-    }
+    {s.de === 'noticias' && nots.length === 0 && <p>Aínda non hai noticias.</p>}
+    {s.de === 'noticias' && <div class="grella">{nots.map((n) => <div data-valor={n.edicion ?? ''}><NewsCard noticia={n} /></div>)}</div>}
+    {s.de === 'recursos' && recs.length === 0 && <p>Aínda non hai recursos.</p>}
+    {s.de === 'recursos' && <div class="grella-rec">{recs.map((r) => <div data-valor={r.tipo}><ResourceCard recurso={r} tipos={tipos} /></div>)}</div>}
     {s.de === 'edicions' && <div class="grella">{eds.map((e) => <EditionCard edicion={e} />)}</div>}
   </div>
 </Envoltorio>
 
 <script>
   document.querySelectorAll<HTMLElement>('[data-listado]').forEach((cont) => {
-    const botons = cont.querySelectorAll<HTMLButtonElement>('[data-filtro]');
-    const items = cont.querySelectorAll<HTMLElement>('[data-valor]');
-    botons.forEach((b) =>
-      b.addEventListener('click', () => {
-        const f = b.dataset.filtro;
-        botons.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-        items.forEach((i) => (i.hidden = Boolean(f) && i.dataset.valor !== f));
-      }),
-    );
+    const sel = cont.querySelector<HTMLSelectElement>('[data-filtro]');
+    const conta = cont.querySelector<HTMLElement>('[data-conta]');
+    const items = [...cont.querySelectorAll<HTMLElement>('[data-valor]')];
+    if (!sel) return;
+    const aplicar = () => {
+      const f = sel.value;
+      let n = 0;
+      items.forEach((i) => {
+        i.hidden = Boolean(f) && i.dataset.valor !== f;
+        if (!i.hidden) n++;
+      });
+      if (conta) conta.textContent = f ? `${n} ${n === 1 ? 'resultado' : 'resultados'}` : '';
+    };
+    sel.addEventListener('change', aplicar);
+    aplicar();
   });
 </script>
 
 <style>
   .grella-rec { display: grid; gap: clamp(1.1rem, 2.6vw, 1.9rem); grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+  .filtro { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  .filtro label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--texto-suave); }
+  .filtro-caixa { position: relative; }
+  .filtro select {
+    appearance: none; font: inherit; font-weight: 600; font-size: 0.95rem; color: var(--texto);
+    padding: 0.7rem 2.8rem 0.7rem 1.1rem; min-width: 15rem; border-radius: 99px; cursor: pointer;
+    background: var(--branco); border: 1px solid var(--linha); box-shadow: 0 1px 2px rgb(26 20 40 / 0.05), 0 6px 18px rgb(26 20 40 / 0.06);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .filtro select:hover { border-color: var(--verde); }
+  .filtro select:focus-visible { outline: 3px solid var(--verde-suave); border-color: var(--verde); }
+  .filtro-caixa svg { position: absolute; right: 1.1rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--verde); }
+  .filtro-conta { font-size: 0.88rem; color: var(--texto-suave); }
+  :global(.fondo-branco) .filtro select { background: var(--crema); }
 </style>

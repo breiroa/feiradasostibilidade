@@ -1,21 +1,24 @@
 ---
-// Actividades dun proxecto co seu estado e unha barra de progreso.
-import type { Proxecto, Seccion } from '../../lib/esquemas';
+// Actividades (dun proxecto, dun plan de traballo…) co seu estado e unha barra de progreso.
+import type { Seccion } from '../../lib/esquemas';
 import Envoltorio from './Envoltorio.astro';
-import ActivityList from '../ActivityList.astro';
+import { ed, edItem, editando } from '../../lib/editable';
 
 type T = Extract<Seccion, { tipo: 'actividades' }>;
-interface Props { s: T; proxecto?: Proxecto | null }
-const { s, proxecto } = Astro.props;
-const acts = proxecto?.actividades ?? [];
+interface Props { s: T }
+const { s } = Astro.props;
+const acts = s.items;
 const feitas = acts.filter((a) => a.estado === 'feita').length;
 const curso = acts.filter((a) => a.estado === 'en-curso').length;
 const pct = (n: number) => (acts.length ? (n / acts.length) * 100 : 0);
+const estados = { prevista: 'Prevista', 'en-curso': 'En curso', feita: 'Feita' };
+const editar = editando(Astro.locals);
+const E = (r: string, t: 'texto' | 'area' = 'texto', ph?: string) => ed(Astro.locals, r, t, ph);
 ---
 
-{
-  proxecto && (
-    <Envoltorio s={s} texto={s.texto}>
+<Envoltorio s={s} texto={s.texto}>
+  {
+    s.progreso && acts.length > 0 && (
       <div class="progreso" role="img" aria-label={`${feitas} feitas, ${curso} en curso, de ${acts.length} actividades`}>
         <div class="barra">
           <span class="feita" style={`width:${pct(feitas)}%`} />
@@ -25,10 +28,23 @@ const pct = (n: number) => (acts.length ? (n / acts.length) * 100 : 0);
           <b>{feitas}</b> feitas · <b>{curso}</b> en curso · <b>{acts.length - feitas - curso}</b> previstas
         </p>
       </div>
-      <ActivityList actividades={acts} />
-    </Envoltorio>
-  )
-}
+    )
+  }
+  <ul class="acts">
+    {
+      acts.map((a, i) => (
+        <li class:list={['act', a.estado]} {...edItem(Astro.locals, `items.${i}`)}>
+          <div class="cabeza">
+            {(a.codigo || editar) && <span class="codigo" {...E(`items.${i}.codigo`, 'texto', 'Código')}>{a.codigo}</span>}
+            <span class:list={['estado', a.estado]}>{estados[a.estado]}</span>
+          </div>
+          <h3 {...E(`items.${i}.titulo`, 'texto', 'Actividade')}>{a.titulo}</h3>
+          {(a.descricion || editar) && <p {...E(`items.${i}.descricion`, 'area', 'Descrición (opcional)')}>{a.descricion}</p>}
+        </li>
+      ))
+    }
+  </ul>
+</Envoltorio>
 
 <style>
   .progreso { margin-bottom: 2.4rem; display: grid; gap: 0.6rem; max-width: 640px; }
@@ -37,4 +53,15 @@ const pct = (n: number) => (acts.length ? (n / acts.length) * 100 : 0);
   .curso { background: var(--morado); }
   .progreso p { font-size: 0.9rem; color: var(--texto-suave); }
   .progreso b { color: var(--texto); }
+  .acts { list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+  .act { background: var(--branco); border: 1px solid var(--linha); border-radius: 16px; padding: 1.2rem 1.3rem; display: grid; gap: 0.5rem; align-content: start; }
+  .act.feita { border-left: 4px solid var(--verde); }
+  .act.en-curso { border-left: 4px solid var(--morado); }
+  .cabeza { display: flex; justify-content: space-between; gap: 0.6rem; align-items: center; }
+  .codigo { font-family: var(--mono); font-size: 0.72rem; color: var(--texto-suave); }
+  .estado { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 99px; background: var(--morado-pale); color: var(--morado); margin-left: auto; }
+  .estado.feita { background: var(--verde-pale); color: var(--verde-escuro); }
+  .estado.en-curso { background: var(--morado); color: var(--branco); }
+  .act h3 { font-size: 1.1rem; }
+  .act p { font-size: 0.93rem; }
 </style>

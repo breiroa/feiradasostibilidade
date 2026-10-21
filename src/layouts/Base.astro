@@ -7,7 +7,7 @@ import '@fontsource/space-mono/400.css';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { axustes, edicions, mapaEntidades } from '../lib/datos';
+import { axustes, edicions, estrutura, mapaEntidades } from '../lib/datos';
 import { navegacion } from '../lib/navegacion';
 import { url, mediaUrl } from '../lib/url';
 
@@ -17,22 +17,33 @@ interface Props {
   imaxe?: string; // id de media para compartir en redes
 }
 
-const [ax, eds, mapa, nv] = await Promise.all([axustes(), edicions(), mapaEntidades(), navegacion()]);
+const [ax, eds, mapa, nv, est] = await Promise.all([axustes(), edicions(), mapaEntidades(), navegacion(), estrutura()]);
 const { titulo, descricion = ax.descricion, imaxe } = Astro.props;
-const tituloCompleto = titulo ? `${titulo} · ${ax.nome}` : `${ax.nome} · ${ax.lema}`;
+const seo = ax.seo ?? { indexar: true, idioma: 'gl' };
+const tituloCompleto = titulo ? `${titulo} · ${ax.nome}` : seo.titulo || `${ax.nome} · ${ax.lema}`;
 const canonica = new URL(Astro.url.pathname, Astro.url.origin);
-const imaxeSocial = imaxe ? new URL(mediaUrl(imaxe, 'g'), Astro.url.origin).href : undefined;
+// Imaxe ao compartir: a da páxina ou, se non ten, a xeral de Axustes
+const imaxeId = imaxe ?? seo.imaxe;
+const imaxeSocial = imaxeId ? new URL(mediaUrl(imaxeId, 'g'), Astro.url.origin).href : undefined;
+const favicon = ax.favicon ? mediaUrl(ax.favicon, 'm') : url('favicon.png');
+// Na vista previa do panel nunca se indexa
+const indexar = seo.indexar && !Astro.url.pathname.startsWith('/vista-previa');
 ---
 
 <!doctype html>
-<html lang="gl">
+<html lang={seo.idioma || 'gl'}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{tituloCompleto}</title>
     <meta name="description" content={descricion} />
     <link rel="canonical" href={canonica} />
-    <link rel="icon" type="image/png" href={url('favicon.png')} />
+    <link rel="icon" href={favicon} />
+    <link rel="apple-touch-icon" href={favicon} />
+    {!indexar && <meta name="robots" content="noindex, nofollow" />}
+    {seo.googleVerificacion && <meta name="google-site-verification" content={seo.googleVerificacion} />}
+    <meta property="og:site_name" content={ax.nome} />
+    <meta name="twitter:card" content={imaxeSocial ? 'summary_large_image' : 'summary'} />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={tituloCompleto} />
     <meta property="og:description" content={descricion} />
@@ -43,10 +54,10 @@ const imaxeSocial = imaxe ? new URL(mediaUrl(imaxe, 'g'), Astro.url.origin).href
   </head>
   <body>
     <a class="saltar" href="#contido">Saltar ao contido</a>
-    <Header edicions={eds} menu={nv.menu} />
+    <Header edicions={eds} menu={nv.menu} boton={nv.boton} />
     <main id="contido">
       <slot />
     </main>
-    <Footer axustes={ax} mapa={mapa} navegacion={nv.pe} legais={nv.legais} />
+    <Footer axustes={ax} estrutura={est} mapa={mapa} navegacion={nv.pe} legais={nv.legais} />
   </body>
 </html>
