@@ -13,17 +13,22 @@ interface Props { s: T }
 const { s } = Astro.props;
 
 const nots = s.de === 'noticias' ? await noticias() : [];
+const XERAL = '_xeral';
 const recs = s.de === 'recursos' ? (await recursos()).filter((r) => !s.tipos.length || s.tipos.includes(r.tipo)) : [];
 const tipos = s.de === 'recursos' ? await tiposRecurso() : {};
 const eds = s.de === 'edicions' ? await edicions() : [];
 const opcions =
   s.de === 'noticias'
-    ? [...new Set(nots.map((n) => n.edicion).filter((e): e is string => Boolean(e)))].sort().reverse().map((e) => ({ valor: e, texto: `Feira ${e}` }))
+    ? [
+        ...[...new Set(nots.map((n) => n.edicion).filter((e): e is string => Boolean(e)))].sort().reverse().map((e) => ({ valor: e, texto: `Feira ${e}` })),
+        // Noticias xerais, sen edición
+        ...(nots.some((n) => !n.edicion) ? [{ valor: XERAL, texto: 'Outras noticias' }] : []),
+      ]
     : s.de === 'recursos'
       ? [...new Set(recs.map((r) => r.tipo))].map((t) => ({ valor: t, texto: tipos[t] ?? t }))
       : [];
 const todas = s.de === 'noticias' ? 'Todas as noticias' : 'Todos os recursos';
-const etiqueta = s.de === 'noticias' ? 'Edición' : 'Tipo';
+const etiqueta = 'Filtrar';
 const id = `filtro-${s.id}`;
 ---
 
@@ -45,7 +50,7 @@ const id = `filtro-${s.id}`;
       )
     }
     {s.de === 'noticias' && nots.length === 0 && <p>Aínda non hai noticias.</p>}
-    {s.de === 'noticias' && <div class="grella">{nots.map((n) => <div data-valor={n.edicion ?? ''}><NewsCard noticia={n} /></div>)}</div>}
+    {s.de === 'noticias' && <div class="grella">{nots.map((n) => <div data-valor={n.edicion ?? XERAL}><NewsCard noticia={n} /></div>)}</div>}
     {s.de === 'recursos' && recs.length === 0 && <p>Aínda non hai recursos.</p>}
     {s.de === 'recursos' && <div class="grella-rec">{recs.map((r) => <div data-valor={r.tipo}><ResourceCard recurso={r} tipos={tipos} /></div>)}</div>}
     {s.de === 'edicions' && <div class="grella">{eds.map((e) => <EditionCard edicion={e} />)}</div>}

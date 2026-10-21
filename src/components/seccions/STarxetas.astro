@@ -18,7 +18,7 @@ const E = (r: string, t: 'texto' | 'area' | 'imaxe' = 'texto', ph?: string) => e
       s.items.map((it, n) => (
         <li class:list={['tx-item', { 'con-ligazon': it.url }]} {...edItem(Astro.locals, `items.${n}`)} data-url-ruta={editar ? `items.${n}.url` : undefined}>
           {it.imaxe ? (
-            <Img id={it.imaxe} alt={it.imaxeAlt ?? ''} sizes="(max-width: 700px) 100vw, 33vw" class="tx-foto" {...E(`items.${n}.imaxe`, 'imaxe')} />
+            <div class="tx-marco"><Img id={it.imaxe} alt={it.imaxeAlt ?? ''} sizes="(max-width: 700px) 100vw, 33vw" class="tx-foto" {...E(`items.${n}.imaxe`, 'imaxe')} /></div>
           ) : conImaxes && editar ? (
             <div class="tx-foto previa-sen-imaxe" {...E(`items.${n}.imaxe`, 'imaxe')}>+ Foto</div>
           ) : (
@@ -45,16 +45,28 @@ const E = (r: string, t: 'texto' | 'area' | 'imaxe' = 'texto', ph?: string) => e
     box-shadow: 0 1px 2px color-mix(in srgb, var(--negro) 5%, transparent), 0 10px 30px color-mix(in srgb, var(--negro) 7%, transparent);
     display: flex; flex-direction: column; transition: transform 0.25s, box-shadow 0.25s;
   }
-  .con-ligazon:hover { transform: translateY(-4px); box-shadow: 0 2px 4px color-mix(in srgb, var(--negro) 6%, transparent), 0 22px 44px color-mix(in srgb, var(--negro) 13%, transparent); }
-  .tx-item :global(.tx-foto) { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+  /* Ao pasar o rato: a tarxeta elévase, a foto achégase un pouco e aparece unha liña de cor abaixo */
+  .tx-item::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, var(--verde), var(--morado)); transform: scaleX(0); transform-origin: left; transition: transform 0.35s ease; }
+  .tx-item:hover { transform: translateY(-5px); box-shadow: 0 2px 4px color-mix(in srgb, var(--negro) 6%, transparent), 0 22px 44px color-mix(in srgb, var(--negro) 13%, transparent); }
+  .tx-item:hover::after { transform: scaleX(1); }
+  .tx-item:hover .tx-etiqueta { color: var(--verde); }
+  .tx-marco { overflow: hidden; line-height: 0; }
+  .tx-item :global(.tx-foto) { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; transition: transform 0.6s ease; }
+  .tx-item:hover :global(.tx-foto) { transform: scale(1.05); }
+  @media (prefers-reduced-motion: reduce) {
+    .tx-item, .tx-item::after, .tx-item :global(.tx-foto) { transition: none; }
+    .tx-item:hover { transform: none; }
+    .tx-item:hover :global(.tx-foto) { transform: none; }
+  }
   .tx-num { font-family: var(--serif); font-weight: 900; font-size: 2.6rem; line-height: 1; color: var(--verde-suave); padding: 1.6rem 1.6rem 0; }
   .tx-corpo { padding: 1.3rem 1.6rem 1.7rem; display: flex; flex-direction: column; gap: 0.55rem; flex: 1; }
   .tx-boton { margin-top: auto; padding-top: 0.4rem; color: var(--verde); white-space: normal; }
-  .tx-etiqueta { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--morado); }
+  .tx-etiqueta { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--morado); transition: color 0.25s; }
   .tx-corpo p:not(.tx-etiqueta) { font-size: 0.97rem; }
   h3 a { color: inherit; text-decoration: none; }
   h3 a::after { content: ''; position: absolute; inset: 0; }
   .con-ligazon:hover h3 a { color: var(--verde); }
   :global(.fondo-escuro) .tx-item, :global(.fondo-morado) .tx-item { background: rgb(255 255 255 / 0.06); box-shadow: none; border: 1px solid rgb(255 255 255 / 0.12); }
   :global(.fondo-escuro) .tx-item h3, :global(.fondo-morado) .tx-item h3 { color: var(--branco); }
+  :global(.fondo-escuro) .tx-item:hover, :global(.fondo-morado) .tx-item:hover { background: rgb(255 255 255 / 0.1); box-shadow: none; }
 </style>
