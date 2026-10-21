@@ -87,6 +87,10 @@ const volver = Astro.url.pathname.startsWith('/vista-previa') ? '/participa/' : 
               <span>Acepto que os meus datos se usen só para responder e organizar a participación na Feira (<a href={url('privacidade/')}>política de privacidade</a>).</span>
             </label>
             <button class="boton" type="submit">Enviar</button>
+            {/* Información básica de protección de datos (primeira capa, RGPD art. 13) */}
+            <p class="info-datos">
+              <b>Responsable:</b> IES Luís Seoane (Consellería de Educación, Xunta de Galicia). <b>Finalidade:</b> responder a túa mensaxe e organizar a participación na Feira. <b>Lexitimación:</b> o teu consentimento. <b>Destinatarios:</b> non se ceden datos a terceiros. <b>Dereitos:</b> acceso, rectificación, supresión e outros, escribindo ao centro. <a href={url('privacidade/')}>Información completa</a>.
+            </p>
           </form>
         )
       }
@@ -127,6 +131,7 @@ const volver = Astro.url.pathname.startsWith('/vista-previa') ? '/participa/' : 
   }
   .campo :is(input, select, textarea):focus { outline: 3px solid var(--morado-suave); border-color: var(--morado); }
   .privacidade { display: flex; gap: 0.6rem; align-items: flex-start; margin-block: 1.4rem 1.2rem; font-size: 0.9rem; }
+  .info-datos { margin-top: 1.2rem; font-size: 0.78rem; line-height: 1.5; color: var(--texto-suave); }
   .privacidade input { margin-top: 0.3rem; width: 1.05rem; height: 1.05rem; accent-color: var(--verde); }
   .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
   .aviso { padding: 1rem 1.2rem; border-radius: 12px; margin-bottom: 1.2rem; }

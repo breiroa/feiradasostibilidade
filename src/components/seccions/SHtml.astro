@@ -1,27 +1,63 @@
 ---
 // HTML libre (xa saneado ao gardar): para contidos que non encaixan nas outras seccións.
+// Os contidos incrustados doutros servizos (mapas, formularios, vídeos…) non se cargan ata que a persoa preme
+// «Cargar»: así ningún servizo externo pon cookies sen que o saibas (ver a política de cookies).
 import type { Seccion } from '../../lib/esquemas';
 import Envoltorio from './Envoltorio.astro';
 import { editando } from '../../lib/editable';
+import { url } from '../../lib/url';
 
 type T = Extract<Seccion, { tipo: 'html' }>;
 interface Props { s: T }
 const { s } = Astro.props;
 const editar = editando(Astro.locals);
+// Os iframes quedan «durmidos» (data-src) ata que se preme o botón
+const html = s.html.replace(/<iframe([^>]*?)\ssrc="([^"]+)"/gi, '<iframe$1 data-src="$2"');
 ---
 
 <Envoltorio s={s} ancho={s.ancho === 'estreito' ? 'estreito' : s.ancho === 'completo' ? 'ancho' : 'normal'} cabeceira={Boolean(s.etiqueta || s.titulo)}>
   {
     s.html ? (
-      <div class="html-libre"><Fragment set:html={s.html} /></div>
+      <div class="html-libre" data-politica={url('cookies/')}><Fragment set:html={html} /></div>
     ) : editar ? (
       <p class="previa-baleira">Sección HTML baleira: escribe o código no panel da esquerda.</p>
     ) : null
   }
 </Envoltorio>
 
+<script>
+  document.querySelectorAll<HTMLElement>('.html-libre').forEach((cont) => {
+    const politica = cont.dataset.politica ?? '/cookies/';
+    cont.querySelectorAll<HTMLIFrameElement>('iframe[data-src]').forEach((f) => {
+      let host = '';
+      try { host = new URL(f.dataset.src!).hostname.replace(/^www\./, ''); } catch { return; }
+      const caixa = document.createElement('div');
+      caixa.className = 'incrustado';
+      const ancho = f.getAttribute('width'), alto = f.getAttribute('height');
+      if (alto && /^\d+$/.test(alto)) caixa.style.minHeight = `${Math.min(Number(alto), 600)}px`;
+      if (ancho && /^\d+$/.test(ancho)) caixa.style.maxWidth = `${ancho}px`;
+      const p = document.createElement('p');
+      p.innerHTML = `Este contido vén de <b></b>. Ao cargalo, ese servizo pode usar as súas propias cookies. <a href="${politica}">Máis información</a>.`;
+      p.querySelector('b')!.textContent = host;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'boton';
+      b.textContent = 'Cargar o contido';
+      b.addEventListener('click', () => {
+        f.src = f.dataset.src!;
+        f.removeAttribute('data-src');
+        caixa.replaceWith(f);
+      });
+      caixa.append(p, b);
+      f.replaceWith(caixa);
+    });
+  });
+</script>
+
 <style>
   .html-libre :global(iframe) { max-width: 100%; border: 0; }
   .html-libre :global(img) { max-width: 100%; height: auto; }
+  .html-libre :global(.incrustado) { display: grid; place-content: center; justify-items: center; gap: 1rem; text-align: center; padding: 2rem 1.5rem; min-height: 220px; border-radius: 16px; background: var(--crema); border: 1px dashed var(--linha); }
+  .html-libre :global(.incrustado p) { max-width: 46ch; font-size: 0.95rem; }
   .previa-baleira { padding: 2rem; border: 2px dashed var(--linha); border-radius: 14px; text-align: center; color: var(--texto-suave); }
 </style>
