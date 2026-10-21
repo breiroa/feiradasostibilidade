@@ -14,12 +14,12 @@
     "deploy": "node scripts/versions.mjs && astro build && wrangler deploy"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^13.7.0",
+    "@astrojs/cloudflare": "^14.4.1",
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource/playfair-display": "^5.3.0",
     "@fontsource/space-mono": "^5.3.0",
-    "astro": "^6.4.8",
-    "sharp": "^0.34.5",
+    "astro": "^7.4.1",
+    "sharp": "^0.35.5",
     "wrangler": "^4.151.3"
   }
 }

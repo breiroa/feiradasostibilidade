@@ -8,5 +8,7 @@ export default defineConfig({
   site: 'https://feiradasostibilidade.com',
   output: 'server',
   trailingSlash: 'ignore',
+  // Astro 7 elimina por defecto os espazos entre elementos en liña (`'jsx'`); mantemos o comportamento anterior
+  compressHTML: true,
   adapter: cloudflare({ imageService: 'passthrough' }),
 });
