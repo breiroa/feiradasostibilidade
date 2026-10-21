@@ -7,7 +7,10 @@ import '@fontsource/space-mono/400.css';
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { axustes, edicions, estrutura, mapaEntidades } from '../lib/datos';
+import { axustes, edicions, estrutura, identidade, mapaEntidades } from '../lib/datos';
+import { corEscura, cssIdentidade, marca } from '../lib/identidade';
+import { editando } from '../lib/editable';
+import type { Estrutura, Identidade } from '../lib/esquemas';
 import { navegacion } from '../lib/navegacion';
 import { url, mediaUrl } from '../lib/url';
 
@@ -17,7 +20,16 @@ interface Props {
   imaxe?: string; // id de media para compartir en redes
 }
 
-const [ax, eds, mapa, nv, est] = await Promise.all([axustes(), edicions(), mapaEntidades(), navegacion(), estrutura()]);
+// Na vista previa do panel pódense mandar a estrutura (cabeceira e pé) ou a identidade aínda sen gardar
+const previa = Astro.locals as { estruturaPrevia?: Estrutura; identidadePrevia?: Identidade; zonaEdicion?: 'pe' };
+const [ax, eds, mapa, nv, est, ident] = await Promise.all([
+  axustes(), edicions(), mapaEntidades(), navegacion(previa.estruturaPrevia), previa.estruturaPrevia ?? estrutura(), previa.identidadePrevia ?? identidade(),
+]);
+const css = cssIdentidade(ident);
+const m = marca(ident);
+// Editando o pé: o resto da páxina non é editable (e ao revés)
+const editar = editando(Astro.locals);
+const peEditable = previa.zonaEdicion === 'pe';
 const { titulo, descricion = ax.descricion, imaxe } = Astro.props;
 const seo = ax.seo ?? { indexar: true, idioma: 'gl' };
 const tituloCompleto = titulo ? `${titulo} · ${ax.nome}` : seo.titulo || `${ax.nome} · ${ax.lema}`;
@@ -50,14 +62,15 @@ const indexar = seo.indexar && !Astro.url.pathname.startsWith('/vista-previa');
     <meta property="og:url" content={canonica} />
     <meta property="og:locale" content="gl_ES" />
     {imaxeSocial && <meta property="og:image" content={imaxeSocial} />}
-    <meta name="theme-color" content="#1a1428" />
+    <meta name="theme-color" content={corEscura(ident)} />
+    {css && <style is:inline set:html={css} />}
   </head>
   <body>
     <a class="saltar" href="#contido">Saltar ao contido</a>
-    <Header edicions={eds} menu={nv.menu} boton={nv.boton} />
-    <main id="contido">
+    <Header edicions={eds} menu={nv.menu} boton={nv.boton} marca={m} />
+    <main id="contido" data-sen-edicion={editar && peEditable ? '' : undefined}>
       <slot />
     </main>
-    <Footer axustes={ax} estrutura={est} mapa={mapa} navegacion={nv.pe} legais={nv.legais} />
+    <Footer axustes={ax} estrutura={est} mapa={mapa} navegacion={nv.pe} legais={nv.legais} marca={m} editable={peEditable} />
   </body>
 </html>

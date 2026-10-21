@@ -443,3 +443,24 @@ fieldset > .axuda-bloque { font-size: .85rem; color: var(--soft); margin: -2px 0
 .diag-erro .diag-icona { background: var(--err); }
 .diag-info .diag-icona { background: var(--morado); }
 .chip.seleccionable { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+
+/* Convites e roles */
+.okbox { padding: 12px 14px; border-radius: 10px; background: #e8f3e8; color: #2b5a2b; margin-bottom: 12px; line-height: 1.5; }
+.roles-axuda { display: grid; gap: 6px; padding: 12px 14px; border-radius: 10px; background: #f4f1fa; margin: 4px 0 12px; font-size: 0.9rem; line-height: 1.45; }
+.roles-axuda p { margin: 0; }
+.ed-nota { padding: 10px 12px; border-radius: 10px; background: #f4f1fa; color: #4a4060; font-size: .88rem; line-height: 1.45; margin-bottom: 14px; }
+
+/* Identidade visual */
+.cores { display: grid; gap: 8px; margin: 6px 0 10px; }
+.cor-fila { display: grid; grid-template-columns: 46px 1fr 88px auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.cor-fila input[type="color"] { width: 46px; height: 38px; padding: 2px; border: 1px solid var(--line); border-radius: 9px; background: #fff; cursor: pointer; }
+.cor-texto { display: grid; line-height: 1.25; }
+.cor-texto small { color: var(--soft); font-size: .78rem; }
+.cor-hex { font-family: ui-monospace, monospace; font-size: .85rem; padding: 6px 8px; }
+.chip.paleta { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.paleta-mostra { display: inline-flex; border-radius: 6px; overflow: hidden; border: 1px solid rgb(0 0 0 / .1); }
+.paleta-mostra i { width: 12px; height: 18px; }
+.ident-marco { overflow: hidden; }
+.ident-iframe { border: 0; background: #fff; transform-origin: 0 0; }
+.ed-vista-barra { flex-wrap: wrap; row-gap: 6px; }
+.ed-vista-barra select { min-width: 0; max-width: 220px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }

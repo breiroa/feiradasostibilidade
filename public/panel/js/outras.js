@@ -11,7 +11,7 @@ const estadosInsc = { nova: ['Nova', 'morado'], vista: ['Vista', ''], aceptada: 
 
 // ───────────────── RESUMO ─────────────────
 const accionsHist = { orixinal: 'versión inicial', creado: 'creou', gardado: 'gardou', restaurado: 'restaurou', borrado: 'borrou' };
-const coleccionsHist = { paxinas_libres: ['páxina', 'paxinas'], noticias: ['noticia', 'noticias'], recursos: ['recurso', 'recursos'], entidades: ['entidade', 'entidades'], menus: ['menú', 'menus'], modelos: ['modelo', 'modelos'], estrutura: ['cabeceira e pé', 'estrutura'], axustes: ['axustes', 'axustes'] };
+const coleccionsHist = { paxinas_libres: ['páxina', 'paxinas'], noticias: ['noticia', 'noticias'], recursos: ['recurso', 'recursos'], entidades: ['entidade', 'entidades'], menus: ['menú', 'menus'], modelos: ['modelo', 'modelos'], estrutura: ['cabeceira e pé', 'estrutura'], axustes: ['axustes', 'axustes'], identidade: ['identidade visual', 'identidade'] };
 export async function inicio(main) {
   const [paxs, nots, recs, cambios] = await Promise.all([
     coleccion('paxinas_libres', { forzar: true }), coleccion('noticias', { forzar: true }), coleccion('recursos', { forzar: true }),
@@ -34,12 +34,12 @@ export async function inicio(main) {
         el('a', { class: 'btn-ghost', href: '#/paxinas' }, 'Páxinas'),
         el('a', { class: 'btn-ghost', href: '#/menus' }, 'Menús'),
         el('a', { class: 'btn-ghost', href: '#/biblioteca' }, 'Subir fotos'),
-        el('a', { class: 'btn-ghost', href: '#/diagnostico' }, 'Diagnóstico'))),
+        estado.admin.rol === 'superadmin' ? el('a', { class: 'btn-ghost', href: '#/diagnostico' }, 'Diagnóstico') : null)),
     cambios.items?.length
       ? el('div', { class: 'caixa' }, el('h2', {}, 'Últimos cambios'),
           el('ul', { class: 'lista-cambios' }, cambios.items.filter((v) => coleccionsHist[v.coleccion]).map((v) => {
             const [nome, ruta] = coleccionsHist[v.coleccion] ?? [v.coleccion, ''];
-            const destino = v.accion !== 'borrado' && ruta ? `#/${ruta}${['estrutura', 'axustes'].includes(v.coleccion) ? '' : `/${v.docId}`}` : null;
+            const destino = v.accion !== 'borrado' && ruta ? `#/${ruta}${['estrutura', 'axustes', 'identidade'].includes(v.coleccion) ? '' : `/${v.docId}`}` : null;
             return el('li', {}, el('span', { class: 'muted' }, dataHora(v.creado)), ' · ', el('b', {}, v.autor ?? '—'), ` ${accionsHist[v.accion] ?? v.accion} ${nome} `,
               destino ? el('a', { href: destino }, v.titulo) : el('span', {}, v.titulo));
           })))
@@ -97,7 +97,8 @@ export async function axustes(main) {
             c.escolla(k, 'tipo', 'Tipo', TIPOS_CONTACTO.map(([valor, texto]) => ({ valor, texto }))),
             c.texto(k, 'valor', 'Enderezo, @usuario, correo ou teléfono', { placeholder: 'https://… ou @usuario' }),
             c.texto(k, 'etiqueta', 'Texto que se ve (opcional)', { placeholder: 'Web do IES Luís Seoane' })),
-        })),
+        }),
+        c.texto(d, 'correoAvisos', 'Correo que recibe as mensaxes do formulario (non se publica)', { tipo: 'email', axuda: 'Cada mensaxe que chegue pola web reenvíase aquí (se o envío de correos está activado en Diagnóstico). Sempre queda tamén unha copia no panel.' })),
       c.bloque('Copia de seguridade', 'Descarga todos os contidos nun ficheiro. A base de datos garda ademais copias automáticas dos últimos 7 días, e cada páxina ten o seu historial de versións.',
         el('a', { class: 'btn-ghost', href: '/api/panel/copia', download: '' }, 'Descargar copia (JSON)')),
     ],
@@ -235,11 +236,11 @@ export async function inscricions(main) {
 export async function admins(main) {
   const { items } = await api('admins');
   const estados = { activa: ['Activa', 'verde'], 'sen-2fa': ['Sen 2FA', 'aviso'], convidada: ['Convite pendente', 'morado'] };
-  const mostrarLigazon = (titulo, ligazon, texto) => {
+  const mostrarLigazon = (titulo, ligazon, texto, r = {}) => {
     const md = modal(titulo, el('div', {},
-      el('p', {}, texto),
+      r.enviado ? el('div', { class: 'okbox' }, `✉ Enviámoslle un correo a ${r.email} coa ligazón. Se non lle chega (mira no spam), podes copiala aquí:`) : el('p', {}, texto),
       el('div', { class: 'ligazon-copiar' }, el('input', { type: 'text', value: ligazon, readOnly: true, onfocus: (e) => e.target.select() }), el('button', { class: 'btn', type: 'button', onclick: () => copiar(ligazon) }, 'Copiar')),
-      el('p', { class: 'muted', style: { marginTop: '12px' } }, 'A ligazón vale durante 7 días e só se pode usar unha vez. Envíaa ti por correo ou mensaxe.')), {
+      el('p', { class: 'muted', style: { marginTop: '12px' } }, r.enviado ? 'A ligazón vale durante 7 días e só se pode usar unha vez.' : 'A ligazón vale durante 7 días e só se pode usar unha vez. Envíaa ti por correo ou mensaxe (o envío automático de correos non está activado: ver Diagnóstico).')), {
       botons: [el('button', { class: 'btn-ghost', type: 'button', onclick: () => md.pechar() }, 'Feito')],
     });
   };
@@ -247,21 +248,25 @@ export async function admins(main) {
     const d = { nome: '', email: '', rol: 'admin' };
     const erros = el('div');
     const md = modal('Convidar a unha persoa', el('div', {}, erros, c.texto(d, 'nome', 'Nome', { obrig: true }), c.texto(d, 'email', 'Correo', { tipo: 'email', obrig: true }),
-      c.escolla(d, 'rol', 'Permisos', [{ valor: 'admin', texto: 'Edición (contidos, inscricións, biblioteca)' }, { valor: 'superadmin', texto: 'Superadministración (ademais, xestiona persoas)' }])), {
+      c.escolla(d, 'rol', 'Permisos', [{ valor: 'admin', texto: 'Edición' }, { valor: 'superadmin', texto: 'Superadministración' }]),
+      el('div', { class: 'roles-axuda' },
+        el('p', {}, el('b', {}, 'Edición: '), 'páxinas, menús, modelos, cabeceira e pé, noticias, recursos, ecosistema e biblioteca de fotos.'),
+        el('p', {}, el('b', {}, 'Superadministración: '), 'todo o anterior e, ademais, persoas (convites e permisos), identidade visual, axustes, diagnóstico, mensaxes do formulario e copias. Recomendado só para 2 ou 3 persoas.')),
+      el('p', { class: 'muted' }, 'Recibirá un correo coa ligazón para activar a conta: escollerá o contrasinal e configurará a verificación en dous pasos. Ao rematar, recibirá outro correo de benvida.')), {
       botons: [el('button', { class: 'btn-ghost', type: 'button', onclick: () => md.pechar() }, 'Cancelar'),
         el('button', { class: 'btn', type: 'button', onclick: async () => {
           try {
             const r = await api('admins', { metodo: 'POST', datos: { accion: 'convidar', ...d } });
             md.pechar();
-            mostrarLigazon('Convite creado', r.ligazon, `Envíalle esta ligazón a ${d.nome}. Ao abrila definirá o seu contrasinal e activará a verificación en dous pasos.`);
+            mostrarLigazon(r.enviado ? 'Convite enviado' : 'Convite creado', r.ligazon, `Envíalle esta ligazón a ${d.nome}. Ao abrila definirá o seu contrasinal e activará a verificación en dous pasos.`, r);
             admins(main);
           } catch (e) { erros.replaceChildren(caixaErros(e.erros)); }
-        } }, 'Crear convite')],
+        } }, 'Enviar convite')],
     });
   };
   const accion = async (a, datos, mensaxe) => { const r = await gardar(() => api('admins', { metodo: 'POST', datos: { accion: a, ...datos } }), { mensaxe }); return r; };
   main.replaceChildren(
-    cab('Administración', 'Quen pode entrar no panel. Todas as persoas teñen verificación en dous pasos obrigatoria.', el('button', { class: 'btn', type: 'button', onclick: convidar }, '+ Convidar')),
+    cab('Administración', 'Quen pode entrar no panel. Edición: contidos e fotos. Superadministración: ademais, persoas, identidade, axustes e diagnóstico. Todas as persoas teñen verificación en dous pasos obrigatoria.', el('button', { class: 'btn', type: 'button', onclick: convidar }, '+ Convidar')),
     el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' },
       el('thead', {}, el('tr', {}, ['Persoa', 'Permisos', 'Estado', 'Último acceso', ''].map((t) => el('th', {}, t)))),
       el('tbody', {}, items.map((a) => {
@@ -273,7 +278,7 @@ export async function admins(main) {
           el('td', {}, el('span', { class: `pill ${cor}` }, et)),
           el('td', { class: 'muted' }, a.ultimoAcceso ? dataCurta(a.ultimoAcceso) : '—'),
           el('td', {}, el('div', { class: 'accions' },
-            el('button', { class: 'btn-mini', type: 'button', title: 'Xera unha ligazón para definir (ou recuperar) o contrasinal', onclick: async () => { const r = await accion('novo-convite', { id: a.id }, null); mostrarLigazon('Ligazón de acceso', r.ligazon, `Envíalle esta ligazón a ${a.nome} para que defina un contrasinal novo.`); } }, 'Ligazón de acceso'),
+            el('button', { class: 'btn-mini', type: 'button', title: 'Xera unha ligazón para definir (ou recuperar) o contrasinal', onclick: async () => { const r = await accion('novo-convite', { id: a.id }, null); mostrarLigazon('Ligazón de acceso', r.ligazon, `Envíalle esta ligazón a ${a.nome} para que defina un contrasinal novo.`, r); } }, 'Ligazón de acceso'),
             !eu && a.estado === 'activa' ? el('button', { class: 'btn-mini', type: 'button', onclick: async () => { if (await confirmar(`Restablecer a verificación en dous pasos de ${a.nome}? Terá que configurala de novo ao entrar.`, { boton: 'Restablecer', perigo: false })) { await accion('restablecer-2fa', { id: a.id }, '2FA restablecido'); admins(main); } } }, 'Restablecer 2FA') : null,
             !eu ? el('button', { class: 'btn-mini', type: 'button', onclick: async () => { await accion('rol', { id: a.id, rol: a.rol === 'superadmin' ? 'admin' : 'superadmin' }, 'Permisos cambiados'); admins(main); } }, a.rol === 'superadmin' ? 'Pasar a edición' : 'Facer superadmin') : null,
             !eu ? el('button', { class: 'icobtn perigo', type: 'button', title: 'Quitar acceso', onclick: async () => { if (await confirmar(`Quitar o acceso de ${a.nome}?`)) { await gardar(() => api('admins', { metodo: 'DELETE', datos: { id: a.id } }), { mensaxe: 'Acceso quitado' }); admins(main); } } }, '🗑') : null)));

@@ -2,7 +2,7 @@
 // debaixo, seccións libres feitas co editor visual (vídeos, galerías, documentos, texto…).
 // Os tipos de recurso son editables. Para ter páxinas de recursos distintas (só xogos, só podcasts…) úsase a
 // sección «Listado completo» cun filtro de tipos en calquera páxina.
-import { api, caixaErros, coleccion, el, gardar, invalidar, mediaUrl, modal, slug as slugify } from './nucleo.js';
+import { api, caixaErros, coleccion, el, estado, gardar, invalidar, mediaUrl, modal, slug as slugify } from './nucleo.js';
 import * as c from './campos.js';
 import { vistaLista } from './coleccions.js';
 import { editorVista } from './editor-vista.js';
@@ -42,7 +42,7 @@ export async function recursos(main, id) {
     filtros: (f, repintar) => [
       el('input', { type: 'search', placeholder: 'Buscar recursos…', oninput: (e) => { f.q = e.target.value.toLowerCase(); repintar(); } }),
       el('select', { onchange: (e) => { f.tipo = e.target.value; repintar(); } }, el('option', { value: '' }, 'Todos os tipos'), tipos.map((t) => el('option', { value: t.id }, t.nome))),
-      el('button', { type: 'button', class: 'btn-ghost', onclick: () => editarTipos(ax, tipos, () => recursos(main)) }, 'Tipos de recurso…'),
+      estado.admin.rol === 'superadmin' ? el('button', { type: 'button', class: 'btn-ghost', onclick: () => editarTipos(ax, tipos, () => recursos(main)) }, 'Tipos de recurso…') : null,
     ],
   });
 }

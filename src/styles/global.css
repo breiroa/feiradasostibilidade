@@ -19,6 +19,8 @@
   --texto-medio: #4a4260;
   --texto-suave: #655b7d;
   --branco: #ffffff;
+  --negro-verde: #1a2d1c; /* fondos escuros con matiz (portadas) */
+  --negro-morado: #231428;
 
   --serif: 'Playfair Display', Georgia, serif;
   --sans: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
@@ -27,7 +29,7 @@
   --ancho: 1200px;
   --marxe: clamp(1rem, 4vw, 3rem);
   --raio: 10px;
-  --sombra: 0 1px 2px rgb(26 20 40 / 0.06), 0 8px 24px rgb(26 20 40 / 0.08);
+  --sombra: 0 1px 2px color-mix(in srgb, var(--negro) 6%, transparent), 0 8px 24px color-mix(in srgb, var(--negro) 8%, transparent);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -118,7 +120,7 @@ p { text-wrap: pretty; }
 
 .tarxeta {
   background: var(--branco); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column;
-  box-shadow: 0 1px 2px rgb(26 20 40 / 0.05), 0 10px 30px rgb(26 20 40 / 0.07);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--negro) 5%, transparent), 0 10px 30px color-mix(in srgb, var(--negro) 7%, transparent);
 }
 
 .visualmente-oculto {
@@ -168,6 +170,6 @@ p { text-wrap: pretty; }
 .sec.con-fondo-imaxe { position: relative; isolation: isolate; background: var(--negro); }
 .sec.con-fondo-imaxe::before {
   content: ''; position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(rgb(26 20 40 / 0.72), rgb(26 20 40 / 0.82)), var(--fondo-imaxe) center / cover no-repeat;
+  background: linear-gradient(color-mix(in srgb, var(--negro) 72%, transparent), color-mix(in srgb, var(--negro) 82%, transparent)), var(--fondo-imaxe) center / cover no-repeat;
 }
 .sec.con-fondo-imaxe + .sec.con-fondo-imaxe { padding-top: clamp(3.8rem, 8vw, 6.5rem); }

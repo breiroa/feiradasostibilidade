@@ -3,6 +3,7 @@ import type { APIRoute } from 'astro';
 import { db } from '../../../lib/datos';
 import { conAdmin, erro, json, lerJson } from '../../../lib/panel/api';
 import { sha256, token, type Admin } from '../../../lib/panel/seguridade';
+import { enviarConvite } from '../../../lib/correo';
 
 export const prerender = false;
 
@@ -39,13 +40,17 @@ export const POST: APIRoute = conAdmin(
         if (!nome || !emailValido(email)) return erro('Indica nome e un correo válido.');
         if (await db().prepare('SELECT 1 FROM admins WHERE email = ?').bind(email).first()) return erro('Xa hai unha persoa con ese correo.', 409);
         const r = await db().prepare('INSERT INTO admins (nome, email, rol) VALUES (?, ?, ?)').bind(nome, email, rol).run();
-        return json({ ok: true, ligazon: await novoConvite(Number(r.meta.last_row_id), url.origin) });
+        const ligazon = await novoConvite(Number(r.meta.last_row_id), url.origin);
+        const enviado = await enviarConvite(email, nome, ligazon, rol === 'superadmin').catch(() => false);
+        return json({ ok: true, ligazon, enviado, email });
       }
       case 'novo-convite': {
-        const a = await db().prepare('SELECT id, pass_hash FROM admins WHERE id = ?').bind(Number(b.id)).first<{ id: number; pass_hash: string | null }>();
+        const a = await db().prepare('SELECT id, nome, email, rol, pass_hash FROM admins WHERE id = ?').bind(Number(b.id)).first<{ id: number; nome: string; email: string; rol: string; pass_hash: string | null }>();
         if (!a) return erro('Non existe.', 404);
         // Tamén serve para que alguén que esqueceu o contrasinal defina un novo
-        return json({ ok: true, ligazon: await novoConvite(a.id, url.origin) });
+        const ligazon = await novoConvite(a.id, url.origin);
+        const enviado = await enviarConvite(a.email, a.nome, ligazon, a.rol === 'superadmin').catch(() => false);
+        return json({ ok: true, ligazon, enviado, email: a.email });
       }
       case 'restablecer-2fa': {
         await db().batch([

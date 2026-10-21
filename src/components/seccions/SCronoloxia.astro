@@ -38,7 +38,7 @@ const E = (r: string, t: 'texto' | 'area' = 'texto', ph?: string) => ed(Astro.lo
   .crono-fito:last-child { padding-bottom: 0; }
   .crono-punto { position: absolute; left: 3px; top: 4px; width: 18px; height: 18px; border-radius: 50%; background: var(--branco); border: 3px solid var(--morado-suave); }
   .estado-feito .crono-punto { background: var(--verde); border-color: var(--verde); }
-  .estado-agora .crono-punto { background: var(--morado); border-color: var(--morado); box-shadow: 0 0 0 6px rgb(100 80 140 / 0.18); }
+  .estado-agora .crono-punto { background: var(--morado); border-color: var(--morado); box-shadow: 0 0 0 6px color-mix(in srgb, var(--morado) 18%, transparent); }
   .crono-data { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.04em; color: var(--verde-escuro); padding-top: 0.15rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
   .estado-agora .crono-corpo { background: var(--morado-pale); border-radius: 14px; padding: 0.9rem 1.1rem; margin: -0.6rem 0 0 -0.4rem; }
   .estado-agora .crono-corpo h3 { color: var(--morado); }

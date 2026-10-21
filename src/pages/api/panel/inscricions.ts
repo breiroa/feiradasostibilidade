@@ -10,7 +10,7 @@ const ESTADOS = ['nova', 'vista', 'aceptada', 'descartada'];
 export const GET: APIRoute = conAdmin(async () => {
   const { results } = await db().prepare('SELECT * FROM inscricions ORDER BY creado DESC').all<{ datos: string }>();
   return json({ ok: true, items: results.map((r) => ({ ...r, datos: JSON.parse(r.datos) })) });
-});
+}, { superadmin: true });
 
 export const PATCH: APIRoute = conAdmin(async ({ request }) => {
   const b = await lerJson<{ id?: number; estado?: string; notas?: string }>(request);
@@ -21,11 +21,11 @@ export const PATCH: APIRoute = conAdmin(async ({ request }) => {
     .bind(b.estado ?? null, b.notas?.slice(0, 4000) ?? null, b.id)
     .run();
   return json({ ok: true });
-});
+}, { superadmin: true });
 
 export const DELETE: APIRoute = conAdmin(async ({ request }) => {
   const b = await lerJson<{ id?: number }>(request);
   if (!b.id) return erro('Falta o identificador.');
   await db().prepare('DELETE FROM inscricions WHERE id = ?').bind(b.id).run();
   return json({ ok: true });
-});
+}, { superadmin: true });

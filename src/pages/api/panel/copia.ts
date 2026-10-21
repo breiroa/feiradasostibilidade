@@ -26,4 +26,4 @@ export const GET: APIRoute = conAdmin(async () => {
       'Cache-Control': 'no-store',
     },
   });
-});
+}, { superadmin: true });

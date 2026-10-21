@@ -2,14 +2,16 @@
 import type { Edicion } from '../lib/esquemas';
 import type { ItemNav } from '../lib/navegacion';
 import { url } from '../lib/url';
+import type { Marca } from '../lib/identidade';
 
 interface Props {
   edicions: Edicion[];
   menu: ItemNav[];
   boton?: { href: string; texto: string };
+  marca: Marca;
 }
 
-const { edicions, menu, boton } = Astro.props;
+const { edicions, menu, boton, marca } = Astro.props;
 // No despregable, a próxima edición leva un punto verde
 const proxima = (href: string) => edicions.some((e) => e.estado === 'proxima' && href.replace(/\/?$/, '/') === `/edicions/${e.id}/`);
 // Despregables con textos curtos (p. ex. anos) usan letra grande
@@ -22,8 +24,8 @@ const activa = (href: string) => interna(href) && (href === '/' ? ruta === '/' :
 <header class="cabeceira">
   <div class="contedor barra">
     <a class="marca" href={url()}>
-      <img src={url('logo-feira.png')} alt="" width="44" height="40" />
-      <span>Feira da <em>Sostibilidade</em></span>
+      <img src={marca.logo} alt="" width="44" height="40" />
+      <span>{marca.antes} <em>{marca.destacado}</em></span>
     </a>
 
     <button class="menu-boton" type="button" aria-expanded="false" aria-controls="menu-principal">
@@ -107,7 +109,7 @@ const activa = (href: string) => interna(href) && (href === '/' ? ruta === '/' :
 <style>
   .cabeceira {
     position: sticky; top: 0; z-index: 100;
-    background: rgb(26 20 40 / 0.97);
+    background: color-mix(in srgb, var(--negro) 97%, transparent);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgb(255 255 255 / 0.08);
   }

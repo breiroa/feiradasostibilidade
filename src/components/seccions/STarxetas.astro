@@ -42,10 +42,10 @@ const E = (r: string, t: 'texto' | 'area' | 'imaxe' = 'texto', ph?: string) => e
   .tx--4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); }
   .tx-item {
     position: relative; background: var(--branco); border-radius: 18px; overflow: hidden;
-    box-shadow: 0 1px 2px rgb(26 20 40 / 0.05), 0 10px 30px rgb(26 20 40 / 0.07);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--negro) 5%, transparent), 0 10px 30px color-mix(in srgb, var(--negro) 7%, transparent);
     display: flex; flex-direction: column; transition: transform 0.25s, box-shadow 0.25s;
   }
-  .con-ligazon:hover { transform: translateY(-4px); box-shadow: 0 2px 4px rgb(26 20 40 / 0.06), 0 22px 44px rgb(26 20 40 / 0.13); }
+  .con-ligazon:hover { transform: translateY(-4px); box-shadow: 0 2px 4px color-mix(in srgb, var(--negro) 6%, transparent), 0 22px 44px color-mix(in srgb, var(--negro) 13%, transparent); }
   .tx-item :global(.tx-foto) { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
   .tx-num { font-family: var(--serif); font-weight: 900; font-size: 2.6rem; line-height: 1; color: var(--verde-suave); padding: 1.6rem 1.6rem 0; }
   .tx-corpo { padding: 1.3rem 1.6rem 1.7rem; display: flex; flex-direction: column; gap: 0.55rem; flex: 1; }

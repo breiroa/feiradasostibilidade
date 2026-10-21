@@ -65,7 +65,7 @@ const E = (r: string, t: 'texto' | 'area' | 'rico' | 'imaxe' = 'texto', ph?: str
   .resumo { font-family: var(--serif); font-size: clamp(1.15rem, 1.8vw, 1.4rem); line-height: 1.45; color: var(--texto); margin-bottom: 2rem; }
   .principal :global(.foto) { width: 100%; border-radius: 16px; margin-bottom: 2rem; max-height: 480px; object-fit: cover; }
   .lateral { position: sticky; top: 96px; display: grid; gap: 1.1rem; }
-  .capa { display: block; border-radius: 16px; overflow: hidden; background: var(--crema); box-shadow: 0 1px 2px rgb(26 20 40 / 0.06), 0 18px 40px rgb(26 20 40 / 0.14); }
+  .capa { display: block; border-radius: 16px; overflow: hidden; background: var(--crema); box-shadow: 0 1px 2px color-mix(in srgb, var(--negro) 6%, transparent), 0 18px 40px color-mix(in srgb, var(--negro) 14%, transparent); }
   .capa img { width: 100%; aspect-ratio: 1 / 1.3; object-fit: cover; }
   .capa img.portada { object-position: top center; }
   .descargar { justify-content: center; }

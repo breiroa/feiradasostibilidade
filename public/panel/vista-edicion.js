@@ -14,9 +14,17 @@
     recursos: 'Recursos', cita: 'Cita', chamada: 'Chamada á acción', noticias: 'Noticias', edicions: 'Edicións', edicion_actual: 'Edición destacada',
     subpaxinas: 'Subpáxinas', formulario: 'Formulario', listado: 'Listado', columnas: 'Columnas', acordeon: 'Preguntas frecuentes', imaxe: 'Foto grande',
     html: 'HTML', presentacion: 'Presentación', _cabeceira: 'Cabeceira da páxina', _edicion: 'Presentación da edición', _recurso: 'Ficha do recurso',
+    _pe: 'Pé de páxina',
   };
   // Que se engade co botón «+» de cada tipo de sección
   const ENGADIR = { actividades: 'Actividade', presentacion: 'Etiqueta', tarxetas: 'Tarxeta', cronoloxia: 'Fito', acordeon: 'Pregunta', documentos: 'Documento', lista: 'Elemento', cifras: 'Cifra', programa: 'Día', columnas: 'Bloque', heroe: 'Botón', chamada: 'Botón', texto_imaxe: 'Botón' };
+
+  // ── Zonas que se ven pero non se editan aquí (p. ex. o pé cando se edita unha páxina, ou a páxina cando se edita o pé) ──
+  document.querySelectorAll('[data-sen-edicion]').forEach((z) => {
+    [z, ...z.querySelectorAll('[data-e], [data-sec], [data-item], [data-sec-tipo], [data-e-foto]')].forEach((n) => {
+      ['e', 'et', 'ph', 'sec', 'secTipo', 'item', 'eFoto', 'urlRuta'].forEach((k) => delete n.dataset[k]);
+    });
+  });
 
   // ── Estilos do modo edición ──
   const css = document.createElement('style');
@@ -67,7 +75,8 @@
   const valorDe = (el) => {
     const t = el.dataset.et;
     if (t === 'rico') return el.innerHTML.trim();
-    return el.innerText.replace(/\s*\n+\s*/g, ' ').replace(/\s+/g, ' ').trim();
+    // textContent e non innerText: innerText devolve o texto en maiúsculas se o CSS o amosa así
+    return el.textContent.replace(/\s+/g, ' ').trim();
   };
   const rutaDe = (el) => (el.dataset.et === 'ligazon' ? `${el.dataset.e}.texto` : el.dataset.e);
   const temporizadores = new WeakMap();

@@ -2,7 +2,7 @@
 // Se algún día se cambia de base de datos, só hai que tocar este ficheiro.
 import { env } from 'cloudflare:workers';
 import { paxinasPorDefecto } from './paxinas-sistema';
-import { esquemas, seccion, type Seccion, type Axustes, type Coleccion, type Edicion, type Entidade, type Estrutura, type Menu, type Noticia, type PaxinaLibre, type Recurso } from './esquemas';
+import { esquemas, seccion, type Seccion, type Axustes, type Coleccion, type Edicion, type Entidade, type Estrutura, type Identidade, type Menu, type Noticia, type PaxinaLibre, type Recurso } from './esquemas';
 
 export const db = (): D1Database => (env as unknown as { DB: D1Database }).DB;
 
@@ -97,6 +97,11 @@ export const menu = async (id: string) => (await obter('menus', id)) as unknown 
 export async function estrutura(): Promise<Estrutura> {
   const e = (await obter('estrutura', 'xeral')) as unknown as Estrutura | null;
   return e ?? (esquemas.estrutura.parse({ cabeceira: { menu: 'principal' }, pe: { menu: 'principal', menuLegal: 'legais' } }) as Estrutura);
+}
+
+export async function identidade(): Promise<Identidade> {
+  const i = (await obter('identidade', 'xeral')) as unknown as Identidade | null;
+  return i ?? (esquemas.identidade.parse({}) as Identidade);
 }
 
 /** Todas as entidades nun mapa id → entidade (para resolver grupos de logos) */

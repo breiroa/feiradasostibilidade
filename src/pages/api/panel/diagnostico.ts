@@ -2,11 +2,11 @@
 // ligazóns internas rotas, imaxes que faltan ou sen descrición), base de datos e formulario de contacto.
 // GET  → informe   ·   POST {accion: 'limpar'} → borra sesións caducadas, intentos vellos e versións antigas
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
 import { db } from '../../../lib/datos';
 import { esquemas, seccion, type Coleccion } from '../../../lib/esquemas';
 import { conAdmin, erro, json, lerJson } from '../../../lib/panel/api';
 import versions from '../../../data/versions.json';
+import { correoActivo } from '../../../lib/correo';
 
 export const prerender = false;
 
@@ -142,13 +142,16 @@ export const GET: APIRoute = conAdmin(async () => {
   informe.datos.push({ nivel: 'ok', titulo: 'Copias de seguridade', detalle: 'Cloudflare garda copias automáticas da base de datos dos últimos 7 días (Time Travel). Ademais, en Axustes pódese descargar unha copia, e cada contido ten o seu historial de versións e a papeleira.' });
 
   // ── Formulario de contacto ──
-  const correo = Boolean((env as unknown as { CORREO?: unknown; CORREO_DESTINO?: string }).CORREO && (env as unknown as { CORREO_DESTINO?: string }).CORREO_DESTINO);
+  const correo = correoActivo();
+  const axd = docs.find((d) => d.coleccion === 'axustes');
+  const avisos = axd?.d.correoAvisos as string | undefined;
   const ins = (await db().prepare("SELECT COUNT(*) AS n, SUM(estado = 'nova') AS novas FROM inscricions").first<{ n: number; novas: number }>()) ?? { n: 0, novas: 0 };
-  informe.formulario.push({ nivel: correo ? 'ok' : 'aviso', titulo: correo ? 'As mensaxes do formulario envíanse por correo' : 'O envío por correo das mensaxes aínda non está activado', detalle: correo ? undefined : 'Mentres tanto, as mensaxes gárdanse aquí. Para recibilas por correo hai que activar «Email Routing» en Cloudflare (ver as instrucións).' });
+  informe.formulario.push({ nivel: correo ? 'ok' : 'aviso', titulo: correo ? 'O envío de correos (Brevo) está activado' : 'O envío de correos aínda non está activado', detalle: correo ? 'Os convites e as benvidas ao panel envíanse por correo.' : 'Mentres tanto, os convites ao panel cópianse a man e as mensaxes do formulario só se gardan aquí (ver as instrucións).' });
+  if (correo) informe.formulario.push({ nivel: avisos ? 'ok' : 'aviso', titulo: avisos ? `As mensaxes do formulario chegan a ${avisos}` : 'Falta o correo que recibe as mensaxes do formulario', detalle: avisos ? undefined : 'Escríbeo en Axustes › Contactos e redes.' });
   informe.formulario.push({ nivel: ins.novas ? 'aviso' : 'ok', titulo: `${ins.n} mensaxe(s) gardada(s)${ins.novas ? `, ${ins.novas} sen ler` : ''}` });
 
   return json({ ok: true, informe, xerado: new Date().toISOString() });
-});
+}, { superadmin: true });
 
 export const POST: APIRoute = conAdmin(async ({ request }) => {
   const b = await lerJson<{ accion?: string }>(request);
@@ -159,4 +162,4 @@ export const POST: APIRoute = conAdmin(async ({ request }) => {
     db().prepare('DELETE FROM intentos WHERE ts < ?').bind(agora - 7 * 86400),
   ]);
   return json({ ok: true, borrados: r.reduce((s, x) => s + (x.meta.changes ?? 0), 0) });
-});
+}, { superadmin: true });

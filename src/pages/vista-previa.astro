@@ -3,8 +3,8 @@
 // Só para persoas con sesión no panel; o panel envíao por POST a un iframe.
 import PaxinaLibre from '../components/PaxinaLibre.astro';
 import RecursoPaxina from '../components/RecursoPaxina.astro';
-import { conListado } from '../lib/datos';
-import { esquemas, seccion, type PaxinaLibre as TPaxina, type Recurso } from '../lib/esquemas';
+import { conListado, paxinaLibre } from '../lib/datos';
+import { esquemas, seccion, type Estrutura, type Identidade, type PaxinaLibre as TPaxina, type Recurso } from '../lib/esquemas';
 import { iguais, lerSesion } from '../lib/panel/seguridade';
 import { limparHtml } from '../lib/panel/saneado';
 
@@ -52,7 +52,23 @@ const seccions = (Array.isArray(bruto.seccions) ? bruto.seccions : []).map((x: R
 
 let paxina: TPaxina | null = null;
 let rec: Recurso | null = null;
-if (coleccion === 'recursos') {
+const locais = Astro.locals as { estruturaPrevia?: Estrutura; identidadePrevia?: Identidade; zonaEdicion?: 'pe' };
+if (coleccion === 'estrutura') {
+  // Cabeceira e pé: unha páxina curta de mostra (non editable), as seccións do pé e o pé (editable)
+  const r = esquemas.estrutura.safeParse({ ...bruto, seccions: [] });
+  if (r.success) {
+    locais.estruturaPrevia = { ...r.data, seccions } as Estrutura;
+    locais.zonaEdicion = 'pe';
+    paxina = { id: 'mostra', titulo: 'Contido da páxina', descricion: 'Aquí iría o contido de cada páxina. Debaixo vense as seccións do pé e o pé, que saen en todas as páxinas.', seccions: [] } as unknown as TPaxina;
+  }
+} else if (coleccion === 'identidade') {
+  // Identidade visual: unha páxina real da web coas cores e o logo aínda sen gardar
+  const r = esquemas.identidade.safeParse(bruto);
+  if (r.success) locais.identidadePrevia = r.data as Identidade;
+  paxina = (await paxinaLibre(id || 'inicio')) ?? (await paxinaLibre('inicio'));
+  const listado = { actualidade: 'noticias', recursos: 'recursos', edicions: 'edicions' } as const;
+  if (paxina && paxina.id in listado) paxina = conListado(paxina, listado[paxina.id as keyof typeof listado]);
+} else if (coleccion === 'recursos') {
   const r = esquemas.recursos.safeParse({ ...bruto, titulo: String(bruto.titulo ?? '').trim() || 'Recurso sen título', resumo: String(bruto.resumo ?? '').trim() || '…', seccions: [] });
   if (r.success) rec = { ...r.data, seccions, id } as Recurso;
 } else {
@@ -77,7 +93,7 @@ const erroXeral = !paxina && !rec;
   ) : rec ? (
     <RecursoPaxina d={rec} />
   ) : (
-    <PaxinaLibre p={paxina!} portada={id === 'inicio'} volver={paxina!.nai ? { href: `${paxina!.nai}/`, texto: naiTitulo || paxina!.nai } : undefined} />
+    <PaxinaLibre p={paxina!} portada={paxina!.id === 'inicio'} volver={paxina!.nai ? { href: `${paxina!.nai}/`, texto: naiTitulo || paxina!.nai } : undefined} />
   )
 }
 

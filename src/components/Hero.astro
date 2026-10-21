@@ -35,9 +35,9 @@ const { etiqueta, imaxe, imaxeAlt = '', compacto = false } = Astro.props;
   .fondo {
     position: absolute; inset: 0;
     background:
-      radial-gradient(ellipse 70% 60% at 75% 35%, rgb(60 120 60 / 0.32) 0%, transparent 60%),
-      radial-gradient(ellipse 55% 75% at 10% 70%, rgb(100 80 140 / 0.3) 0%, transparent 55%),
-      linear-gradient(160deg, #1a2d1c 0%, #1a1428 55%, #231428 100%);
+      radial-gradient(ellipse 70% 60% at 75% 35%, color-mix(in srgb, var(--verde) 32%, transparent) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 75% at 10% 70%, color-mix(in srgb, var(--morado) 30%, transparent) 0%, transparent 55%),
+      linear-gradient(160deg, var(--negro-verde) 0%, var(--negro) 55%, var(--negro-morado) 100%);
   }
   .grella-heroe { position: relative; display: grid; gap: 2.5rem; align-items: center; padding-block: clamp(3.5rem, 9vw, 7rem); }
   .con-imaxe .grella-heroe { grid-template-columns: 1.15fr 0.85fr; }

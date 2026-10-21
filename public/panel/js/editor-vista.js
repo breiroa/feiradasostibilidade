@@ -110,6 +110,7 @@ export async function pedirLigazon({ url = '', texto, estilo, boton = false, qui
 export function editorVista(main, op) {
   const novo = op.id === 'novo';
   const d = op.d;
+  if (!Array.isArray(d.seccions)) d.seccions = [];
   normalizar(d.seccions);
   let actualizado = op.item?.actualizado;
   const idCampo = { id: '' };
@@ -185,7 +186,7 @@ export function editorVista(main, op) {
 
   function pintarPestanas() {
     const p = (k, t) => el('button', { type: 'button', role: 'tab', class: pestana === k ? 'activo' : '', 'aria-selected': String(pestana === k), onclick: () => { pestana = k; pintarPestanas(); } }, t);
-    pestanas.replaceChildren(p('seccions', `Seccións (${(d.seccions ?? []).length})`), p('paxina', op.pestanaAxustes ?? 'Páxina'));
+    pestanas.replaceChildren(p('seccions', `${op.pestanaSeccions ?? 'Seccións'} (${(d.seccions ?? []).length})`), p('paxina', op.pestanaAxustes ?? 'Páxina'));
     panelSeccions.hidden = pestana !== 'seccions';
     panelPaxina.hidden = pestana !== 'paxina';
   }
@@ -210,7 +211,7 @@ export function editorVista(main, op) {
     bloqueSeccions = construtor(d, 'seccions', {
       abertas,
       modelos: op.modelos,
-      titulo: 'Seccións',
+      titulo: op.pestanaSeccions ?? 'Seccións',
       aoAbrir: (id) => { ultimaAberta = id; avisarVista({ feira: 'ir', seccion: id, desprazar: !seleccionDesdeVista }); },
       aoEngadir: (id) => { ultimaAberta = id; desprazarA = id; },
     });
@@ -228,7 +229,7 @@ export function editorVista(main, op) {
     const top = col?.scrollTop;
     desdeVista = true;
     try {
-      if (seccion === '_cabeceira') pintarAxustes();
+      if (seccion.startsWith('_')) pintarAxustes();
       else if (abertas.has(seccion)) bloqueSeccions.repintar();
       pintarPestanas();
     } finally { desdeVista = false; }
@@ -296,7 +297,8 @@ export function editorVista(main, op) {
     } }, t));
 
   // ── O que chega da vista previa ──
-  const obxecto = (seccion) => (seccion === '_cabeceira' ? d : (d.seccions ?? []).find((s) => s.id === seccion));
+  // «_cabeceira», «_pe»…: datos da raíz do documento; o resto, unha sección
+  const obxecto = (seccion) => (seccion?.startsWith('_') ? d : (d.seccions ?? []).find((s) => s.id === seccion));
   const cambiou = (seccion, recargar = true) => {
     marcarSucio();
     rexistrar();
@@ -415,7 +417,7 @@ export function editorVista(main, op) {
       case 'seleccion':
         seleccionDesdeVista = true;
         try {
-          if (m.seccion === '_cabeceira') { pestana = 'paxina'; pintarPestanas(); }
+          if (m.seccion?.startsWith('_')) { pestana = 'paxina'; pintarPestanas(); }
           else if (bloqueSeccions.abrir(m.seccion)) { pestana = 'seccions'; pintarPestanas(); }
         } finally { seleccionDesdeVista = false; }
         break;
@@ -426,7 +428,7 @@ export function editorVista(main, op) {
         if ((antes ?? '') === (m.valor ?? '') && !/#\d$/.test(m.ruta)) break;
         poñer(base, m.ruta, m.valor);
         cambiou(m.seccion, false);
-        if (m.seccion === '_cabeceira' && /^titulo/.test(m.ruta)) tituloH.textContent = op.titulo(d) || '(sen título)';
+        if (m.seccion?.startsWith('_') && /^titulo/.test(m.ruta)) tituloH.textContent = op.titulo(d) || '(sen título)';
         break;
       }
       case 'imaxe': cambiarImaxe(m.seccion, m.ruta); break;
@@ -438,7 +440,7 @@ export function editorVista(main, op) {
       }
       case 'item': operarItem(m.seccion, m.ruta, m.op); break;
       case 'engadir': {
-        const i = m.despois === '_cabeceira' ? 0 : bloqueSeccions.posicion(m.despois) + 1;
+        const i = m.despois === '_cabeceira' ? 0 : m.despois?.startsWith('_') ? (d.seccions ?? []).length : bloqueSeccions.posicion(m.despois) + 1;
         pestana = 'seccions';
         pintarPestanas();
         bloqueSeccions.engadirEn(Math.max(0, i));
@@ -446,7 +448,7 @@ export function editorVista(main, op) {
       }
       case 'accion':
         if (m.accion === 'axustes') {
-          if (m.seccion === '_cabeceira') pestana = 'paxina';
+          if (m.seccion?.startsWith('_')) pestana = 'paxina';
           else { pestana = 'seccions'; bloqueSeccions.abrir(m.seccion); }
           pintarPestanas();
         } else if (m.accion === 'engadirElemento') engadirElemento(m.seccion);

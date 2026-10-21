@@ -15,6 +15,8 @@ export const prerender = false;
 const COLECCIONS = Object.keys(esquemas) as Coleccion[];
 const valida = (c: unknown): c is Coleccion => typeof c === 'string' && (COLECCIONS as string[]).includes(c);
 const ID = /^[a-z0-9-]{1,80}$/;
+// Coleccións que só poden cambiar as persoas superadministradoras
+const SO_SUPER: string[] = ['axustes', 'identidade'];
 // Enderezos que xa usan outras páxinas da web
 const RESERVADOS = ['inicio', 'feiralab', 'edicions', 'actualidade', 'recursos', 'participa', 'panel', 'api', 'media', 'vieja', 'a-feira', 'documentos', '404'];
 
@@ -38,6 +40,7 @@ export const POST: APIRoute = conAdmin(async ({ request }, { admin }) => {
   const b = await lerJson<{ coleccion?: string; id?: string; datos?: unknown; novo?: boolean; actualizado?: string; forzar?: boolean; accion?: string }>(request);
   if (!valida(b.coleccion)) return erro('Colección descoñecida.');
   const c = b.coleccion;
+  if (SO_SUPER.includes(c) && admin.rol !== 'superadmin') return erro('Só as persoas superadministradoras poden cambiar isto.', 403);
 
   const limpos = await limparHtml(b.datos ?? {});
   const esquema = c === 'paxinas' && b.id === 'inicio' ? esquemaInicio : esquemas[c];
@@ -61,7 +64,7 @@ export const POST: APIRoute = conAdmin(async ({ request }, { admin }) => {
   // Identificador: as edicións usan o ano; o resto, o texto do título
   let id = (b.id ?? '').trim();
   if (b.novo || !id) {
-    if (c === 'axustes' || c === 'estrutura') id = 'xeral';
+    if (c === 'axustes' || c === 'estrutura' || c === 'identidade') id = 'xeral';
     else if (c === 'paxinas_libres' && !id && datos.edicion) id = String((datos.edicion as { ano: number }).ano);
     else if (!id) id = slug(String(datos.titulo ?? datos.nome ?? datos.nomeCurto ?? 'elemento'));
     if (!ID.test(id)) return erro('O enderezo (identificador) só pode ter letras minúsculas, números e guións.', 422);
@@ -89,7 +92,7 @@ export const POST: APIRoute = conAdmin(async ({ request }, { admin }) => {
     if (actual && b.actualizado && actual.actualizado !== b.actualizado && !b.forzar) {
       return json({ ok: false, conflito: true, editadoPor: actual.editado_por, actualizado: actual.actualizado, erros: [`${actual.editado_por ?? 'Outra persoa'} gardou esta páxina mentres a editabas.`] }, 409);
     }
-    if (!actual && !['paxinas', 'axustes', 'estrutura'].includes(c)) return erro('Non se atopou o elemento (quizais outra persoa o borrou).', 404);
+    if (!actual && !['paxinas', 'axustes', 'estrutura', 'identidade'].includes(c)) return erro('Non se atopou o elemento (quizais outra persoa o borrou).', 404);
     const novo = JSON.stringify(datos);
     // O primeiro cambio dun documento garda tamén como estaba antes, para poder volver a el
     const sen = actual && !(await db().prepare('SELECT 1 FROM versions WHERE coleccion = ? AND doc_id = ? LIMIT 1').bind(c, id).first());
@@ -167,7 +170,7 @@ async function usos(c: Coleccion, id: string): Promise<string[]> {
 export const DELETE: APIRoute = conAdmin(async ({ request }, { admin }) => {
   const b = await lerJson<{ coleccion?: string; id?: string }>(request);
   if (!valida(b.coleccion) || !b.id || !ID.test(b.id)) return erro('Datos non válidos.');
-  if (b.coleccion === 'axustes' || b.coleccion === 'estrutura') return erro('Os axustes non se poden borrar.');
+  if (b.coleccion === 'axustes' || b.coleccion === 'estrutura' || b.coleccion === 'identidade') return erro('Os axustes non se poden borrar.');
   if (b.coleccion === 'paxinas_libres' && (PAXINAS_SISTEMA as readonly string[]).includes(b.id)) return erro('Esta páxina é fixa da web e non se pode borrar (podes ocultar ou cambiar as súas seccións).');
   const onde = await usos(b.coleccion, b.id);
   if (onde.length) return erro([`Non se pode borrar porque se usa en:`, ...onde.slice(0, 8)], 409);

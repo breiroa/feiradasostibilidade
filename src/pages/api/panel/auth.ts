@@ -1,5 +1,6 @@
 // Acceso ao panel: primeira configuración, entrar, código 2FA, activar 2FA, convites e saír.
 import type { APIRoute } from 'astro';
+import { enviarBenvida } from '../../../lib/correo';
 import { db } from '../../../lib/datos';
 import { conexionSegura, erro, json, lerJson, mesmaOrixe } from '../../../lib/panel/api';
 import {
@@ -92,6 +93,8 @@ export const POST: APIRoute = async (ctx) => {
         db().prepare("UPDATE admins SET totp = ?, totp_paso = ?, ultimo_acceso = datetime('now') WHERE id = ?").bind(s.sesion.totp_novo, paso, s.admin.id),
         db().prepare('UPDATE sesions SET pendente_2fa = 0, totp_novo = NULL WHERE id_hash = ?').bind(s.sesion.id_hash),
       ]);
+      // Primeira activación da conta (non un restablecemento): correo de benvida
+      if (!s.admin.ultimo_acceso) await enviarBenvida(s.admin.email, s.admin.nome, s.admin.rol === 'superadmin').catch(() => false);
       return json({ estado: 'dentro' });
     }
 

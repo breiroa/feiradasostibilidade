@@ -47,7 +47,7 @@ const E = (r: string, t: 'texto' | 'rico' | 'imaxe' = 'texto', ph?: string) => e
     background: linear-gradient(135deg, var(--verde-suave), var(--morado-suave)); z-index: 0;
   }
   .ti--esquerda .ti-imaxe::before { inset: 1.4rem 1.4rem -1.4rem -1.4rem; }
-  .ti-imaxe :global(img) { position: relative; z-index: 1; width: 100%; aspect-ratio: 4 / 3.4; object-fit: cover; border-radius: 18px; box-shadow: 0 24px 50px rgb(26 20 40 / 0.18); }
+  .ti-imaxe :global(img) { position: relative; z-index: 1; width: 100%; aspect-ratio: 4 / 3.4; object-fit: cover; border-radius: 18px; box-shadow: 0 24px 50px color-mix(in srgb, var(--negro) 18%, transparent); }
   @media (max-width: 860px) {
     .ti { grid-template-columns: 1fr; }
     .ti-imaxe { position: relative; top: 0; }

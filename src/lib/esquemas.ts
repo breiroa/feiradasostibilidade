@@ -104,6 +104,7 @@ export const seccion = z.discriminatedUnion('tipo', [
 ]);
 export type Seccion = z.infer<typeof seccion>;
 const seccions = z.array(seccion).default([]);
+const cor = z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, 'Cor non válida (formato #3c783c)');
 
 /** Cabeceira sinxela dunha páxina (etiqueta, título con final en cor, texto, foto e datas) */
 const cabeceira = z.object({
@@ -224,8 +225,23 @@ export const esquemas = {
         menuLegal: opc(ref),
         tituloContactos: texto.default('Síguenos'),
         licenzaCorpo: z.string().default('Contidos baixo licenza <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.gl" rel="license noopener">CC BY-SA 4.0</a>, salvo indicación.'),
+        mostrarMarca: z.boolean().default(true), // logo e nome da Feira na banda escura
+        mostrarContactos: z.boolean().default(true),
       })
       .default({}),
+    // Seccións libres que saen en todas as páxinas, enriba do pé (chamada á acción, boletín, logos…)
+    seccions,
+  }),
+
+  // Identidade visual: cores, logo, nome e tipografía dos títulos (baleiro = os de serie)
+  identidade: z.object({
+    cores: z
+      .object({ principal: opc(cor), secundaria: opc(cor), escura: opc(cor), realce: opc(cor), crema: opc(cor), fondo: opc(cor) })
+      .default({}),
+    logo: opc(mediaId),
+    nomeAntes: opc(texto), // «Feira da»
+    nomeDestacado: opc(texto), // «Sostibilidade» (en cursiva e coa cor de realce)
+    titulos: z.enum(['playfair', 'dmsans', 'georgia']).default('playfair'),
   }),
 
   // Modelos: unha páxina enteira ou un conxunto de seccións para reutilizar
@@ -256,6 +272,8 @@ export const esquemas = {
       })
       .default({}),
     favicon: opc(mediaId),
+    // Enderezo que recibe por correo as mensaxes do formulario (se o envío de correos está activado)
+    correoAvisos: opc(z.string().trim().email('Correo non válido')),
     // Tipos de recurso (xogo, podcast…): editables
     tiposRecurso: z.array(z.object({ id: ref, nome: texto.min(1) })).default([]),
   }),
@@ -275,6 +293,7 @@ export type PaxinaLibre = z.infer<(typeof esquemas)['paxinas_libres']> & { id: s
 export type Axustes = z.infer<(typeof esquemas)['axustes']>;
 export type Menu = z.infer<(typeof esquemas)['menus']> & { id: string };
 export type Estrutura = z.infer<(typeof esquemas)['estrutura']>;
+export type Identidade = z.infer<(typeof esquemas)['identidade']>;
 /** Unha edición da Feira tal como a usan as tarxetas e listados (sae da súa páxina) */
 export interface Edicion extends DatosEdicion {
   id: string;

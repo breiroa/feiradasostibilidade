@@ -2,7 +2,7 @@
 // Se aínda non hai menús gardados, úsanse os de sempre (src/data/site.ts).
 import { edicions, estrutura, menus, paxinasLibres } from './datos';
 import { nav } from '../data/site';
-import type { Menu, PaxinaLibre } from './esquemas';
+import type { Estrutura, Menu, PaxinaLibre } from './esquemas';
 
 export interface LigazonNav { href: string; texto: string }
 export interface ItemNav extends LigazonNav { fillos: LigazonNav[] }
@@ -40,8 +40,9 @@ function resolverMenu(m: Menu, lista: PaxinaLibre[], anos: { id: string; ano: nu
   });
 }
 
-export async function navegacion(): Promise<{ menu: ItemNav[]; pe: LigazonNav[]; legais: LigazonNav[]; boton?: LigazonNav }> {
-  const [e, ms] = await Promise.all([estrutura(), menus()]);
+export async function navegacion(previa?: Estrutura): Promise<{ menu: ItemNav[]; pe: LigazonNav[]; legais: LigazonNav[]; boton?: LigazonNav }> {
+  // previa: estrutura aínda sen gardar (vista previa do panel)
+  const [e, ms] = await Promise.all([previa ?? estrutura(), menus()]);
   const buscar = (id?: string) => (id ? ms.find((m) => m.id === id) : undefined);
   const mCab = buscar(e.cabeceira.menu);
   const mPe = buscar(e.pe.menu);

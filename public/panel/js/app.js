@@ -10,6 +10,7 @@ import { cabeceiraPe } from './estrutura.js';
 import { modelos } from './modelos.js';
 import { recursos } from './recursos.js';
 import { diagnostico } from './diagnostico.js';
+import { identidade } from './identidade.js';
 
 
 // O panel úsase só no dominio principal (as sesións son por dominio)
@@ -22,6 +23,7 @@ const app = document.getElementById('app');
 const menu = [
   { zona: null, items: [{ ruta: '', texto: 'Resumo', icona: '◔' }] },
   { zona: 'Contido', items: [
+    { ruta: 'identidade', texto: 'Identidade visual', icona: '◐', superadmin: true },
     { ruta: 'estrutura', texto: 'Cabeceira e pé', icona: '▤' },
     { ruta: 'paxinas', texto: 'Páxinas', icona: '⊞' },
     { ruta: 'menus', texto: 'Menús', icona: '☰' },
@@ -33,8 +35,8 @@ const menu = [
   ] },
   { zona: 'Sistema', items: [
     { ruta: 'admins', texto: 'Administración', icona: '👤', superadmin: true },
-    { ruta: 'axustes', texto: 'Axustes', icona: '⚙' },
-    { ruta: 'diagnostico', texto: 'Diagnóstico', icona: '✚' },
+    { ruta: 'axustes', texto: 'Axustes', icona: '⚙', superadmin: true },
+    { ruta: 'diagnostico', texto: 'Diagnóstico', icona: '✚', superadmin: true },
   ] },
 ];
 
@@ -59,18 +61,19 @@ function pintarMenu(ruta) {
   // As edicións editanse dentro de «Páxinas e edicións»
   const s0 = ruta.split('/')[0];
   const seccion = { edicions: 'paxinas', mensaxes: 'diagnostico' }[s0] ?? s0;
-  nav.replaceChildren(...menu.flatMap((z) => [
-    z.zona ? el('div', { class: 'nav-zona' }, z.zona) : null,
-    ...z.items.filter((i) => !i.superadmin || estado.admin.rol === 'superadmin').map((i) =>
+  nav.replaceChildren(...menu.flatMap((z) => {
+    const items = z.items.filter((i) => !i.superadmin || estado.admin.rol === 'superadmin');
+    return items.length ? [z.zona ? el('div', { class: 'nav-zona' }, z.zona) : null, ...items.map((i) =>
       el('a', { href: `#/${i.ruta}`, class: seccion === i.ruta ? 'activo' : '' },
         el('span', { 'aria-hidden': 'true' }, i.icona), i.texto,
-      )),
-  ]).filter(Boolean));
+      ))] : [];
+  }).filter(Boolean));
 }
 
 const rutas = {
   '': () => outras.inicio(main),
-  estrutura: () => cabeceiraPe(main),
+  identidade: () => identidade(main),
+  estrutura: (id) => cabeceiraPe(main, id),
   paxinas: (id) => paxinas(main, id),
   menus: (id) => menus(main, id),
   modelos: (id) => modelos(main, id),
@@ -101,6 +104,9 @@ async function navegar() {
   sucio.valor = false;
   rutaActual = ruta;
   const [seccion, id] = ruta.split('/');
+  // Apartados só para superadministración (o servidor tamén o comproba)
+  const so = new Set(['identidade', 'admins', 'axustes', 'diagnostico', 'mensaxes']);
+  if (so.has(seccion) && estado.admin.rol !== 'superadmin') { location.replace('#/'); return; }
   pintarMenu(ruta);
   main.className = 'main';
   main.replaceChildren(el('p', { class: 'muted' }, 'Cargando…'));

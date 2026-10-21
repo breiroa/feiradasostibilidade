@@ -4,7 +4,9 @@ import { ligazonContacto } from '../lib/contactos';
 import LogoGrid from './LogoGrid.astro';
 import { resolverEntidades } from '../lib/datos';
 import type { LigazonNav } from '../lib/navegacion';
-import { url } from '../lib/url';
+import type { Marca } from '../lib/identidade';
+import { ed, edItem, editando } from '../lib/editable';
+import Seccions from './seccions/Seccions.astro';
 
 interface Props {
   axustes: Axustes;
@@ -12,17 +14,31 @@ interface Props {
   mapa: Map<string, Entidade>;
   navegacion: LigazonNav[];
   legais: LigazonNav[];
+  marca: Marca;
+  editable?: boolean; // na vista previa do pé: os seus textos edítanse directamente
 }
 
-const { axustes: ax, estrutura: est, mapa, navegacion, legais } = Astro.props;
+const { axustes: ax, estrutura: est, mapa, navegacion, legais, marca, editable = false } = Astro.props;
+// Na vista previa doutra páxina, o pé vese pero non se edita
+const editar = editando(Astro.locals) && editable;
+const bloqueado = editando(Astro.locals) && !editable;
+const E = (r: string, t: 'texto' | 'area' | 'rico' = 'texto', ph?: string) => (editar ? ed(Astro.locals, r, t, ph) : {});
+const I = (r: string) => (editar ? edItem(Astro.locals, r) : {});
 const pe = est.pe;
-const grupos = pe.grupos.map((g) => ({ ...g, items: resolverEntidades(g.entidades, mapa) })).filter((g) => g.items.length > 0);
+const grupos = pe.grupos.map((g, n) => ({ ...g, n, items: resolverEntidades(g.entidades, mapa) })).filter((g) => g.items.length > 0);
 const premios = pe.premios ?? [];
 const contactos = (ax.contactos ?? []).map(ligazonContacto).filter((x): x is NonNullable<typeof x> => Boolean(x));
 const externa = (h: string) => /^https?:/i.test(h);
 ---
 
-<footer class="rodape">
+{
+  (est.seccions ?? []).length > 0 && (
+    <div class="pe-seccions" data-sen-edicion={bloqueado ? '' : undefined}>
+      <Seccions seccions={est.seccions} primeiraH1={false} />
+    </div>
+  )
+}
+<footer class="rodape" data-sec={editar ? '_pe' : undefined} data-sec-tipo={editar ? '_pe' : undefined} data-sen-edicion={bloqueado ? '' : undefined}>
   {
     (grupos.length > 0 || premios.length > 0) && (
       <div class="pe-claro">
@@ -30,10 +46,10 @@ const externa = (h: string) => /^https?:/i.test(h);
           {grupos.length > 0 && (
             <div class="grupos">
               {grupos.map((g) => (
-                <section class="grupo">
-                  <p class="grupo-titulo">{g.titulo}</p>
+                <section class="grupo" {...I(`pe.grupos.${g.n}`)}>
+                  <p class="grupo-titulo" {...E(`pe.grupos.${g.n}.titulo`)}>{g.titulo}</p>
                   <LogoGrid entidades={g.items} />
-                  {g.nota && <p class="nota">{g.nota}</p>}
+                  {(g.nota || editar) && <p class="nota" {...E(`pe.grupos.${g.n}.nota`, 'texto', 'Nota (opcional)')}>{g.nota}</p>}
                 </section>
               ))}
             </div>
@@ -42,8 +58,8 @@ const externa = (h: string) => /^https?:/i.test(h);
             <div class="premios">
               <p class="grupo-titulo">Recoñecementos</p>
               <ul>
-                {premios.map((p) => (
-                  <li>
+                {premios.map((p, n) => (
+                  <li {...I(`pe.premios.${n}`)}>
                     <svg class="loureiro" viewBox="0 0 48 48" aria-hidden="true">
                       <path d="M24 40c-7-2-12-8-13-16M24 40c7-2 12-8 13-16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                       <g fill="currentColor">
@@ -57,8 +73,8 @@ const externa = (h: string) => /^https?:/i.test(h);
                       <circle cx="24" cy="21" r="6" fill="currentColor" opacity=".25" />
                     </svg>
                     <span>
-                      <b>{p.ano}</b>
-                      {p.texto}
+                      <b {...E(`pe.premios.${n}.ano`)}>{p.ano}</b>
+                      <span {...E(`pe.premios.${n}.texto`, 'area')}>{p.texto}</span>
                     </span>
                   </li>
                 ))}
@@ -73,19 +89,19 @@ const externa = (h: string) => /^https?:/i.test(h);
   <div class="pe-escuro">
     <div class="contedor columnas">
       <div>
-        <p class="nome"><img src={url('logo-feira.png')} alt="" width="40" height="36" />Feira da <em>Sostibilidade</em></p>
-        {pe.texto && <p>{pe.texto}</p>}
+        {pe.mostrarMarca && <p class="nome"><img src={marca.logo} alt="" width="40" height="36" />{marca.antes} <em>{marca.destacado}</em></p>}
+        {(pe.texto || editar) && <p {...E('pe.texto', 'area', 'Texto do pé (opcional)')}>{pe.texto}</p>}
       </div>
       <nav aria-label="Pé de páxina">
-        <p class="etiqueta">{pe.tituloMenu}</p>
+        <p class="etiqueta" {...E('pe.tituloMenu')}>{pe.tituloMenu}</p>
         <ul>
           {navegacion.map((i) => <li><a href={i.href}>{i.texto}</a></li>)}
         </ul>
       </nav>
       {
-        contactos.length > 0 && (
+        pe.mostrarContactos && contactos.length > 0 && (
           <div>
-            <p class="etiqueta">{pe.tituloContactos}</p>
+            <p class="etiqueta" {...E('pe.tituloContactos')}>{pe.tituloContactos}</p>
             <ul>
               {contactos.map((k) => <li><a href={k.href} rel={externa(k.href) ? 'noopener' : undefined}>{k.texto}</a></li>)}
             </ul>
@@ -94,7 +110,7 @@ const externa = (h: string) => /^https?:/i.test(h);
       }
     </div>
     <div class="contedor legal">
-      {pe.licenzaCorpo && <p><Fragment set:html={pe.licenzaCorpo} /></p>}
+      {(pe.licenzaCorpo || editar) && <div class="licenza" {...E('pe.licenzaCorpo', 'rico', 'Licenza ou texto legal (opcional)')}><Fragment set:html={pe.licenzaCorpo} /></div>}
       <ul>
         {legais.map((l) => <li><a href={l.href}>{l.texto}</a></li>)}
       </ul>
@@ -123,6 +139,7 @@ const externa = (h: string) => /^https?:/i.test(h);
   .nome { display: flex; align-items: center; gap: 0.6rem; font-family: var(--serif); font-size: 1.4rem; font-weight: 700; color: var(--branco); margin-bottom: 0.8rem; }
   .nome em { color: var(--verde-medio); }
   .legal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; padding-top: 1.5rem; border-top: 1px solid rgb(255 255 255 / 0.1); font-size: 0.85rem; }
+  .licenza :global(p) { margin: 0; }
   .legal ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; }
   @media (max-width: 760px) {
     .columnas { grid-template-columns: 1fr; }
