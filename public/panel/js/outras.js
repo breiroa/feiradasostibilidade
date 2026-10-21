@@ -235,9 +235,9 @@ export async function inscricions(main) {
 // ───────────────── ADMINISTRACIÓN ─────────────────
 
 /** Copia a versión con deseño dun correo (HTML) para pegala no corpo dun correo novo */
-async function copiarDeseno(html) {
+async function copiarDeseno(html, texto) {
   try {
-    await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([html.replace(/<[^>]+>/g, ' ')], { type: 'text/plain' }) })]);
+    await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([texto], { type: 'text/plain' }) })]);
     return true;
   } catch {
     // Navegadores sen ClipboardItem: copiar a selección dun bloque co HTML
@@ -255,42 +255,127 @@ async function copiarDeseno(html) {
   }
 }
 
+// ── Ficheiro .eml: un correo novo (sen enviar) co deseño e as imaxes dentro ──
+// Outlook ábreo directamente como correo novo listo para enviar (cabeceira X-Unsent).
+const enBase64 = (bytes) => {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s).replace(/.{76}/g, '$&\r\n');
+};
+const textoBase64 = (t) => enBase64(new TextEncoder().encode(t));
+const cabeceiraUtf8 = (t) => `=?UTF-8?B?${textoBase64(t).replace(/\r\n/g, '')}?=`;
+// Imaxes da plantilla que van dentro do correo (así vense sempre, sen «descargar imaxes»)
+const IMAXES_CORREO = [
+  { ruta: '/logo-feira.png', fonte: '/media/logo-feira-da-sostibilidade/m', cid: 'logo@feiradasostibilidade', tipo: 'image/png', nome: 'logo-feira.png' },
+  { ruta: '/correo/cabeceira.jpg', cid: 'cabeceira@feiradasostibilidade', tipo: 'image/jpeg', nome: 'feira.jpg' },
+];
+
+async function ficheiroEml(r) {
+  const { asunto, texto } = r.correo;
+  let html = r.correo.html;
+  const anexos = [];
+  for (const im of IMAXES_CORREO) {
+    const url = `https://feiradasostibilidade.com${im.ruta}`;
+    if (!html.includes(url)) continue;
+    try {
+      // Versión pequena do logo se existe na biblioteca (o correo pesa menos)
+      let resp = im.fonte ? await fetch(im.fonte) : null;
+      if (!resp?.ok) resp = await fetch(im.ruta);
+      if (!resp.ok) continue;
+      anexos.push({ ...im, datos: enBase64(new Uint8Array(await resp.arrayBuffer())) });
+      html = html.split(url).join(`cid:${im.cid}`);
+    } catch { /* sen a imaxe: queda a ligazón á web */ }
+  }
+  const alt = `alt-${Math.random().toString(36).slice(2)}`;
+  const rel = `rel-${Math.random().toString(36).slice(2)}`;
+  const para = r.nome ? `${cabeceiraUtf8(r.nome)} <${r.email}>` : r.email;
+  const partes = [
+    'X-Unsent: 1',
+    `To: ${para}`,
+    `Subject: ${cabeceiraUtf8(asunto)}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${alt}"`,
+    '',
+    `--${alt}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    textoBase64(texto),
+    `--${alt}`,
+    `Content-Type: multipart/related; boundary="${rel}"; type="text/html"`,
+    '',
+    `--${rel}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    textoBase64(html),
+    ...anexos.flatMap((a) => [
+      `--${rel}`,
+      `Content-Type: ${a.tipo}; name="${a.nome}"`,
+      'Content-Transfer-Encoding: base64',
+      `Content-ID: <${a.cid}>`,
+      `Content-Disposition: inline; filename="${a.nome}"`,
+      '',
+      a.datos,
+    ]),
+    `--${rel}--`,
+    `--${alt}--`,
+    '',
+  ];
+  return new Blob([partes.join('\r\n')], { type: 'message/rfc822' });
+}
+
+async function descargarEml(r) {
+  const blob = await ficheiroEml(r);
+  const a = el('a', { href: URL.createObjectURL(blob), download: `${(r.correo.asunto.startsWith('Benvida') ? 'benvida' : 'convite')}-${(r.nome || r.email).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.eml` });
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+
 /** Mostra unha mensaxe (convite, benvida…) lista para enviar desde o correo de quen está no panel */
 function enviarDesdeCorreo(r, titulo) {
   const { asunto, html, texto } = r.correo;
   const q = encodeURIComponent;
-  const destinos = {
-    gmail: `https://mail.google.com/mail/?view=cm&fs=1&to=${q(r.email)}&su=${q(asunto)}&body=${q(texto)}`,
-    outlook: `https://outlook.office.com/mail/deeplink/compose?to=${q(r.email)}&subject=${q(asunto)}&body=${q(texto)}`,
-    programa: `mailto:${r.email}?subject=${q(asunto)}&body=${q(texto)}`,
+  // Gmail e Outlook na web non admiten deseño desde fóra: ábrense co corpo baleiro para pegar o deseño copiado
+  const web = (onde, corpo) => (onde === 'gmail'
+    ? `https://mail.google.com/mail/?view=cm&fs=1&to=${q(r.email)}&su=${q(asunto)}${corpo ? `&body=${q(corpo)}` : ''}`
+    : `https://outlook.office.com/mail/deeplink/compose?to=${q(r.email)}&subject=${q(asunto)}${corpo ? `&body=${q(corpo)}` : ''}`);
+  const pista = el('div', { class: 'okbox correo-pista', hidden: true });
+  const amosar = (...fillos) => { pista.hidden = false; pista.replaceChildren(...fillos); };
+
+  const abrirPrograma = async () => {
+    await descargarEml(r);
+    amosar(el('b', {}, 'Descargouse o correo con deseño.'), ' Ábreo (está en Descargas): en Outlook ábrese como correo novo para ', el('b', {}, r.email), ', co asunto e o deseño. Só tes que premer ', el('b', {}, 'Enviar'), '.',
+      el('br'), el('small', {}, 'Se o teu programa o abre como mensaxe recibida, usa «Editar como novo» ou «Reenviar» e cambia o destinatario.'));
   };
-  const pista = el('div', { class: 'okbox', hidden: true });
-  const abrir = async (onde) => {
-    const copiado = await copiarDeseno(html);
-    if (onde === 'programa') location.href = destinos.programa;
-    else window.open(destinos[onde], '_blank', 'noopener');
-    pista.hidden = false;
-    pista.replaceChildren(
-      el('b', {}, 'Abriuse un correo novo xa escrito para ', r.email, '. '),
-      copiado
-        ? el('span', {}, 'Leva o texto simple. Para enviar a versión con deseño (logo, foto e botón): preme no texto do correo, selecciona todo (Ctrl+A) e pega (Ctrl+V). Despois, Enviar.')
-        : el('span', {}, 'Revísao e preme Enviar.'));
+  const abrirWeb = async (onde) => {
+    const copiado = await copiarDeseno(html, texto);
+    window.open(web(onde, copiado ? '' : texto), '_blank', 'noopener');
+    if (copiado) amosar(el('b', {}, 'Abriuse un correo novo para ', r.email, ' co asunto xa posto.'), ' O deseño está copiado: preme no corpo do correo e pega con ', el('b', {}, 'Ctrl+V'), '. Despois, Enviar.');
+    else amosar(el('b', {}, 'Abriuse un correo novo co texto do convite.'), ' Non se puido copiar o deseño neste navegador: podes envialo así ou usar «Outlook ou programa de correo».');
   };
+
   // Sen sandbox: así as imaxes da propia web cárganse coa CSP do panel ('self'); o HTML é noso (os nomes van escapados)
   const vista = el('iframe', { class: 'correo-vista', title: 'Así se verá o correo con deseño', srcdoc: html });
   const md = modal(titulo, el('div', {},
     r.enviado ? el('div', { class: 'okbox' }, `✉ Xa se lle enviou automaticamente a ${r.email}. Se non lle chega (mira no spam), envíao tamén desde o teu correo:`) : null,
     el('p', {}, 'Para: ', el('b', {}, r.nome ? `${r.nome} <${r.email}>` : r.email), el('br'), 'Asunto: ', el('b', {}, asunto)),
-    el('div', { class: 'correo-botons' },
-      el('button', { class: 'btn', type: 'button', onclick: () => abrir('gmail') }, 'Abrir en Gmail'),
-      el('button', { class: 'btn-ghost', type: 'button', onclick: () => abrir('outlook') }, 'Abrir en Outlook'),
-      el('button', { class: 'btn-ghost', type: 'button', onclick: () => abrir('programa') }, 'Programa de correo do ordenador')),
+    el('div', { class: 'correo-opcions' },
+      el('button', { class: 'correo-opcion', type: 'button', onclick: abrirPrograma },
+        el('b', {}, '✉ Outlook ou programa de correo'), el('small', {}, 'Descarga o correo xa feito, co deseño. Ábreo e preme Enviar.')),
+      el('button', { class: 'correo-opcion', type: 'button', onclick: () => abrirWeb('gmail') },
+        el('b', {}, 'Gmail'), el('small', {}, 'Ábrese o correo; pega o deseño con Ctrl+V.')),
+      el('button', { class: 'correo-opcion', type: 'button', onclick: () => abrirWeb('outlook') },
+        el('b', {}, 'Outlook na web'), el('small', {}, 'Microsoft 365 / correo da Xunta; pega o deseño con Ctrl+V.'))),
     pista,
-    el('details', { class: 'correo-detalles', open: true }, el('summary', {}, 'Ver o correo con deseño'), vista,
-      el('button', { class: 'btn-mini', type: 'button', onclick: async () => aviso(await copiarDeseno(html) ? 'Copiado: pégao no corpo dun correo (Ctrl+V)' : 'Non se puido copiar', false) }, 'Copiar a versión con deseño')),
-    r.ligazon ? el('details', { class: 'correo-detalles' }, el('summary', {}, 'Só a ligazón (para WhatsApp, Teams…)'),
-      el('div', { class: 'ligazon-copiar' }, el('input', { type: 'text', value: r.ligazon, readOnly: true, onfocus: (e) => e.target.select() }), el('button', { class: 'btn', type: 'button', onclick: () => copiar(r.ligazon) }, 'Copiar')),
-      el('p', { class: 'muted' }, 'Vale durante 7 días e só se pode usar unha vez.')) : null), {
+    el('details', { class: 'correo-detalles', open: true }, el('summary', {}, 'Así se verá o correo'), vista),
+    el('details', { class: 'correo-detalles' }, el('summary', {}, 'Outras opcións'),
+      el('div', { class: 'correo-botons' },
+        el('a', { class: 'btn-mini', href: `mailto:${r.email}?subject=${q(asunto)}&body=${q(texto)}` }, 'Abrir só co texto (sen deseño)'),
+        el('button', { class: 'btn-mini', type: 'button', onclick: async () => aviso(await copiarDeseno(html, texto) ? 'Deseño copiado: pégao no corpo dun correo (Ctrl+V)' : 'Non se puido copiar', false) }, 'Copiar o deseño')),
+      r.ligazon ? el('div', {}, el('p', { class: 'muted' }, 'Só a ligazón (para WhatsApp, Teams…). Vale durante 7 días e só se pode usar unha vez:'),
+        el('div', { class: 'ligazon-copiar' }, el('input', { type: 'text', value: r.ligazon, readOnly: true, onfocus: (e) => e.target.select() }), el('button', { class: 'btn', type: 'button', onclick: () => copiar(r.ligazon) }, 'Copiar'))) : null)), {
     ancho: true,
     botons: [el('button', { class: 'btn-ghost', type: 'button', onclick: () => md.pechar() }, 'Feito')],
   });
