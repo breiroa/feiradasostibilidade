@@ -233,40 +233,97 @@ export async function inscricions(main) {
 }
 
 // ───────────────── ADMINISTRACIÓN ─────────────────
+
+/** Copia a versión con deseño dun correo (HTML) para pegala no corpo dun correo novo */
+async function copiarDeseno(html) {
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([html.replace(/<[^>]+>/g, ' ')], { type: 'text/plain' }) })]);
+    return true;
+  } catch {
+    // Navegadores sen ClipboardItem: copiar a selección dun bloque co HTML
+    const caixa = el('div', { contenteditable: 'true', style: { position: 'fixed', left: '-9999px', top: '0' } });
+    caixa.innerHTML = html.replace(/^[\s\S]*<body[^>]*>|<\/body>[\s\S]*$/g, '');
+    document.body.append(caixa);
+    const r = document.createRange();
+    r.selectNodeContents(caixa);
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+    const ok = document.execCommand('copy');
+    getSelection().removeAllRanges();
+    caixa.remove();
+    return ok;
+  }
+}
+
+/** Mostra unha mensaxe (convite, benvida…) lista para enviar desde o correo de quen está no panel */
+function enviarDesdeCorreo(r, titulo) {
+  const { asunto, html, texto } = r.correo;
+  const q = encodeURIComponent;
+  const destinos = {
+    gmail: `https://mail.google.com/mail/?view=cm&fs=1&to=${q(r.email)}&su=${q(asunto)}&body=${q(texto)}`,
+    outlook: `https://outlook.office.com/mail/deeplink/compose?to=${q(r.email)}&subject=${q(asunto)}&body=${q(texto)}`,
+    programa: `mailto:${r.email}?subject=${q(asunto)}&body=${q(texto)}`,
+  };
+  const pista = el('div', { class: 'okbox', hidden: true });
+  const abrir = async (onde) => {
+    const copiado = await copiarDeseno(html);
+    if (onde === 'programa') location.href = destinos.programa;
+    else window.open(destinos[onde], '_blank', 'noopener');
+    pista.hidden = false;
+    pista.replaceChildren(
+      el('b', {}, 'Abriuse un correo novo xa escrito para ', r.email, '. '),
+      copiado
+        ? el('span', {}, 'Leva o texto simple. Para enviar a versión con deseño (logo, foto e botón): preme no texto do correo, selecciona todo (Ctrl+A) e pega (Ctrl+V). Despois, Enviar.')
+        : el('span', {}, 'Revísao e preme Enviar.'));
+  };
+  // Sen sandbox: así as imaxes da propia web cárganse coa CSP do panel ('self'); o HTML é noso (os nomes van escapados)
+  const vista = el('iframe', { class: 'correo-vista', title: 'Así se verá o correo con deseño', srcdoc: html });
+  const md = modal(titulo, el('div', {},
+    r.enviado ? el('div', { class: 'okbox' }, `✉ Xa se lle enviou automaticamente a ${r.email}. Se non lle chega (mira no spam), envíao tamén desde o teu correo:`) : null,
+    el('p', {}, 'Para: ', el('b', {}, r.nome ? `${r.nome} <${r.email}>` : r.email), el('br'), 'Asunto: ', el('b', {}, asunto)),
+    el('div', { class: 'correo-botons' },
+      el('button', { class: 'btn', type: 'button', onclick: () => abrir('gmail') }, 'Abrir en Gmail'),
+      el('button', { class: 'btn-ghost', type: 'button', onclick: () => abrir('outlook') }, 'Abrir en Outlook'),
+      el('button', { class: 'btn-ghost', type: 'button', onclick: () => abrir('programa') }, 'Programa de correo do ordenador')),
+    pista,
+    el('details', { class: 'correo-detalles', open: true }, el('summary', {}, 'Ver o correo con deseño'), vista,
+      el('button', { class: 'btn-mini', type: 'button', onclick: async () => aviso(await copiarDeseno(html) ? 'Copiado: pégao no corpo dun correo (Ctrl+V)' : 'Non se puido copiar', false) }, 'Copiar a versión con deseño')),
+    r.ligazon ? el('details', { class: 'correo-detalles' }, el('summary', {}, 'Só a ligazón (para WhatsApp, Teams…)'),
+      el('div', { class: 'ligazon-copiar' }, el('input', { type: 'text', value: r.ligazon, readOnly: true, onfocus: (e) => e.target.select() }), el('button', { class: 'btn', type: 'button', onclick: () => copiar(r.ligazon) }, 'Copiar')),
+      el('p', { class: 'muted' }, 'Vale durante 7 días e só se pode usar unha vez.')) : null), {
+    ancho: true,
+    botons: [el('button', { class: 'btn-ghost', type: 'button', onclick: () => md.pechar() }, 'Feito')],
+  });
+}
+
 export async function admins(main) {
   const { items } = await api('admins');
   const estados = { activa: ['Activa', 'verde'], 'sen-2fa': ['Sen 2FA', 'aviso'], convidada: ['Convite pendente', 'morado'] };
-  const mostrarLigazon = (titulo, ligazon, texto, r = {}) => {
-    const md = modal(titulo, el('div', {},
-      r.enviado ? el('div', { class: 'okbox' }, `✉ Enviámoslle un correo a ${r.email} coa ligazón. Se non lle chega (mira no spam), podes copiala aquí:`) : el('p', {}, texto),
-      el('div', { class: 'ligazon-copiar' }, el('input', { type: 'text', value: ligazon, readOnly: true, onfocus: (e) => e.target.select() }), el('button', { class: 'btn', type: 'button', onclick: () => copiar(ligazon) }, 'Copiar')),
-      el('p', { class: 'muted', style: { marginTop: '12px' } }, r.enviado ? 'A ligazón vale durante 7 días e só se pode usar unha vez.' : 'A ligazón vale durante 7 días e só se pode usar unha vez. Envíaa ti por correo ou mensaxe (o envío automático de correos non está activado: ver Diagnóstico).')), {
-      botons: [el('button', { class: 'btn-ghost', type: 'button', onclick: () => md.pechar() }, 'Feito')],
-    });
-  };
-  const convidar = () => {
-    const d = { nome: '', email: '', rol: 'admin' };
+  const convidar = (rol) => {
+    const d = { nome: '', email: '', rol };
     const erros = el('div');
-    const md = modal('Convidar a unha persoa', el('div', {}, erros, c.texto(d, 'nome', 'Nome', { obrig: true }), c.texto(d, 'email', 'Correo', { tipo: 'email', obrig: true }),
-      c.escolla(d, 'rol', 'Permisos', [{ valor: 'admin', texto: 'Edición' }, { valor: 'superadmin', texto: 'Superadministración' }]),
-      el('div', { class: 'roles-axuda' },
-        el('p', {}, el('b', {}, 'Edición: '), 'páxinas, menús, modelos, cabeceira e pé, noticias, recursos, ecosistema e biblioteca de fotos.'),
-        el('p', {}, el('b', {}, 'Superadministración: '), 'todo o anterior e, ademais, persoas (convites e permisos), identidade visual, axustes, diagnóstico, mensaxes do formulario e copias. Recomendado só para 2 ou 3 persoas.')),
-      el('p', { class: 'muted' }, 'Recibirá un correo coa ligazón para activar a conta: escollerá o contrasinal e configurará a verificación en dous pasos. Ao rematar, recibirá outro correo de benvida.')), {
+    const md = modal(rol === 'superadmin' ? 'Convite de superadministración' : 'Convite de edición', el('div', {}, erros,
+      c.texto(d, 'nome', 'Nome', { obrig: true }), c.texto(d, 'email', 'Correo da persoa', { tipo: 'email', obrig: true }),
+      el('div', { class: 'roles-axuda' }, rol === 'superadmin'
+        ? el('p', {}, el('b', {}, 'Superadministración: '), 'contidos e, ademais, persoas (convites e permisos), identidade visual, axustes, diagnóstico, mensaxes do formulario e copias. Recomendado só para 2 ou 3 persoas.')
+        : el('p', {}, el('b', {}, 'Edición: '), 'páxinas, menús, modelos, cabeceira e pé, noticias, recursos, ecosistema e biblioteca de fotos.')),
+      el('p', { class: 'muted' }, 'No seguinte paso ábrese o teu correo co convite xa escrito para envialo ti.')), {
       botons: [el('button', { class: 'btn-ghost', type: 'button', onclick: () => md.pechar() }, 'Cancelar'),
         el('button', { class: 'btn', type: 'button', onclick: async () => {
           try {
             const r = await api('admins', { metodo: 'POST', datos: { accion: 'convidar', ...d } });
             md.pechar();
-            mostrarLigazon(r.enviado ? 'Convite enviado' : 'Convite creado', r.ligazon, `Envíalle esta ligazón a ${d.nome}. Ao abrila definirá o seu contrasinal e activará a verificación en dous pasos.`, r);
+            enviarDesdeCorreo(r, 'Convite listo para enviar');
             admins(main);
           } catch (e) { erros.replaceChildren(caixaErros(e.erros)); }
-        } }, 'Enviar convite')],
+        } }, 'Preparar o convite')],
     });
   };
   const accion = async (a, datos, mensaxe) => { const r = await gardar(() => api('admins', { metodo: 'POST', datos: { accion: a, ...datos } }), { mensaxe }); return r; };
   main.replaceChildren(
-    cab('Administración', 'Quen pode entrar no panel. Edición: contidos e fotos. Superadministración: ademais, persoas, identidade, axustes e diagnóstico. Todas as persoas teñen verificación en dous pasos obrigatoria.', el('button', { class: 'btn', type: 'button', onclick: convidar }, '+ Convidar')),
+    cab('Administración', 'Quen pode entrar no panel. Edición: contidos e fotos. Superadministración: ademais, persoas, identidade, axustes e diagnóstico. Todas as persoas teñen verificación en dous pasos obrigatoria.', el('div', { class: 'accions' },
+      el('button', { class: 'btn', type: 'button', onclick: () => convidar('admin') }, '✉ Convite admin'),
+      el('button', { class: 'btn-ghost', type: 'button', onclick: () => convidar('superadmin') }, '✉ Convite superadmin'))),
     el('div', { class: 'tbl-wrap' }, el('table', { class: 'tbl' },
       el('thead', {}, el('tr', {}, ['Persoa', 'Permisos', 'Estado', 'Último acceso', ''].map((t) => el('th', {}, t)))),
       el('tbody', {}, items.map((a) => {
@@ -278,7 +335,8 @@ export async function admins(main) {
           el('td', {}, el('span', { class: `pill ${cor}` }, et)),
           el('td', { class: 'muted' }, a.ultimoAcceso ? dataCurta(a.ultimoAcceso) : '—'),
           el('td', {}, el('div', { class: 'accions' },
-            el('button', { class: 'btn-mini', type: 'button', title: 'Xera unha ligazón para definir (ou recuperar) o contrasinal', onclick: async () => { const r = await accion('novo-convite', { id: a.id }, null); mostrarLigazon('Ligazón de acceso', r.ligazon, `Envíalle esta ligazón a ${a.nome} para que defina un contrasinal novo.`, r); } }, 'Ligazón de acceso'),
+            el('button', { class: 'btn-mini', type: 'button', title: 'Xera unha ligazón para definir (ou recuperar) o contrasinal', onclick: async () => { const r = await accion('novo-convite', { id: a.id }, null); enviarDesdeCorreo(r, a.estado === 'convidada' ? 'Novo convite' : 'Ligazón para un contrasinal novo'); } }, a.estado === 'convidada' ? 'Reenviar convite' : 'Ligazón de acceso'),
+            a.estado !== 'convidada' ? el('button', { class: 'btn-mini', type: 'button', title: 'Correo de benvida, coa ligazón ao panel', onclick: async () => { const r = await accion('benvida', { id: a.id }, null); enviarDesdeCorreo(r, 'Correo de benvida'); } }, 'Benvida') : null,
             !eu && a.estado === 'activa' ? el('button', { class: 'btn-mini', type: 'button', onclick: async () => { if (await confirmar(`Restablecer a verificación en dous pasos de ${a.nome}? Terá que configurala de novo ao entrar.`, { boton: 'Restablecer', perigo: false })) { await accion('restablecer-2fa', { id: a.id }, '2FA restablecido'); admins(main); } } }, 'Restablecer 2FA') : null,
             !eu ? el('button', { class: 'btn-mini', type: 'button', onclick: async () => { await accion('rol', { id: a.id, rol: a.rol === 'superadmin' ? 'admin' : 'superadmin' }, 'Permisos cambiados'); admins(main); } }, a.rol === 'superadmin' ? 'Pasar a edición' : 'Facer superadmin') : null,
             !eu ? el('button', { class: 'icobtn perigo', type: 'button', title: 'Quitar acceso', onclick: async () => { if (await confirmar(`Quitar o acceso de ${a.nome}?`)) { await gardar(() => api('admins', { metodo: 'DELETE', datos: { id: a.id } }), { mensaxe: 'Acceso quitado' }); admins(main); } } }, '🗑') : null)));

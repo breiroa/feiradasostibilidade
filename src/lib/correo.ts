@@ -65,39 +65,75 @@ export async function enviar({ para, nome, asunto, html, responderA }: { para: s
 }
 
 // ── Correos concretos ──
+// Cada mensaxe ten versión con deseño (html) e en texto simple (texto): o panel tamén as usa para que a persoa
+// as envíe desde o seu propio correo cando o envío automático non está activado.
+export interface Mensaxe { asunto: string; html: string; texto: string }
+const primeiro = (nome: string) => nome.trim().split(/\s+/)[0];
+const PE_TEXTO = ['', 'Feira da Sostibilidade · IES Luís Seoane', WEB];
+const ROL_TEXTO = {
+  superadmin: 'Tes permisos de superadministración: ademais dos contidos, podes xestionar as persoas, os axustes, a identidade visual e o diagnóstico da web.',
+  admin: 'Podes xestionar páxinas, menús, noticias, recursos, fotos e logos. Os cambios vense na web ao gardar.',
+};
 
-export const enviarConvite = (para: string, nome: string, ligazon: string, superadmin: boolean) =>
-  enviar({
-    para, nome,
-    asunto: 'Convite ao panel da Feira da Sostibilidade',
+export function mensaxeConvite(nome: string, ligazon: string, superadmin: boolean): Mensaxe {
+  const pasos = 'escollerás o teu contrasinal e configurarás a verificación en dous pasos co teu teléfono (con Google Authenticator, Microsoft Authenticator ou similar).';
+  const nota = 'A ligazón vale durante 7 días e só se pode usar unha vez. Se non esperabas este correo, podes ignoralo.';
+  return {
+    asunto: `Convite ao panel da Feira da Sostibilidade${superadmin ? ' (superadministración)' : ''}`,
     html: plantilla({
-      titulo: `Ola, ${nome.split(' ')[0]}!`,
-      parrafos: [
-        `Convidámoste a xestionar a web da <b>Feira da Sostibilidade</b>${superadmin ? ' con permisos de <b>superadministración</b>' : ''}.`,
-        'Para activar a túa conta, preme o botón: escollerás o teu contrasinal e configurarás a verificación en dous pasos co teu teléfono (con Google Authenticator, Microsoft Authenticator ou similar).',
-      ],
+      titulo: `Ola, ${primeiro(nome)}!`,
+      parrafos: [`Convidámoste a xestionar a web da <b>Feira da Sostibilidade</b>${superadmin ? ' con permisos de <b>superadministración</b>' : ''}.`, `Para activar a túa conta, preme o botón: ${pasos}`],
       boton: { texto: 'Activar a miña conta', url: ligazon },
-      nota: 'A ligazón vale durante 7 días e só se pode usar unha vez. Se non esperabas este correo, podes ignoralo.',
+      nota,
     }),
-  });
+    texto: [
+      `Ola, ${primeiro(nome)}!`, '',
+      `Convidámoste a xestionar a web da Feira da Sostibilidade${superadmin ? ' con permisos de superadministración' : ''}.`, '',
+      `Para activar a túa conta, abre esta ligazón: ${pasos}`, '',
+      ligazon, '',
+      nota, ...PE_TEXTO,
+    ].join('\n'),
+  };
+}
 
-export const enviarBenvida = (para: string, nome: string, superadmin: boolean) =>
-  enviar({
-    para, nome,
+/** Para unha conta que xa existía: definir un contrasinal novo (p. ex. se o esqueceu) */
+export function mensaxeAcceso(nome: string, ligazon: string): Mensaxe {
+  const texto = 'Aquí tes a ligazón para escoller un contrasinal novo para o panel da Feira da Sostibilidade. Despois entrarás co código da aplicación do teu teléfono, coma sempre.';
+  const nota = 'A ligazón vale durante 7 días e só se pode usar unha vez. Se non o pediches, avísanos.';
+  return {
+    asunto: 'Novo contrasinal para o panel da Feira da Sostibilidade',
+    html: plantilla({ titulo: `Ola, ${primeiro(nome)}!`, parrafos: [texto], boton: { texto: 'Escoller contrasinal', url: ligazon }, nota, foto: false }),
+    texto: [`Ola, ${primeiro(nome)}!`, '', texto, '', ligazon, '', nota, ...PE_TEXTO].join('\n'),
+  };
+}
+
+export function mensaxeBenvida(nome: string, superadmin: boolean): Mensaxe {
+  const rol = superadmin ? ROL_TEXTO.superadmin : ROL_TEXTO.admin;
+  return {
     asunto: 'Benvida ao panel da Feira da Sostibilidade',
     html: plantilla({
-      titulo: `Grazas por darte de alta, ${nome.split(' ')[0]}!`,
+      titulo: `Grazas por darte de alta, ${primeiro(nome)}!`,
       parrafos: [
         'A túa conta xa está activa e protexida coa verificación en dous pasos.',
-        superadmin
-          ? 'Tes permisos de <b>superadministración</b>: ademais dos contidos, podes xestionar as persoas, os axustes, a identidade visual e o diagnóstico da web.'
-          : 'Podes xestionar páxinas, menús, noticias, recursos, fotos e logos. Os cambios vense na web ao gardar.',
+        rol.replace('permisos de superadministración', 'permisos de <b>superadministración</b>'),
         'Para entrar, usa o teu correo, o contrasinal e o código da aplicación do teléfono.',
       ],
       boton: { texto: 'Ir ao panel', url: `${WEB}/panel/` },
       nota: 'Consello: garda o enderezo do panel nos marcadores do navegador.',
     }),
-  });
+    texto: [
+      `Grazas por darte de alta, ${primeiro(nome)}!`, '',
+      'A túa conta xa está activa e protexida coa verificación en dous pasos.', '', rol, '',
+      'Para entrar, usa o teu correo, o contrasinal e o código da aplicación do teléfono:', `${WEB}/panel/`, '',
+      'Consello: garda o enderezo do panel nos marcadores do navegador.', ...PE_TEXTO,
+    ].join('\n'),
+  };
+}
+
+const enviarMensaxe = (para: string, nome: string, m: Mensaxe) => enviar({ para, nome, asunto: m.asunto, html: m.html });
+export const enviarConvite = (para: string, nome: string, ligazon: string, superadmin: boolean) => enviarMensaxe(para, nome, mensaxeConvite(nome, ligazon, superadmin));
+export const enviarAcceso = (para: string, nome: string, ligazon: string) => enviarMensaxe(para, nome, mensaxeAcceso(nome, ligazon));
+export const enviarBenvida = (para: string, nome: string, superadmin: boolean) => enviarMensaxe(para, nome, mensaxeBenvida(nome, superadmin));
 
 const NOMES: Record<string, string> = { centro: 'Centro educativo', entidade: 'Entidade', prensa: 'Prensa', contacto: 'Pregunta' };
 export function enviarMensaxeFormulario(para: string, tipo: string, datos: Record<string, string>) {

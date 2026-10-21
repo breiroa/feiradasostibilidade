@@ -3,7 +3,7 @@ import type { APIRoute } from 'astro';
 import { db } from '../../../lib/datos';
 import { conAdmin, erro, json, lerJson } from '../../../lib/panel/api';
 import { sha256, token, type Admin } from '../../../lib/panel/seguridade';
-import { enviarConvite } from '../../../lib/correo';
+import { enviarAcceso, enviarConvite, mensaxeAcceso, mensaxeBenvida, mensaxeConvite } from '../../../lib/correo';
 
 export const prerender = false;
 
@@ -42,15 +42,24 @@ export const POST: APIRoute = conAdmin(
         const r = await db().prepare('INSERT INTO admins (nome, email, rol) VALUES (?, ?, ?)').bind(nome, email, rol).run();
         const ligazon = await novoConvite(Number(r.meta.last_row_id), url.origin);
         const enviado = await enviarConvite(email, nome, ligazon, rol === 'superadmin').catch(() => false);
-        return json({ ok: true, ligazon, enviado, email });
+        // A mensaxe vai tamén na resposta, para enviala desde o propio correo se o envío automático non está activado
+        return json({ ok: true, ligazon, enviado, email, nome, correo: mensaxeConvite(nome, ligazon, rol === 'superadmin') });
       }
       case 'novo-convite': {
         const a = await db().prepare('SELECT id, nome, email, rol, pass_hash FROM admins WHERE id = ?').bind(Number(b.id)).first<{ id: number; nome: string; email: string; rol: string; pass_hash: string | null }>();
         if (!a) return erro('Non existe.', 404);
         // Tamén serve para que alguén que esqueceu o contrasinal defina un novo
         const ligazon = await novoConvite(a.id, url.origin);
-        const enviado = await enviarConvite(a.email, a.nome, ligazon, a.rol === 'superadmin').catch(() => false);
-        return json({ ok: true, ligazon, enviado, email: a.email });
+        // Convite pendente: o convite de sempre; conta xa activa: ligazón para un contrasinal novo
+        const pendente = !a.pass_hash;
+        const correo = pendente ? mensaxeConvite(a.nome, ligazon, a.rol === 'superadmin') : mensaxeAcceso(a.nome, ligazon);
+        const enviado = await (pendente ? enviarConvite(a.email, a.nome, ligazon, a.rol === 'superadmin') : enviarAcceso(a.email, a.nome, ligazon)).catch(() => false);
+        return json({ ok: true, ligazon, enviado, email: a.email, nome: a.nome, correo });
+      }
+      case 'benvida': {
+        const a = await db().prepare('SELECT nome, email, rol FROM admins WHERE id = ?').bind(Number(b.id)).first<{ nome: string; email: string; rol: string }>();
+        if (!a) return erro('Non existe.', 404);
+        return json({ ok: true, email: a.email, nome: a.nome, correo: mensaxeBenvida(a.nome, a.rol === 'superadmin') });
       }
       case 'restablecer-2fa': {
         await db().batch([
